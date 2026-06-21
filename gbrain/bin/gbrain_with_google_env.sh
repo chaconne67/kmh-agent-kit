@@ -31,4 +31,5 @@ export GOOGLE_GENERATIVE_AI_API_KEY="$gemini_key"
 export PATH="$bun_bin:$PATH"
 unset DATABASE_URL OPENAI_API_KEY OPENROUTER_API_KEY
 
+cd "${GBRAIN_SAFE_CWD:-$home_dir}"
 exec "$gbrain_cli" "$@"

@@ -28,6 +28,7 @@ python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
 - `gbrain/systemd/`: GBrain HTTP MCP 서버와 일일 distillation timer
 - `manifests/`: 커스텀 스킬과 베이스 스킬 의존관계
 - `docs/`: 새 서버 온보딩, GBrain 운영 방식, 트러블슈팅
+- `docs/exdigm-gbrain-knowledge-base.md`: Exdigm 프로젝트 지식 베이스와 code_map 연계 규칙
 
 ## What Is Not Included
 

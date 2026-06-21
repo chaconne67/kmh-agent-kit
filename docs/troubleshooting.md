@@ -26,7 +26,7 @@ curl -fsSL https://bun.sh/install | bash
 ~/.gbrain/bin/gbrain_with_google_env.sh doctor --fast
 ```
 
-래퍼는 `DATABASE_URL`과 `OPENAI_API_KEY`를 제거합니다.
+래퍼는 `DATABASE_URL`과 `OPENAI_API_KEY`를 제거하고, GBrain 실행 전에 안전한 작업 디렉토리로 이동합니다. Exdigm 프로젝트 디렉토리에서 실행하면 Bun/GBrain이 현재 디렉토리의 `.env`를 다시 읽어 Exdigm DB URL이 섞일 수 있기 때문입니다.
 
 ## Embedding Is Disabled
 
