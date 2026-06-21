@@ -26,11 +26,31 @@ def installed_skill_names() -> set[str]:
     return {path.name for path in skills_dir.iterdir() if path.is_dir()}
 
 
+def base_dependency_available(item: dict[str, object]) -> bool:
+    kind = item.get("kind")
+    name = str(item["name"])
+    if kind == "system_skill":
+        return (CODEX_HOME / "skills" / ".system" / name / "SKILL.md").exists()
+    if kind == "plugin":
+        return resolve_codex_path(str(item.get("check_path", ""))).exists()
+    return name in installed_skill_names()
+
+
+def resolve_codex_path(raw_path: str) -> Path:
+    if raw_path.startswith("~/.codex/"):
+        return CODEX_HOME / raw_path.removeprefix("~/.codex/")
+    if raw_path.startswith("~/"):
+        return HOME / raw_path.removeprefix("~/")
+    return Path(raw_path)
+
+
 def main() -> int:
     custom = load_json(CUSTOM_MANIFEST)
-    base = {item["name"]: item for item in load_json(BASE_MANIFEST)}
+    base_items = load_json(BASE_MANIFEST)
+    base = {item["name"]: item for item in base_items}
     custom_names = {str(item["name"]) for item in custom}
     installed = installed_skill_names()
+    enabled_custom = installed | custom_names
     missing: list[dict[str, object]] = []
 
     for skill in custom:
@@ -65,6 +85,23 @@ def main() -> int:
                         "install_hint": "Add this dependency to manifests/base-skills.json or codex/skills.",
                     }
                 )
+
+    for item in base_items:
+        required_by = [str(name) for name in item.get("required_by", [])]
+        if not required_by:
+            continue
+        if not any(name in enabled_custom for name in required_by):
+            continue
+        if base_dependency_available(item):
+            continue
+        missing.append(
+            {
+                "skill": ", ".join(required_by),
+                "missing": item["name"],
+                "source": item.get("source"),
+                "install_hint": item.get("install_hint"),
+            }
+        )
 
     if missing:
         print(json.dumps({"ok": False, "missing": missing}, ensure_ascii=False, indent=2))

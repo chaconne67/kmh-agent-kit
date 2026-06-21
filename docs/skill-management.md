@@ -17,7 +17,7 @@
 python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
 ```
 
-누락된 베이스 스킬이 있으면 manifest의 `install_hint`를 따릅니다. Codex system skill은 보통 Codex에 기본 포함되므로 복사하지 않습니다.
+누락된 베이스 스킬이나 플러그인이 있으면 manifest의 `install_hint`를 따릅니다. Codex system skill은 보통 Codex에 기본 포함되므로 복사하지 않습니다.
 
 ## Multi-Server Workflow
 

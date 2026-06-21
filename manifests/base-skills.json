@@ -1,30 +1,36 @@
 [
   {
     "name": "skill-installer",
+    "kind": "system_skill",
     "source": "system skill: ~/.codex/skills/.system/skill-installer",
     "required_by": [],
     "install_hint": "Codex system skill. If absent, update/reinstall Codex or install from openai/skills .system only when explicitly needed."
   },
   {
     "name": "skill-creator",
+    "kind": "system_skill",
     "source": "system skill: ~/.codex/skills/.system/skill-creator",
     "required_by": [],
     "install_hint": "Codex system skill. If absent, update/reinstall Codex."
   },
   {
     "name": "imagegen",
+    "kind": "system_skill",
     "source": "system skill: ~/.codex/skills/.system/imagegen",
     "required_by": [],
     "install_hint": "Codex system skill. If absent, the UI image generation workflow is unavailable."
   },
   {
     "name": "openai-docs",
+    "kind": "system_skill",
     "source": "system skill: ~/.codex/skills/.system/openai-docs",
     "required_by": [],
     "install_hint": "Codex system skill. If absent, use official OpenAI docs manually as fallback."
   },
   {
     "name": "github plugin skills",
+    "kind": "plugin",
+    "check_path": "~/.codex/plugins/cache/openai-curated-remote/github",
     "source": "openai-curated-remote/github plugin",
     "required_by": [
       "code-review",
