@@ -1,0 +1,4 @@
+interface:
+  display_name: "Exdigm Design"
+  short_description: "Exdigm UI, UX, and visual system guide"
+  default_prompt: "Use $exdigm-design to work on Exdigm UI, UX, templates, or visual design."

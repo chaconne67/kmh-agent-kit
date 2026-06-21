@@ -1,0 +1,7 @@
+interface:
+  display_name: "Forge"
+  short_description: "Adversarial review for high-cost plans"
+  default_prompt: "Use $forge to adversarially review this plan and apply accepted changes directly to the source document."
+
+policy:
+  allow_implicit_invocation: true

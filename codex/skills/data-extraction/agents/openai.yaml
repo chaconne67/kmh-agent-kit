@@ -1,0 +1,4 @@
+interface:
+  display_name: "Data Extraction"
+  short_description: "Exdigm resume extraction pipeline guide"
+  default_prompt: "Use $data-extraction to inspect Exdigm resume extraction pipeline behavior."

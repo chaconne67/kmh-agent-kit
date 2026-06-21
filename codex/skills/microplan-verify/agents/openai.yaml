@@ -1,0 +1,4 @@
+interface:
+  display_name: "Microplan Verify"
+  short_description: "Verify code against plan intent."
+  default_prompt: "구현 검증: 계획 문서와 CONTEXT.md 기준으로 현재 구현을 점검하고 필요한 수정까지 해줘."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Full Review"
+  short_description: "Run a comprehensive multi-aspect PR review."
+  default_prompt: "Use $full-review to run a comprehensive review of these changes."

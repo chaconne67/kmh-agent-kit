@@ -1,0 +1,14 @@
+[Unit]
+Description=GBrain HTTP MCP server
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+EnvironmentFile=-%h/.gbrain/gbrain-http.env
+ExecStart=%h/.gbrain/bin/gbrain_http_with_google_env.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

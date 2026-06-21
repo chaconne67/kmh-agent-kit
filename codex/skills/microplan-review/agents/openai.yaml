@@ -1,0 +1,4 @@
+interface:
+  display_name: "Microplan Review"
+  short_description: "Tiny closure-focused plan review"
+  default_prompt: "이 구현 계획서를 microplan-review 기준으로 초간단 검증해줘."

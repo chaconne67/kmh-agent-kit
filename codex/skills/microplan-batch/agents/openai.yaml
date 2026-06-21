@@ -1,0 +1,4 @@
+interface:
+  display_name: "Microplan Batch"
+  short_description: "Sequential microplan execution with gates."
+  default_prompt: "microplan-batch: 이 계획문서 디렉토리를 순차 실행하고 각 문서 성격에 맞게 검증해줘."

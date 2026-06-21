@@ -1,0 +1,17 @@
+{
+  "embedding_model": "google:gemini-embedding-001",
+  "embedding_dimensions": 768,
+  "models": {
+    "dream": {
+      "synthesize_verdict": "openrouter:google/gemini-3-flash-preview",
+      "synthesize": "openrouter:google/gemini-3-flash-preview",
+      "patterns": "openrouter:google/gemini-3-flash-preview"
+    }
+  },
+  "dream": {
+    "synthesize": {
+      "enabled": true,
+      "session_corpus_dir": "~/.gbrain/transcripts/codex"
+    }
+  }
+}

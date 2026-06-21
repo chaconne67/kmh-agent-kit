@@ -1,0 +1,4 @@
+interface:
+  display_name: "Remote Execute"
+  short_description: "Run heavy repo jobs on a remote worker"
+  default_prompt: "Use $remote-execute to run this heavy batch on the remote worker and bring back the resulting commits."

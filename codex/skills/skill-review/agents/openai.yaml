@@ -1,0 +1,6 @@
+interface:
+  display_name: "Skill Review"
+  short_description: "스킬 문서 반복 점검과 수정"
+  default_prompt: "Use $skill-review to review and revise a Codex skill until prompt-guide and skill-writing-guide checks are clean."
+policy:
+  allow_implicit_invocation: true

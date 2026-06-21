@@ -1,0 +1,10 @@
+[Unit]
+Description=GBrain daily memory distillation report
+After=gbrain-http.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/.gbrain/bin/memory_distill.py generate
+WorkingDirectory=%h
+StandardOutput=append:%h/.gbrain/logs/memory-distill.log
+StandardError=append:%h/.gbrain/logs/memory-distill.log
