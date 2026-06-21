@@ -32,6 +32,7 @@ python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
 - `docs/exdigm-code-map-distillation.md`: raw code_map에서 GBrain용 distilled targeting map을 추리는 기준
 - `docs/exdigm-smart-targeting-index.md`: Exdigm 질문/증상별 code_map topic과 기존 재사용 경로 라우터
 - `docs/exdigm-agent-api-capability-catalog.md`: Agent API를 업무 capability catalog로 쓰는 기준
+- `docs/exdigm-agent-api-surface-distillation.md`: 164개 Agent API route를 Hermes public surface와 내부 step으로 정제하는 기준
 - `docs/exdigm-work-completion-gate.md`: Exdigm 코드 작업 완료 전 code_map/GBrain/재사용 확인 게이트
 - `docs/project-exdigm-*.md`: GBrain `project/exdigm-*` page의 repo 원본
 

@@ -17,11 +17,32 @@ Agent API는 route 목록이 아니라 Exdigm 업무 capability catalog다. Herm
 Agent가 route를 고르는 순서:
 
 1. 사용자 요청을 Exdigm 업무 capability로 번역한다.
-2. 필요한 장부를 모르면 `business.readonly_search`로 read-only 탐색한다.
-3. 읽기 capability와 쓰기 capability를 분리한다.
-4. write/high risk capability는 confirmation 정책을 확인한다.
-5. 삭제나 파괴적 route는 메뉴 workflow에 노출하지 않는다.
-6. route가 없으면 우회 코드를 만들지 말고 capability를 설계한다.
+2. `docs/exdigm-agent-api-surface-distillation.md`의 public surface 기준으로 lookup, standalone tool, workflow 중 하나를 고른다.
+3. 필요한 장부를 모르면 `business.readonly_search`로 read-only 탐색한다.
+4. 읽기 capability와 쓰기 capability를 분리한다.
+5. write/high risk capability는 confirmation 정책을 확인한다.
+6. 삭제나 파괴적 route는 메뉴 workflow에 노출하지 않는다.
+7. route가 없으면 우회 코드를 만들지 말고 capability를 설계한다.
+
+## Surface Distillation
+
+현재 Exdigm Agent API catalog는 164개 route를 생성한다. Hermes가 이 route를 모두 같은 수준의 선택지로 보면 웹 화면 버튼을 조작하는 Agent가 되기 쉽다.
+
+Agent-facing surface는 다음 5종으로 정제한다.
+
+| Class | Count | Policy |
+|---|---:|---|
+| `public_lookup` | 45 | 자주 쓰는 조회/context 확보 route |
+| `public_standalone_tool` | 8 | 이력서 생성처럼 독립 요청이 많은 도구 |
+| `public_workflow_entry` | 67 | workflow capability 안에서 노출할 주요 step |
+| `workflow_internal_step` | 33 | 단독 선택지로 노출하지 않는 부속 step |
+| `hidden_or_dangerous` | 11 | 삭제/offboard/owner-bind 같은 비노출 route |
+
+정확한 route 분류는 `manifests/exdigm-agent-api-surface.json`이 기준이다. 검증:
+
+```bash
+python3 scripts/validate-exdigm-agent-api-surface.py /home/chaconne/exdigm
+```
 
 ## Core Capabilities
 
