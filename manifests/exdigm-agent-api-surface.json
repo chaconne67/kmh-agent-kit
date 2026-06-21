@@ -26,7 +26,9 @@
       "application.recommendation_resume_generate",
       "project.matching_results",
       "project.posting_generate",
+      "project.posting_download",
       "project.submission_download",
+      "submission.draft_convert",
       "project.resume_status"
     ],
     "workflow_capabilities": [
