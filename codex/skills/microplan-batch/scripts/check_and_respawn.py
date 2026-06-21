@@ -167,6 +167,10 @@ def git_summary(repo_dir: Path) -> str:
     return result.stdout.strip()
 
 
+def task_commit(task: dict) -> str:
+    return task.get("task_commit") or task.get("merge_commit") or ""
+
+
 def progress_signature(data: dict) -> str:
     tasks = data.get("tasks") or []
     reported = []
@@ -177,7 +181,7 @@ def progress_signature(data: dict) -> str:
                 {
                     "slug": task.get("slug"),
                     "status": status,
-                    "merge_commit": task.get("merge_commit"),
+                    "task_commit": task_commit(task),
                     "reason": task.get("reason"),
                 }
             )
@@ -250,8 +254,9 @@ def fallback_report(data: dict, event: str) -> str:
     current = (running or pending or [{}])[0].get("slug") or "-"
     last_commit = ""
     for task in tasks:
-        if task.get("merge_commit"):
-            last_commit = task["merge_commit"]
+        commit = task_commit(task)
+        if commit:
+            last_commit = commit
     lines = [
         "microplan-batch 진행 보고",
         f"이벤트: {event}",
@@ -366,8 +371,9 @@ def terminal_body(data: dict, status: str) -> str:
     blocked = sum(1 for task in tasks if task.get("status") == "blocked")
     last_commit = ""
     for task in tasks:
-        if task.get("merge_commit"):
-            last_commit = task["merge_commit"]
+        commit = task_commit(task)
+        if commit:
+            last_commit = commit
     return "\n".join(
         [
             f"directory: {data.get('plan_dir') or ''}",
@@ -494,6 +500,7 @@ def check_once(plan_dir: Path, repo_dir: Path, cron_tag: str | None) -> int:
             except OSError:
                 pass
         data["codex_exec_flags"] = "--dangerously-bypass-approvals-and-sandbox"
+        flags = data["codex_exec_flags"]
         data["reason"] = (
             "codex exec --full-auto failed before local commands with "
             "bwrap/loopback sandbox setup error; periodic monitor switched this "

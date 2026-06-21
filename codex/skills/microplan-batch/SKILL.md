@@ -38,6 +38,7 @@ Minimal shape:
 ```json
 {
   "skill": "microplan-batch",
+  "batch_id": "microplan-batch-20260621-153000-example",
   "plan_dir": "docs/plans/example",
   "context_docs": ["CONTEXT.md"],
   "batch_status": "running",
@@ -70,6 +71,8 @@ Minimal shape:
 Task status values: `pending`, `running`, `completed`, `failed`, `skipped`, `blocked`.
 
 Batch status values: `running`, `complete`, `complete_with_failures`, `failed`, `blocked`.
+
+Set `batch_id` once when creating the progress file. Use `microplan-batch-{YYYYMMDD-HHMMSS}-{shortslug}`, where `shortslug` comes from the plan directory name with non-alphanumeric runs collapsed to `-`. Reuse the same `batch_id` for cron tags, lock files, temporary worktrees, and logs.
 
 `quality_observations` stores repeated failure signals across tasks. `compound_candidates` stores solved or important lessons that should be documented with the Superpowers `compound` skill when available.
 
@@ -175,65 +178,19 @@ echo $!
 
 Record the returned PID in `microplan-progress.json.last_pid`.
 
-Background mode defaults to `--dangerously-bypass-approvals-and-sandbox` because the user already asked for unattended execution, and some Linux/container environments make `codex exec --full-auto` fail before any local command can run. If the user explicitly overrides `CODEX_EXEC_FLAGS=--full-auto`, immediately after the first launch run a short sanity check for sandbox setup failure. This is needed because `codex exec --full-auto` can exit successfully at the CLI level while the agent failed every local command before updating `microplan-progress.json`:
+Background mode defaults to `--dangerously-bypass-approvals-and-sandbox` because the user already asked for unattended execution, and some Linux/container environments make `codex exec --full-auto` fail before any local command can run. If the user explicitly overrides `CODEX_EXEC_FLAGS=--full-auto`, run the bundled checker once immediately after the first launch. The checker owns sandbox fallback, respawn, memory guard, Telegram notification, and terminal cron cleanup.
 
 ```bash
 PLAN_DIR="{plan_dir}"
-pid="$(python3 - "$PLAN_DIR/microplan-progress.json" <<'"'"'PY'"'"'
+BATCH_ID="$(python3 - "$PLAN_DIR/microplan-progress.json" <<'"'"'PY'"'"'
 import json, sys
-print(json.load(open(sys.argv[1])).get("last_pid") or "")
+print(json.load(open(sys.argv[1])).get("batch_id") or "microplan-batch")
 PY
 )"
-
-for _ in 1 2 3 4 5 6; do
-  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-    sleep 5
-  else
-    break
-  fi
-done
-
-if grep -Eiq "bwrap: loopback|Failed RTM_NEWADDR|Operation not permitted" \
-  "$PLAN_DIR/logs/session.log" "$PLAN_DIR/logs/last-message.txt" 2>/dev/null; then
-  echo "$(date -Is) sandbox fallback: --full-auto failed; relaunching without codex sandbox" >> "$PLAN_DIR/logs/monitor.log"
-  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-    kill "$pid" 2>/dev/null || true
-  fi
-  CODEX_EXEC_FLAGS="--dangerously-bypass-approvals-and-sandbox"
-  python3 - "$PLAN_DIR/microplan-progress.json" "$CODEX_EXEC_FLAGS" <<'"'"'PY'"'"'
-import json, os, sys, tempfile
-path, flags = sys.argv[1], sys.argv[2]
-data = json.load(open(path))
-data["codex_exec_flags"] = flags
-data["reason"] = "codex exec --full-auto failed before local commands with bwrap/loopback sandbox setup error; background run relaunched with --dangerously-bypass-approvals-and-sandbox."
-fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), text=True)
-with os.fdopen(fd, "w") as f:
-    json.dump(data, f, indent=2, ensure_ascii=False)
-    f.write("\n")
-os.replace(tmp, path)
-PY
-  : > "$PLAN_DIR/logs/session.log"
-  : > "$PLAN_DIR/logs/last-message.txt"
-  setsid bash -c '
-codex exec --cd /path/to/repo $1 --json \
-  --output-last-message "$0/logs/last-message.txt" \
-  - < "$0/session-prompt.txt" \
-  > "$0/logs/session.log" 2>&1
-echo $? > "$0/logs/exit.code"
-' "$PLAN_DIR" "$CODEX_EXEC_FLAGS" </dev/null >/dev/null 2>&1 &
-  new_pid=$!
-  python3 - "$PLAN_DIR/microplan-progress.json" "$new_pid" <<'"'"'PY'"'"'
-import json, os, sys, tempfile
-path, pid = sys.argv[1], int(sys.argv[2])
-data = json.load(open(path))
-data["last_pid"] = pid
-fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), text=True)
-with os.fdopen(fd, "w") as f:
-    json.dump(data, f, indent=2, ensure_ascii=False)
-    f.write("\n")
-os.replace(tmp, path)
-PY
-fi
+python3 /home/chaconne/.codex/skills/microplan-batch/scripts/check_and_respawn.py \
+  --plan-dir /path/to/repo/$PLAN_DIR \
+  --repo-dir /path/to/repo \
+  --cron-tag "$BATCH_ID"
 ```
 
 Notes:
@@ -264,8 +221,8 @@ Use the bundled Python checker. It performs exactly one check and exits.
 
 ```bash
 PLAN_DIR="{plan_dir}"
-(crontab -l 2>/dev/null | grep -v "microplan-batch:{batch_id}"; \
-  echo "*/5 * * * * cd /path/to/repo && flock -n /tmp/microplan-batch-{batch_id}.lock python3 /home/chaconne/.codex/skills/microplan-batch/scripts/check_and_respawn.py --plan-dir /path/to/repo/$PLAN_DIR --repo-dir /path/to/repo --cron-tag microplan-batch:{batch_id} >> /path/to/repo/$PLAN_DIR/logs/cron.log 2>&1 # microplan-batch:{batch_id}") | crontab -
+(crontab -l 2>/dev/null | grep -v "{batch_id}"; \
+  echo "*/5 * * * * cd /path/to/repo && flock -n /tmp/{batch_id}.lock python3 /home/chaconne/.codex/skills/microplan-batch/scripts/check_and_respawn.py --plan-dir /path/to/repo/$PLAN_DIR --repo-dir /path/to/repo --cron-tag {batch_id} >> /path/to/repo/$PLAN_DIR/logs/cron.log 2>&1 # {batch_id}") | crontab -
 ```
 
 Rules:
@@ -279,7 +236,7 @@ Rules:
 - When sending progress, pass `microplan-progress.json`, recent logs, and recent git commits to an agent summarizer. Send the agent's concise Korean summary, not raw logs.
 - Record the last reported progress signature in `microplan-progress.json.notifications` so the same state is not reported repeatedly.
 - Remove the cron/systemd monitor entry after any terminal status: `complete`, `complete_with_failures`, `failed`, or `blocked`. Before removing it from a background session that directly wrote the terminal status, invoke `check_and_respawn.py --plan-dir ... --repo-dir ... --cron-tag ...` once so the terminal Telegram notification is emitted immediately instead of waiting for a cron tick that may never run. For `failed`, `complete_with_failures`, or `blocked`, leave the orchestration files but remove or disable the monitor entry.
-- Pass `--cron-tag microplan-batch:{batch_id}` to the checker so the next cron tick can remove its own entry if a terminal status is reached and the background session missed cleanup.
+- Pass `--cron-tag {batch_id}` to the checker so the next cron tick can remove its own entry if a terminal status is reached and the background session missed cleanup.
 
 ### Telegram Notification
 

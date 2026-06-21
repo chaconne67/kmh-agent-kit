@@ -115,7 +115,8 @@
     "description": "Use when the user says \"microplan-batch\", \"구현 배치\", \"계획문서 디렉토리 순차 구현\", or asks to sequentially execute microplan task documents from a directory.",
     "depends_on": [
       "microplan-implement",
-      "microplan-verify"
+      "microplan-verify",
+      "code-review-loop"
     ],
     "origin": "local-custom-or-wrapper",
     "install_target": "~/.codex/skills/microplan-batch"
@@ -133,10 +134,21 @@
   {
     "name": "microplan-review",
     "path": "codex/skills/microplan-review",
-    "description": "Ultra-light review for small implementation plan documents. Use when checking a micro plan, 완료형 구현 계획, phase plan under the microplan-write size limits, or when the user wants a simple plan validation without full Forge/4G adversarial review.",
+    "description": "Ultra-light review for one small implementation plan before implementation.",
     "depends_on": [],
     "origin": "local-custom-or-wrapper",
     "install_target": "~/.codex/skills/microplan-review"
+  },
+  {
+    "name": "microplan-review-batch",
+    "path": "codex/skills/microplan-review-batch",
+    "description": "Sequentially review multiple microplans with microplan-review, fix review findings, propagate each fix into later microplans, rerun affected reviews, then recheck the full microplan pipeline. Use when the user asks for \"microplan-review-batch\", \"마이크로플랜 리뷰 배치\", or wants cascading review of several microplan documents before implementation.",
+    "depends_on": [
+      "microplan-review",
+      "code-review-loop"
+    ],
+    "origin": "local-custom-or-wrapper",
+    "install_target": "~/.codex/skills/microplan-review-batch"
   },
   {
     "name": "microplan-verify",

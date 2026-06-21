@@ -1,6 +1,6 @@
 ---
 name: microplan-review
-description: Ultra-light review for small implementation plan documents. Use when checking a micro plan, 완료형 구현 계획, phase plan under the microplan-write size limits, or when the user wants a simple plan validation without full Forge/4G adversarial review.
+description: Ultra-light review for one small implementation plan before implementation.
 ---
 
 # Microplan Review
@@ -22,7 +22,7 @@ Before the four checks, identify the intent source:
 - If the user names an intent/context document, use that.
 - If the plan references a context/spec document, use that.
 - If no intent source is clear, ask one short question for the source document.
-- If the user wants to proceed without one, review only against the plan's own domain contract and state that limitation.
+- If the user wants to proceed without one, review only against the plan's own domain contract and write the limitation in the verdict line.
 
 ## Four Checks
 
@@ -53,6 +53,7 @@ Keep the answer short:
 
 ```text
 결론: PASS | FIX | ESCALATE
+범위: <intent source name> 기준 | 계획 자체 기준만 확인
 
 닫힘을 막는 문제:
 - ...
