@@ -1,0 +1,159 @@
+[
+  {
+    "domain": "hermes_agent_api",
+    "label": "헤르메스 에이전트 API",
+    "gbrain_pages": [
+      "reference/exdigm-smart-targeting-index",
+      "reference/exdigm-agent-api-capability-catalog",
+      "reference/exdigm-hermes-agent-usage-guide",
+      "project/exdigm-hermes-agents"
+    ],
+    "code_map_topics": [
+      "헤르메스 에이전트 API",
+      "권한·팀",
+      "Telegram 온보딩"
+    ],
+    "entrypoints": [
+      "accounts/urls_agent.py",
+      "accounts/agent_api/router.py",
+      "accounts/agent_capabilities/registry.yaml",
+      "accounts/agent_capabilities/coverage.yaml",
+      "accounts/agent_prompts/"
+    ],
+    "tests": [
+      "tests/test_agent_api_read.py",
+      "tests/test_agent_api_business_search.py",
+      "tests/test_agent_menu_workflow_contract.py",
+      "tests/test_agent_router_phase2_tool_dispatch.py",
+      "tests/test_agent_api_no_delete.py"
+    ],
+    "distillation_note": "Raw accounts/agent_api 전체가 아니라 router, capability registry, prompt surface, 대표 tests만 첫 타겟으로 둔다.",
+    "reuse_rule": "Route가 부족하면 우회 프로그램 코드를 만들지 말고 기존 service/permission/audit 경로를 재사용해 Agent API capability를 확장한다."
+  },
+  {
+    "domain": "data_extraction",
+    "label": "데이터 추출",
+    "gbrain_pages": [
+      "reference/exdigm-smart-targeting-index",
+      "project/exdigm-extraction-pipeline"
+    ],
+    "code_map_topics": [
+      "데이터 추출",
+      "파일 업로드",
+      "후보자 등록",
+      "이력서 최신 버전"
+    ],
+    "entrypoints": [
+      "data_extraction/management/commands/update_candidates.py",
+      "data_extraction/services/pipeline.py",
+      "data_extraction/services/data_decision_policy.py",
+      "data_extraction/services/extraction/",
+      "scripts/run_update_candidate_worker.sh"
+    ],
+    "tests": [
+      "tests/test_update_candidates_results.py",
+      "tests/test_application_lifecycle.py",
+      "data_extraction/tests.py"
+    ],
+    "distillation_note": "Raw data_extraction 전체 대신 pipeline, decision policy, extraction routing, save path, worker entrypoint만 첫 타겟으로 둔다.",
+    "reuse_rule": "추출 결과 저장은 후보자 매칭, FileData, latest resume 정책을 우회하지 않는다."
+  },
+  {
+    "domain": "file_upload",
+    "label": "파일 업로드",
+    "gbrain_pages": [
+      "reference/exdigm-smart-targeting-index",
+      "project/exdigm-extraction-pipeline"
+    ],
+    "code_map_topics": [
+      "파일 업로드",
+      "데이터 추출"
+    ],
+    "entrypoints": [
+      "data_extraction/services/upload_resume_file_to_drive.py",
+      "data_extraction/services/drive_upload_targets.py",
+      "data_extraction/services/save_resume_file_metadata.py",
+      "data_extraction/services/resume_file_upload_tools.py"
+    ],
+    "tests": [
+      "tests/test_upload_resume_file_to_drive.py",
+      "tests/test_save_resume_file_metadata.py",
+      "tests/test_application_resume_upload.py"
+    ],
+    "distillation_note": "Drive helper 전체가 아니라 upload target, location verification, metadata save path만 첫 타겟으로 둔다.",
+    "reuse_rule": "Drive 업로드는 등록된 intake target과 위치 검증 경로를 재사용하고 My Drive root 업로드 경로를 새로 만들지 않는다."
+  },
+  {
+    "domain": "job_description_processor",
+    "label": "JD Processor",
+    "gbrain_pages": [
+      "reference/exdigm-smart-targeting-index",
+      "project/exdigm-extraction-pipeline"
+    ],
+    "code_map_topics": [
+      "JD Processor",
+      "프로젝트",
+      "알림",
+      "헤르메스 에이전트 API"
+    ],
+    "entrypoints": [
+      "projects/services/jd_processor.py",
+      "projects/services/project_creation_requests.py",
+      "projects/management/commands/process_job_descriptions.py",
+      "accounts/agent_api/project.py"
+    ],
+    "tests": [
+      "tests/test_jd_processor.py",
+      "tests/test_project_creation_request_notifications.py",
+      "tests/test_agent_api_project_creation_requests.py"
+    ],
+    "distillation_note": "Mail/JD 관련 전체 파일이 아니라 jd_processor, ProjectCreationRequest, command, Agent API project route만 첫 타겟으로 둔다.",
+    "reuse_rule": "Mail checker는 JD를 직접 만들지 않고 JD processor와 ProjectCreationRequest 경로를 통과한다."
+  },
+  {
+    "domain": "project_workflow",
+    "label": "프로젝트 업무",
+    "gbrain_pages": [
+      "reference/exdigm-smart-targeting-index",
+      "project/exdigm-feature-map"
+    ],
+    "code_map_topics": [
+      "프로젝트",
+      "프로젝트 진행 단계",
+      "프로젝트 후보자 발굴",
+      "인터뷰 관리",
+      "액션·리마인더"
+    ],
+    "entrypoints": [
+      "projects/views/",
+      "projects/services/application_lifecycle.py",
+      "projects/services/action_lifecycle.py",
+      "projects/services/searching.py"
+    ],
+    "tests": [
+      "tests/test_stage_prep_submission.py",
+      "tests/test_application_lifecycle.py"
+    ],
+    "distillation_note": "projects 앱 전체가 아니라 lifecycle service, candidate discovery/searching, 실제 view/template 시작점만 첫 타겟으로 둔다.",
+    "reuse_rule": "지원자 단계, 액션, 후보자 발굴은 기존 projects service와 lifecycle 경로를 우선 재사용한다."
+  },
+  {
+    "domain": "deploy_operations",
+    "label": "배포·운영",
+    "gbrain_pages": [
+      "project/exdigm-deploy-workflow",
+      "reference/exdigm-smart-targeting-index"
+    ],
+    "code_map_topics": [
+      "배포·운영"
+    ],
+    "entrypoints": [
+      "deploy/",
+      "scripts/",
+      "docker-compose.yml"
+    ],
+    "tests": [],
+    "distillation_note": "운영 관련 파일 전체가 아니라 deploy scripts, stack/service 정의, 검증/cleanup entrypoint만 첫 타겟으로 둔다.",
+    "reuse_rule": "개발 서버에서 검증된 main 반영 경로를 따르고 운영 서버에서 실험하지 않는다."
+  }
+]

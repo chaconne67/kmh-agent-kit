@@ -29,7 +29,11 @@ python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
 - `manifests/`: 커스텀 스킬과 베이스 스킬 의존관계
 - `docs/`: 새 서버 온보딩, GBrain 운영 방식, 트러블슈팅
 - `docs/exdigm-gbrain-knowledge-base.md`: Exdigm 프로젝트 지식 베이스와 code_map 연계 규칙
+- `docs/exdigm-code-map-distillation.md`: raw code_map에서 GBrain용 distilled targeting map을 추리는 기준
 - `docs/exdigm-smart-targeting-index.md`: Exdigm 질문/증상별 code_map topic과 기존 재사용 경로 라우터
+- `docs/exdigm-agent-api-capability-catalog.md`: Agent API를 업무 capability catalog로 쓰는 기준
+- `docs/exdigm-work-completion-gate.md`: Exdigm 코드 작업 완료 전 code_map/GBrain/재사용 확인 게이트
+- `docs/project-exdigm-*.md`: GBrain `project/exdigm-*` page의 repo 원본
 
 ## What Is Not Included
 
