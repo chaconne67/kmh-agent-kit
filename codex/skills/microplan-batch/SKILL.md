@@ -9,6 +9,8 @@ Sequential execution orchestrator for a reviewed set of microplan tasks. A task 
 
 The purpose is practical execution, not perfect planning: process one task according to its type, verify the result, then move to the next task. Not every task is an implementation task. Some tasks are readiness checks, final verification gates, or approval/operations gates and must not be forced through an implementation commit flow.
 
+The canonical planning-package definition is the GBrain page `reference/gbrain-planning-package-protocol`. The package rules in this skill are the working summary. When they conflict with that page, follow the page and update this skill.
+
 ## Required Setup
 
 At skill start:
@@ -197,7 +199,7 @@ import json, sys
 print(json.load(open(sys.argv[1])).get("batch_id") or "microplan-batch")
 PY
 )"
-python3 /home/chaconne/.codex/skills/microplan-batch/scripts/check_and_respawn.py \
+python3 "$HOME/.codex/skills/microplan-batch/scripts/check_and_respawn.py" \
   --plan-dir /path/to/repo/$PLAN_DIR \
   --repo-dir /path/to/repo \
   --cron-tag "$BATCH_ID"
@@ -232,8 +234,10 @@ Use the bundled Python checker. It performs exactly one check and exits.
 ```bash
 PLAN_DIR="{plan_dir}"
 (crontab -l 2>/dev/null | grep -v "{batch_id}"; \
-  echo "*/5 * * * * cd /path/to/repo && flock -n /tmp/{batch_id}.lock python3 /home/chaconne/.codex/skills/microplan-batch/scripts/check_and_respawn.py --plan-dir /path/to/repo/$PLAN_DIR --repo-dir /path/to/repo --cron-tag {batch_id} >> /path/to/repo/$PLAN_DIR/logs/cron.log 2>&1 # {batch_id}") | crontab -
+  echo "*/5 * * * * cd /path/to/repo && flock -n /tmp/{batch_id}.lock python3 $HOME/.codex/skills/microplan-batch/scripts/check_and_respawn.py --plan-dir /path/to/repo/$PLAN_DIR --repo-dir /path/to/repo --cron-tag {batch_id} >> /path/to/repo/$PLAN_DIR/logs/cron.log 2>&1 # {batch_id}") | crontab -
 ```
+
+`$HOME` and `$PLAN_DIR` expand when the crontab entry is written, so the installed entry holds resolved paths. Never write the skill path as a literal user home directory.
 
 Rules:
 
@@ -374,7 +378,9 @@ For `approval-gate` tasks:
 
 Respect the repository's branch and worktree rules before choosing where to run implementation tasks.
 
-If the repository policy restricts work to named branches, use that policy. For Exdigm, run implementation tasks serially in the normal `/home/chaconne/exdigm` worktree on `dev`; create one commit per implementation task; promote to `main` only through the deploy workflow after development validation.
+Read the repository's branch policy from its own sources, for example `AGENTS.md`, `CLAUDE.md`, contributing docs, or the canonical GBrain page for that project. Do not assume a branch name.
+
+When the repository restricts implementation to a named integration branch, run implementation tasks serially in that repository's normal worktree on that branch, create one commit per implementation task, and promote to the release branch only through the repository's deploy workflow. Stop when the current branch is not the one the policy names.
 
 Use a separate git worktree only when the repository policy permits it or the user explicitly approves it for the current batch. Reasons include concurrent work in the main workspace, dirty user changes that must not be touched, or an unattended long-running batch where isolation is worth the extra branch/worktree cleanup.
 
@@ -421,7 +427,7 @@ Review the current task diff, fix actionable findings in this workspace only, ru
 
 For `implementation` tasks:
 
-1. Confirm the current branch/workspace matches the repository policy. For Exdigm, stop unless the current branch is `dev`.
+1. Confirm the current branch/workspace matches the branch policy the repository declares. Stop when it does not.
 2. Record the active workspace path, `base_sha`, branch, and `status: running` in `microplan-progress.json`.
 3. Use `microplan-implement` in the active workspace for the single task.
 4. Run the plan's focused tests/checks inside the active workspace. If the plan names no checks, infer the narrowest useful checks from changed files.

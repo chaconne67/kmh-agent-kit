@@ -23,6 +23,8 @@ Write the microplan into the storage surface implied by the current source. If t
 
 When durable plans live in GBrain, microplan writing is not complete until every selected microplan has been saved with `gbrain put` or the available GBrain write tool and the parent package root has been updated with the task slugs and statuses. Do not leave microplans only in the chat response.
 
+The canonical planning-package definition is the GBrain page `reference/gbrain-planning-package-protocol`. The rules below are the working summary. When they conflict with that page, follow the page and update this skill.
+
 Use the topic planning package created or identified by `masterplan-write`:
 
 - Package root slug: the stable topic slug.

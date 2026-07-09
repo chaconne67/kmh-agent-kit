@@ -25,6 +25,8 @@ When the project has a GBrain planning authority index, read it before broad pla
 
 If the user asks for a durable plan in a topic governed by a canonical GBrain page, update or create that canonical page instead of creating a competing local plan file. Use a local file only when the user explicitly asks for a file artifact or a downstream tool requires a temporary artifact.
 
+The canonical definition of the planning package — slugs, root fields, task status values, authority rules, and the write-unavailable rule — is the GBrain page `reference/gbrain-planning-package-protocol`. The rules below are the working summary. When they conflict with that page, follow the page and update this skill.
+
 When durable plans live in GBrain, manage the work as one topic planning package:
 
 - Search GBrain for the same topic before writing. Reuse the existing package when one exists; create a new package only when no current same-topic package exists.

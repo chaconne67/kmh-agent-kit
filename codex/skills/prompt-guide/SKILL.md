@@ -5,115 +5,112 @@ description: "Design or review prompts and instruction texts that an LLM reads t
 
 # Prompt Guide
 
-Use this skill when writing or reviewing text whose job is to guide LLM behavior.
+LLM 행동을 유도하는 텍스트를 작성하거나 검토할 때 사용한다. 프롬프트 품질의 일반 원칙(용어 일관성, 불필요한 문장 삭제, 예시 설계 포함)은 이 스킬이 소유한다. 스킬 파일에 어떤 내용을 넣고 뺄지는 `$skill-writing-guide`가 다룬다.
 
-## Do Not Use For
+## 사용하지 않는 경우
 
-Do not use this skill when the real question is not prompt or instruction quality.
+질문의 본질이 프롬프트·지시문 품질이 아니면 사용하지 않는다.
 
-- Code bugs, failing tests, runtime errors, data model defects, or architecture decisions.
-- Domain correctness, business policy, legal/medical/financial truth, or product decisions.
-- Implementation-plan validation, phase order, completion gates, or context-to-plan alignment.
-- Permission hierarchy, safety policy, tool authority, or system/developer instruction precedence.
-- Casual one-off user instructions unless the user explicitly asks to review the wording.
+- 코드 버그, 실패한 테스트, 런타임 오류, 데이터 모델 결함, 아키텍처 결정.
+- 도메인 정확성, 비즈니스 정책, 법률·의료·금융 사실, 제품 결정.
+- 구현 계획 검증, 단계 순서, 완료 게이트, 컨텍스트-계획 정합성.
+- 권한 계층, 안전 정책, 도구 권한, 시스템/개발자 지시 우선순위.
+- 사용자가 문구 검토를 명시적으로 요청하지 않은 일회성 지시.
 
-If the request mainly belongs to one of these categories, stop and use the appropriate skill or ordinary reasoning. You may still use this skill for the wording layer after the non-prompt question is settled.
+요청이 위 범주에 속하면 멈추고 적절한 스킬이나 일반 추론으로 처리한다. 비프롬프트 문제가 정리된 뒤 문구 계층만 이 스킬로 다룰 수 있다.
 
-## Review Output
+## 검토 출력
 
-For each issue, report:
+각 이슈마다 다음을 보고한다.
 
-- Original wording
-- Violated golden rule or anti-pattern
-- Why it fails and expected failure mode
-- Improvement direction
+- 원래 문구
+- 위반한 골든룰 또는 안티패턴
+- 왜 실패하는지와 예상 실패 양상
+- 개선 방향
 
-Do not mention parts that are already fine. Prefer catching a real prompt risk over staying silent, but mark uncertain issues as uncertain.
+이미 괜찮은 부분은 언급하지 않는다. 침묵보다 실제 프롬프트 위험을 잡는 쪽을 택하되, 불확실한 이슈는 불확실하다고 표시한다.
 
-## Three Golden Rules
+## 세 가지 골든룰
 
-### 1. Avoid Hardcoding
+### 1. 하드코딩 회피
 
-Do not turn one failed case into a narrow rule. Prefer the principle that explains why the case failed.
+실패 케이스 하나를 좁은 규칙으로 굳히지 않는다. 그 케이스가 왜 실패했는지 설명하는 원칙을 택한다.
 
-Hardcoding signs:
+하드코딩 신호:
 
-- Enumerating many exact values where unseen variants will appear.
-- Adding repeated "do not" patches after tests fail.
-- Branching as "if A then X, if B then Y" when future C-like cases are likely.
-- Using fixed thresholds as judgment when input complexity varies.
+- 미지의 변형이 나올 자리에 정확한 값을 다수 나열한다.
+- 테스트 실패 후 "하지 마" 패치를 반복해서 덧붙인다.
+- 미래에 C 같은 케이스가 나올 상황에서 "A면 X, B면 Y"로 분기한다.
+- 입력 복잡도가 변하는데 고정 임계값을 판단 기준으로 쓴다.
 
-Not hardcoding:
+하드코딩이 아닌 것:
 
-- Output schemas, date formats, enum names, and required field names are specifications.
-- Domain facts are context when they explain the task.
+- 출력 스키마, 날짜 형식, enum 이름, 필수 필드명은 명세다.
+- 태스크를 설명하는 도메인 사실은 컨텍스트다.
 
-### 2. Provide Enough Context
+### 2. 충분한 컨텍스트 제공
 
-The model needs the reason behind instructions, not only the instruction text.
+모델은 지시문 자체뿐 아니라 그 지시의 이유가 필요하다.
 
-Include the missing context that affects judgment:
+판단에 영향을 주는 누락된 컨텍스트를 넣는다:
 
-- Output purpose: who or what consumes the result.
-- Reason: why the instruction exists.
-- Failure cost: whether false positives or false negatives are worse.
-- Input properties: quality, shape, ambiguity, and expected variance.
+- 출력 목적: 결과를 누가/무엇이 소비하는가.
+- 이유: 그 지시가 왜 존재하는가.
+- 실패 비용: 거짓 양성과 거짓 음성 중 무엇이 더 나쁜가.
+- 입력 속성: 품질, 형태, 모호성, 예상 편차.
 
-Warning signs:
+경고 신호:
 
-- MUST, NEVER, "always", or "절대" appears without a reason.
-- A prohibition has no "instead do this" behavior.
-- The prompt specifies a format but not how empty, partial, or ambiguous input should be handled.
+- MUST, NEVER, "always", "절대"가 이유 없이 등장한다.
+- 금지에 "대신 이렇게 하라"는 행동이 없다.
+- 형식만 지정하고 비어 있거나 부분적이거나 모호한 입력의 처리 방법이 없다.
 
-### 3. Use Optimized Examples
+### 3. 최적화된 예시 사용
 
-Use examples only when a principle is still ambiguous. Examples should clarify boundaries, not become a new hidden test set.
+원칙만으로 여전히 모호할 때만 예시를 쓴다. 예시는 경계를 명확히 해야 하며 숨은 테스트 세트가 되어선 안 된다.
 
-Good examples:
+좋은 예시:
 
-- Show both included and excluded cases.
-- Explain the reason for the classification.
-- Use generalized patterns rather than one-off test cases.
-- Match the domain where the prompt will run.
+- 포함 케이스와 제외 케이스를 짝으로 보여준다.
+- 분류의 이유를 설명한다.
+- 일회성 테스트 케이스가 아니라 일반화된 패턴을 쓴다.
+- 프롬프트가 실행될 도메인과 일치한다.
 
-Warning signs:
+경고 신호:
 
-- Only positive examples are shown.
-- Many examples repeat the same pattern.
-- A specific test failure is pasted as the canonical example.
-- Examples remain after the principle is already clear.
+- 양성 예시만 있다.
+- 여러 예시가 같은 패턴을 반복한다.
+- 특정 테스트 실패를 그대로 대표 예시로 붙인다.
+- 원칙이 이미 명확한데도 예시가 남아 있다.
 
-## Anti-Patterns
+## 안티패턴
 
-- Test failure to rule patch loop: every failure adds another narrow prohibition.
-- Verbosity as effort: repeated wording, emotional emphasis, or background that does not change output.
-- Information loss then recovery: one step discards data and a later step tries to infer it again.
-- Single placement of a core instruction: in a long prompt, a key rule appears only once and is diluted.
-- Term ambiguity: generic words like result, data, item, content, or target refer to different objects.
-- Context pollution: logs, prior failures, or another step's reasoning leak into the current step's judgment.
+- 실패-금지 패치 루프: 실패마다 좁은 금지를 하나씩 더 붙인다.
+- 노력으로서의 장황함: 문구 반복, 감정적 강조, 출력을 바꾸지 않는 배경 설명.
+- 정보 손실 후 복구: 한 단계가 데이터를 버리고 이후 단계가 다시 추론하려 한다.
+- 핵심 지시의 단일 배치: 긴 프롬프트에서 핵심 규칙이 한 번만 나와 희석된다.
+- 용어 모호성: result, data, item, content, target 같은 일반 명사가 서로 다른 대상을 가리킨다. 하나의 대상은 하나의 표현으로, 하나의 표현은 하나의 의미로 쓴다.
+- 컨텍스트 오염: 로그, 이전 실패, 다른 단계의 추론이 현재 단계 판단에 새어 든다.
 
-## Checklist
+## 체크리스트
 
-Use this checklist as diagnostic lenses, not as automatic prescriptions:
+체크리스트는 자동 처방이 아니라 진단 렌즈로 쓴다. 위 안티패턴과 겹치면 안티패턴 항목을 기준으로 삼는다.
 
-- Are three or more exception rules covering the same underlying failure?
-- Does each prohibition explain the reason and replacement behavior?
-- Is the false-positive versus false-negative cost stated where classification matters?
-- Do examples form boundary pairs with reasons?
-- Are measurable thresholds justified by the task rather than copied from a test?
-- Do action instructions name the actor, object, and concrete verb?
-- Does the same generic noun refer to multiple things?
-- Does the same thing have multiple names?
-- Can any sentence be removed without changing output behavior?
-- Are roles, input ranges, and output responsibilities separated in multi-step prompts?
-- Are preservation and discard rules explicit when normalizing data?
-- In prompts over about 500 tokens, is the core instruction reinforced through framing, checking, or output validation instead of copied verbatim?
+- 같은 근본 실패를 세 개 이상의 예외 규칙이 덮고 있는가?
+- 각 금지가 이유와 대체 행동을 설명하는가?
+- 분류가 필요한 곳에 거짓 양성 대 거짓 음성 비용이 명시됐는가?
+- 예시가 이유를 동반한 경계 짝을 이루는가?
+- 측정 임계값이 테스트 복사가 아니라 태스크로 정당화됐는가?
+- 행동 지시가 행위자·대상·구체적 동사를 명명하는가?
+- 다단계 프롬프트에서 역할·입력 범위·출력 책임이 분리됐는가?
+- 데이터 정규화 시 보존과 폐기 규칙이 명시됐는가?
+- 긴 프롬프트에서 핵심 지시가 복붙 반복이 아니라 프레이밍·검증·출력 확인으로 보강됐는가?
 
-## Self-Check Before Reporting
+## 보고 전 자체 점검
 
-Before finalizing a review or rewrite, verify:
+검토나 재작성을 마치기 전에 확인한다:
 
-- The suggested change preserves the prompt's core purpose.
-- The change does not fight the workflow's actual dynamics, such as adversarial review, iterative refinement, or self-correction.
-- The failure-cost direction still holds in this workflow.
-- The fix does not add a narrower hardcoded rule than the original.
+- 제안한 변경이 프롬프트의 핵심 목적을 보존하는가.
+- 변경이 적대적 검토, 반복 정제, 자기 교정 같은 워크플로 실제 동역학과 충돌하지 않는가.
+- 실패 비용의 방향이 이 워크플로에서도 유지되는가.
+- 수정이 원본보다 더 좁은 하드코딩 규칙을 추가하지 않는가.

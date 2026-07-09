@@ -1,6 +1,6 @@
 ---
 name: microplan-review
-description: Ultra-light review for one small implementation plan before implementation.
+description: Ultra-light closure review for one small implementation plan before implementation. Use when the user says "microplan-review", "마이크로플랜 리뷰", "구현 계획 검토", or asks to check a single microplan or task artifact before implementing it. Do not use for master plans, roadmaps, whole-project critique, or code review.
 ---
 
 # Microplan Review
@@ -16,6 +16,8 @@ Use this for micro plans that should close one meaning unit. Do not run full adv
 Review only the next plan to implement.
 
 Do not review the whole project, do not create a debate log, and do not produce a new agreed document. The output is a short pass/fix verdict.
+
+The canonical planning-package definition is the GBrain page `reference/gbrain-planning-package-protocol`. The rules below are the working summary. When they conflict with that page, follow the page and update this skill.
 
 Before the four checks, identify the current source of intent:
 
@@ -90,6 +92,7 @@ Rules:
 
 ```text
 결론: FIX
+범위: project/example-canonical-plan 기준
 
 닫힘을 막는 문제:
 - 완료 게이트에서 "보류 0건"과 "보류가 있어도 종료 가능"이 충돌합니다.
