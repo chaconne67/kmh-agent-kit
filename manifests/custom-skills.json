@@ -195,6 +195,14 @@
     "install_target": "~/.codex/skills/skill-review"
   },
   {
+    "name": "smart-ux",
+    "path": "codex/skills/smart-ux",
+    "description": "Use when creating or modifying UI/UX code, screens, components, flows, landing pages, forms, dashboards, onboarding, notifications, navigation, CTAs, loading/error/empty states, or when asked to improve UX, conversion, retention, accessibility, behavioral design, or dark-pattern safety.",
+    "depends_on": [],
+    "origin": "local-custom-or-wrapper",
+    "install_target": "~/.codex/skills/smart-ux"
+  },
+  {
     "name": "skill-writing-guide",
     "path": "codex/skills/skill-writing-guide",
     "description": "Use when writing or reviewing Codex skills, Claude skills, prompt guides, agent instructions, or reusable task directives, especially to decide what information belongs in the instruction and what should be removed. Focuses on including non-obvious domain facts, irregular patterns, and behavior-changing rules while removing obvious, redundant, or low-value wording.",

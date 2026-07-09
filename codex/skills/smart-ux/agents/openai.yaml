@@ -1,0 +1,4 @@
+interface:
+  display_name: "Smart UX"
+  short_description: "행동심리 기반 UI 설계와 접근성 검증용 체크리스트"
+  default_prompt: "Use $smart-ux to design or review this UI flow before changing code."
