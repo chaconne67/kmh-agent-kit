@@ -1,168 +1,158 @@
 ---
 name: masterplan-write
-description: Write or rewrite a broad master plan, roadmap, or phase plan for a topic before detailed microplans exist. Use when the user asks to "make a plan", "create a roadmap", "plan this refactor", "plan this feature", "마스터 플랜", "계획 세워봐", or gives a large development/refactoring/research/decision topic and wants the overall order of work. Do not use for a selected implementation unit or detailed coding task; use microplan-write for that.
+description: Write and internally review implementation master plans before microplans. Use for master plans, roadmaps, phase plans, broad implementation plans, "마스터 플랜", or "계획 세워봐". Produces phase maps for later microplan-write, but does not write microplans without user approval.
 ---
 
 # Masterplan Write
 
-## Purpose
+## Core Rule
 
-Create the plan that sits above micro plans. A master plan explains why the work matters, what kinds of work are needed, which work needs code, and what order lets later micro plans proceed safely.
+A master plan is not a document-writing task. A master plan is the top-level implementation plan that defines the phase artifacts later microplan-write will create.
 
-A master plan must be based on shared intent, not agent guesses. Before drafting, remove ambiguity that would change scope, order, ownership, production risk, or success criteria.
+Master plan completion includes internal review. Do not finish after drafting only. Draft the master plan, attempt an independent subagent review using the review rubric below, apply concrete findings, then deliver the reviewed plan. If no subagent tool is available in the current environment or the subagent call fails, perform the same rubric yourself and state that the independent pass could not run.
 
-## Boundary
+Do not create a separate intent document before the master plan unless the user explicitly asks for one. Put a short intent summary inside the master plan, then move directly into implementation strategy and phased implementation order.
 
-Use this skill for broad planning. The output is not an implementation task document.
+If the request came from a proposed method, architecture, research result, or reusable pattern, the master plan must explain how that method will be implemented in the target system. Do not replace implementation with a "baseline document", "decision document", "contract document", or "research artifact" unless that artifact directly unlocks a named implementation phase and is not reported as the implementation itself.
 
-Do not write CRUD tables, exact test commands, file-by-file edits, or 150-line microplan-style closure gates unless the user explicitly asks. Put implementation candidates into phase-level todos that `microplan-write` can later expand.
+## Before Drafting
 
-If the user has already selected one phase or one implementation todo and asks for detailed implementation steps, use `microplan-write` instead.
+Resolve only ambiguities that would change implementation scope, data ownership, production risk, irreversible changes, or success criteria.
 
-## Intent Alignment Gate
+Inspect local code, current planning-authority sources, GBrain, ADRs, configs, and prior plans before asking the user. Ask only when local evidence cannot answer a high-impact choice.
 
-Before writing the master plan, identify unresolved intent questions.
+When the project has a GBrain planning authority index, read it before broad planning and use its named canonical page as the current source. Treat `local-docs/*`, deleted local planning docs, old master plans, and old microplans as historical references unless the canonical page explicitly promotes them.
 
-Do not draft the master plan while any high-impact ambiguity remains. High-impact ambiguity includes unclear goal, target users, affected systems, runtime ownership, data preservation, production actions, external services, permissions, cost, irreversible changes, or success criteria.
+If the user asks for a durable plan in a topic governed by a canonical GBrain page, update or create that canonical page instead of creating a competing local plan file. Use a local file only when the user explicitly asks for a file artifact or a downstream tool requires a temporary artifact.
 
-Use the `grill-with-docs` questioning pattern:
+When durable plans live in GBrain, manage the work as one topic planning package:
 
-- Ask questions one at a time and wait for the user's answer before continuing.
-- For each question, explain what decision it controls.
-- Provide a recommended answer or default assumption with the question.
-- If a question can be answered by inspecting code, docs, `CONTEXT.md`, ADRs, config, scripts, or existing plans, inspect those instead of asking.
-- If the user's wording conflicts with existing project language or code behavior, surface the conflict and ask which meaning should win.
-- When a fuzzy term controls the plan, propose one precise term and ask the user to accept or correct it.
-- Use concrete scenarios when boundaries are unclear.
+- Search GBrain for the same topic before writing. Reuse the existing package when one exists; create a new package only when no current same-topic package exists.
+- Use one stable package root slug for the topic. The root page is the package index and current-state page.
+- Store or update the reviewed master plan at `{package-root}/master-plan`.
+- Record the package root, master-plan slug, current priority, superseded prior plan slugs, and microplan artifact candidates on the root page.
+- For a newer version of the same topic, update the stable package in place and move replaced decisions to Superseded History instead of creating a competing package.
+- Add or update the planning authority index when a package becomes the current authority for its topic.
 
-Proceed to the master plan only when one of these is true:
+Master plan completion in a GBrain-authoritative project requires the reviewed master plan to be written to `{package-root}/master-plan` and the package root to be updated. If direct GBrain write access is unavailable, stop before presenting the plan as completed and report the exact package root, master-plan slug, master-plan content, root update, and planning-authority index update that must be written.
 
-- The user has answered all high-impact questions.
-- Local evidence answers the question.
-- The ambiguity is low-impact and can be recorded as an explicit assumption under "Decisions and unknowns".
+For low-impact unknowns, state an assumption inside the plan and keep going.
 
-## Output Format Gate
+Do not ask the user whether the plan should be Markdown or HTML unless they explicitly need a browser-review artifact. Use Markdown by default; the file format is only a container, not the goal.
 
-Before drafting the master plan, ask which document format the user wants unless the user already specified it.
+## Required Master Plan Shape
 
-Use one short question:
+The generated master plan must use exactly these three top-level sections, in this order.
 
-```text
-마스터 플랜을 어떤 형식으로 작성할까요? Markdown 문서로 작성할까요, 아니면 HTML 검토 문서로 작성할까요?
-```
+## 1. Intent
 
-Default recommendation:
+Summarize the user's goal in product or business terms.
 
-- Use Markdown for ordinary strategy, backend, data, operations, migration, or architecture plans.
-- Use HTML when the plan must also serve as a visual/UI/UX review artifact or when the user wants to inspect screens in a browser.
+Include:
 
-If the user chooses HTML, use the `html-plan-writing` skill before drafting. `masterplan-write` owns the plan's purpose, scope, order, decisions, phases, and validation; `html-plan-writing` owns the HTML document structure, UI/UX preview boundaries, scenario controls, mobile preview, and separation between user-facing UI and implementation notes.
+- what problem or opportunity the work addresses
+- what must be true when implementation succeeds
+- what is out of scope
+- any high-impact assumptions or user decisions still open
 
-## Required Output Shape
+Keep this section short. Do not turn it into a separate requirements document.
 
-For Markdown master plans, write the master plan in this order:
+## 2. Implementation Approach
 
-1. Purpose and intent
-2. Work needed to reach the purpose
-3. Decisions and unknowns
-4. Code implementation phases
-5. Validation and handoff
-6. Next question to the user
+Explain the concrete implementation approach.
 
-For HTML master plans, include the same master-plan content inside the structure required by `html-plan-writing`:
+Include:
 
-1. Title and purpose
-2. Actual implementation preview
-3. Scenario controls or sample states, if relevant
-4. Implementation notes
-5. Decisions and unknowns
-6. Code implementation phases
-7. Validation and handoff
-8. Next question to the user
+- target runtime path, module, service, model, API, UI, job, or data flow
+- current behavior or baseline that will be changed
+- proposed architecture or algorithm
+- how existing code will be reused or replaced
+- data contracts, persistence, migrations, external services, or permission boundaries if relevant
+- failure handling and observability that affect implementation
+- validation strategy tied to user-visible behavior
 
-## 1. Purpose And Intent
+When the user asks to apply a methodology, name the actual code path where that methodology enters the system. For example, "embedding lane joins ranking in `parse_and_search()` after hard filters" is valid; "write an embedding plan" is not.
 
-State the user's topic in business or product meaning first.
+## 3. Microplan Phase Map
 
-Answer:
+Break the implementation into ordered phases that will become later microplan artifacts if the user approves microplan-write.
 
-- What problem or opportunity is being addressed?
-- Why does this work matter to the user?
-- What should be true when the plan succeeds?
-- What is out of scope for this master plan?
+Each phase must include:
 
-Prefer user-facing meaning over implementation labels. If intent is ambiguous, ask one short clarification before writing detailed phases.
-For high-impact ambiguity, use the Intent Alignment Gate instead of a single clarification.
+- microplan artifact candidate title
+- phase objective
+- microplan scope
+- out-of-scope work
+- dependency on previous phases
 
-## 2. Work Needed
+Keep phase entries compact. The master plan defines the sequence and scope boundaries; microplan-write will later expand the approved phase map into separate microplan artifacts unless the user explicitly selects a single phase.
 
-List the work types needed to reach the purpose. Include only work that affects the plan's order or readiness.
-
-Common work types:
-
-- Current code or document review
-- Domain or data investigation
-- User or product decision
-- External research
-- Design or flow decision
-- Code implementation
-- Migration or data preservation
-- Verification
-- Documentation
-
-For each item, state what must be learned, decided, built, or checked. Do not turn every item into a coding task.
-
-## 3. Decisions And Unknowns
-
-Separate work that Codex can do from choices the user must make.
-
-Use this distinction:
-
-- Codex can inspect local code, compare documents, draft options, and implement approved code.
-- The user must decide product direction, external commitments, credentials, production actions, cost-bearing actions, and business trade-offs when the answer is not already in context.
-
-## 4. Code Implementation Phases
-
-Create a separate section for code-writing work only.
-
-Use ordered phases:
+Use this shape:
 
 ```text
-Phase 1: ...
-- Todo: ...
-- Todo: ...
-
-Phase 2: ...
-- Todo: ...
+Phase 1: <microplan artifact candidate title>
+- Objective: <what this phase accomplishes>
+- Microplan scope: <what a later microplan should cover>
+- Exclude: <what that microplan should not cover>
+- Depends on: <previous phase or "none">
 ```
 
 Rules:
 
-- Each phase should represent one meaningful implementation step, not a file list.
-- Todos should say what needs to be done, not how every line should be changed.
-- Put prerequisite investigation or decisions before the coding phase that depends on them.
-- If a phase is too broad for one micro plan, say that it should be split before `microplan-write` receives it.
-- Mark high-risk work such as deletion, data migration, permission changes, or external API changes as separate phases.
+- Every phase must be implementable or verification-enabling.
+- Documentation may appear inside a phase only as support for implementation or handoff.
+- Do not count documentation-only work as a completed implementation phase.
+- Do not over-specify phase internals; leave detailed CRUD/order/completion gates to microplan-write.
+- Put risky migration, deletion, production, external API, and permission work in separate phases.
+- If one phase is too broad for one microplan artifact, split it into multiple phases now.
+- Do not run microplan-write automatically. The user chooses whether and when to start microplan writing.
 
-## 5. Master Plan Self-Check
-
-Before finalizing, apply the same checks used by `check-master-plan`:
-
-- Meaning fit: phases preserve the stated purpose.
-- Order fit: earlier phases make later phases safer.
-- Boundary fit: master plan does not contain microplan-level detail.
-- Verb precision: vague verbs like remove, migrate, replace, clean up, align, delete, or Korean equivalents distinguish physical deletion, runtime disuse, data movement, logic removal, or semantic reinterpretation.
-
-When this skill's own instructions are edited, review the wording with `skill-writing-guide`: keep behavior-changing rules, remove obvious explanation, and make trigger boundaries explicit.
-
-## 6. Final Question
-
-End by asking whether the user wants to continue into micro planning.
-
-Use a concrete question:
+End section 3 with the approved microplan artifact candidates:
 
 ```text
-이어서 어떤 Phase의 마이크로 플랜을 작성할까요?
+Microplan artifact candidates:
+1. task-001 - Phase 1 - <title>
+2. task-002 - Phase 2 - <title>
+...
 ```
 
-If one phase is clearly the safest next step, recommend it briefly before asking.
+## Internal Master Plan Review
+
+After drafting and before final response, review the master plan. Attempt an independent subagent review whenever a subagent tool is available in the current environment. Give the subagent the draft artifact and this rubric, not your private diagnosis.
+
+Review rubric:
+
+- Implementation viability: phases point to real code/data/runtime surfaces and can lead to implementation.
+- Scope control: the plan does not turn into a research artifact, baseline document, or microplan-level detail dump.
+- Phase map quality: each phase is a later microplan artifact candidate with clear scope, exclusions, and dependencies.
+- Authority fit: the plan uses the current canonical source when one exists and does not treat historical local-doc mirrors as current planning authority.
+- Dependency order: later phases do not require unbuilt behavior from future phases.
+- Verification adequacy: the plan names user-visible or runtime validation responsibilities without expanding them into full microplan gates.
+- Existing-system fit: the plan respects current project architecture and prior plans.
+- Risk isolation: migrations, destructive work, external APIs, production actions, and permission changes are isolated.
+
+Apply concrete review findings before presenting the plan. If a finding is a product decision rather than a plan defect, keep it in the plan as an open user decision.
+
+Do not tell the user to run a separate master-plan check after writing the master plan. This skill owns the master-plan review step and must not require a second user command for ordinary master plan creation.
+
+Do not use the older per-phase Build/Touch/Verify/Depends shape for new master plans unless the user explicitly asks for a detailed implementation plan. That detail belongs in a later microplan.
+
+In the final response, briefly report whether the review used a subagent or a manual rubric pass, and summarize any concrete findings that changed the plan.
+
+## Self-Check
+
+Before finalizing, verify:
+
+- The plan would lead to code/data implementation, not just documents.
+- The three top-level sections are present and no extra top-level sections were added.
+- Each phase has a concrete implementation outcome.
+- Each phase is a microplan artifact candidate with objective, scope, exclusions, and dependency.
+- No phase contains microplan-level CRUD/order/completion-gate detail unless explicitly requested.
+- Internal master-plan review attempted a subagent pass when the tool was available, or the same rubric was applied manually after a concrete unavailability/failure condition.
+- The final plan does not ask the user to run a separate master-plan check.
+- The final plan does not automatically start microplan-write; it leaves microplan artifact creation for user approval.
+- The final response reports the review method and any plan changes from review.
+- The plan preserves the user's original method or intent instead of narrowing it silently.
+- Vague verbs such as align, clean up, migrate, replace, remove, or Korean equivalents state the concrete runtime action.
+
+When editing this skill, use `skill-writing-guide` and keep only behavior-changing rules.

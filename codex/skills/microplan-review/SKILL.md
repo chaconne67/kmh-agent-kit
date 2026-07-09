@@ -17,12 +17,24 @@ Review only the next plan to implement.
 
 Do not review the whole project, do not create a debate log, and do not produce a new agreed document. The output is a short pass/fix verdict.
 
-Before the four checks, identify the intent source:
+Before the four checks, identify the current source of intent:
 
-- If the user names an intent/context document, use that.
-- If the plan references a context/spec document, use that.
-- If no intent source is clear, ask one short question for the source document.
+- If the user names an intent/context source, use that.
+- If the plan references a canonical GBrain page, context page, spec, or task artifact, use that.
+- If the plan is a GBrain planning package task such as `{package-root}/task-001`, read the package root and `{package-root}/master-plan` before reviewing the task.
+- If durable plans live in GBrain and the plan input is a local file or pasted task from a durable topic, search GBrain for the same-topic package before reviewing. Reuse the current package when found and update its task/root status; if no package root can be identified, ask for the package root instead of completing a local-only review.
+- If the project has a planning authority index, use it to find the current canonical source before relying on older docs.
+- Treat `local-docs/*`, deleted local planning docs, old master plans, and old microplans as historical references unless the canonical source explicitly promotes them.
+- If no intent source is clear, ask one short question for the source.
 - If the user wants to proceed without one, review only against the plan's own domain contract and write the limitation in the verdict line.
+
+When reviewing a GBrain planning package task or a local/pasted task bound to a package, update the task page and package root after the verdict:
+
+- `PASS`: set the task status to `reviewed`.
+- `FIX`: update the task with the smallest required wording or gate change, then rerun this review.
+- `ESCALATE`: set the task status to `blocked` and record the escalation reason.
+
+If direct GBrain write access is unavailable, report the exact task and package-root status updates that must be written; do not present the review as fully recorded.
 
 ## Four Checks
 

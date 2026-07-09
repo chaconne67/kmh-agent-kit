@@ -1,37 +1,45 @@
 ---
 name: microplan-batch
-description: Use when the user says "microplan-batch", "구현 배치", "계획문서 디렉토리 순차 구현", or asks to sequentially execute microplan task documents from a directory.
+description: Use when the user says "microplan-batch", "구현 배치", or asks to sequentially execute a reviewed set of microplan tasks.
 ---
 
 # Microplan Batch
 
-Sequential execution orchestrator for a directory of plan documents. This is not limited to `*-agreed.md`; every selected Markdown plan in the directory is a task unless the user excludes it.
+Sequential execution orchestrator for a reviewed set of microplan tasks. A task set can come from explicit files, a directory, GBrain slugs, or temporary task artifacts produced from canonical planning sources.
 
-The purpose is practical execution, not perfect planning: process one document according to its type, verify the result, then move to the next document. Not every task is an implementation task. Some documents are readiness checks, final verification gates, or approval/operations gates and must not be forced through an implementation commit flow.
+The purpose is practical execution, not perfect planning: process one task according to its type, verify the result, then move to the next task. Not every task is an implementation task. Some tasks are readiness checks, final verification gates, or approval/operations gates and must not be forced through an implementation commit flow.
 
 ## Required Setup
 
 At skill start:
 
-1. Identify the plan directory from the user request. If absent, ask for it.
-2. Identify planner-intent context documents before execution begins, for example `CONTEXT.md`, ADRs, domain specs, or memory files. Use documents the user already named; ask only if absent or ambiguous. These documents are passed into every task; implementation tasks also pass them into `microplan-verify`.
-3. List candidate task documents:
-   - default: `*.md` directly in the specified directory, sorted by filename
+1. Identify the task source from the user request: explicit task files, a directory, GBrain slugs, or a canonical source that names microplan candidates. If absent, ask for it.
+2. If the task source is a GBrain planning package root, read the root task list, `{package-root}/master-plan`, and the listed `{package-root}/task-###` pages. Treat the package root as the current planner-intent source.
+3. If durable plans live in GBrain and the task source is local files or a directory, search GBrain for the same topic package before execution. Reuse the current package when found and bind local task artifacts to its task list; if no package root can be identified, stop and ask for the package root instead of completing a local-only batch.
+4. Identify the current planner-intent source before execution begins, for example a canonical GBrain page, `CONTEXT.md`, ADRs, domain specs, or memory files. Use sources the user already named; ask only if absent or ambiguous. These sources are passed into every task; implementation tasks also pass them into `microplan-verify`.
+5. If the task source is not a local directory, create a temporary orchestration directory under `tmp/microplan-batch/{batch_id}` and materialize only the task artifacts needed by the batch. Do not create durable plan files under `docs/`.
+6. List candidate tasks:
+   - directory source default: `*.md` directly in the specified directory, sorted by filename
+   - explicit source default: use the order provided by the user or canonical source
+   - GBrain package source default: root task-list order, normally `task-001`, `task-002`, and so on
    - ignore hidden directories and generated progress/log files
    - include subdirectories only if the user asked for recursive execution
-4. Classify each document before execution:
+7. Treat `local-docs/*`, deleted local planning docs, old master plans, and old microplans as historical references unless the current canonical source explicitly promotes them.
+8. Classify each task before execution:
    - `implementation`: code/docs/config/data migration changes are expected.
    - `procedure-check`: readiness or baseline checks; no implementation output is expected.
    - `verification-gate`: integration/final verification; normally no code changes.
    - `approval-gate`: human approval, production deployment, credentials, backup, cost, or external side effects are required.
-5. Show the execution order and ask for approval if the task list is ambiguous or includes obvious non-implementation gates whose behavior is not specified by the document.
-6. Always ask the user to choose the execution mode before starting or resuming a batch run. Do not infer the mode from previous recommendations, task size, wording, or an earlier mention:
+9. Show the execution order and ask for approval if the task list is ambiguous or includes obvious non-implementation gates whose behavior is not specified by the task.
+10. Always ask the user to choose the execution mode before starting or resuming a batch run. Do not infer the mode from previous recommendations, task size, wording, or an earlier mention:
    - `foreground`: run in the current Codex session.
    - `background`: create a session prompt and launch `codex exec` with `setsid`, then report the log paths and return.
 
 ## Progress File
 
-Create `microplan-progress.json` in the plan directory while the batch is running. It is the resume source across context compaction or new sessions.
+Create `microplan-progress.json` in the orchestration directory while the batch is running. It is the resume source across context compaction or new sessions. For a local directory source, that directory can be the orchestration directory. For GBrain or explicit non-directory sources, use `tmp/microplan-batch/{batch_id}`.
+
+Store `plan_dir` as a repo-relative orchestration directory. If the user provides an absolute local directory that is inside the repo, convert it to repo-relative form; if it is outside the repo, create a repo-local temporary orchestration directory under `tmp/microplan-batch/{batch_id}` and copy or materialize the needed task artifacts there.
 
 Minimal shape:
 
@@ -39,8 +47,8 @@ Minimal shape:
 {
   "skill": "microplan-batch",
   "batch_id": "microplan-batch-20260621-153000-example",
-  "plan_dir": "docs/plans/example",
-  "context_docs": ["CONTEXT.md"],
+  "plan_dir": "tmp/microplan-batch/example",
+  "context_sources": ["project/example-canonical-plan"],
   "batch_status": "running",
   "execution_mode": "foreground",
   "codex_exec_flags": "--dangerously-bypass-approvals-and-sandbox",
@@ -51,7 +59,7 @@ Minimal shape:
   "tasks": [
     {
       "slug": "00-readiness-check",
-      "plan": "docs/plans/example/00-readiness-check.md",
+      "plan": "tmp/microplan-batch/example/00-readiness-check.md",
       "kind": "procedure-check",
       "status": "pending",
       "workspace": null,
@@ -68,11 +76,13 @@ Minimal shape:
 }
 ```
 
+Existing progress files may still contain `context_docs`; treat that key as legacy input and preserve it during resume, but write `context_sources` for new runs.
+
 Task status values: `pending`, `running`, `completed`, `failed`, `skipped`, `blocked`.
 
 Batch status values: `running`, `complete`, `complete_with_failures`, `failed`, `blocked`.
 
-Set `batch_id` once when creating the progress file. Use `microplan-batch-{YYYYMMDD-HHMMSS}-{shortslug}`, where `shortslug` comes from the plan directory name with non-alphanumeric runs collapsed to `-`. Reuse the same `batch_id` for cron tags, lock files, temporary worktrees, and logs.
+Set `batch_id` once when creating the progress file. Use `microplan-batch-{YYYYMMDD-HHMMSS}-{shortslug}`, where `shortslug` comes from the task source name with non-alphanumeric runs collapsed to `-`. Reuse the same `batch_id` for cron tags, lock files, temporary worktrees, and logs.
 
 `quality_observations` stores repeated failure signals across tasks. `compound_candidates` stores solved or important lessons that should be documented with the Superpowers `compound` skill when available.
 
@@ -107,7 +117,7 @@ Run the per-task workflow in the current Codex session. Use this for small batch
 
 ### Background
 
-Use background mode when the user wants the batch to continue outside the current conversation. Background mode uses `codex exec`, `microplan-progress.json`, a prompt file in the plan directory, and a cron/systemd periodic monitor.
+Use background mode when the user wants the batch to continue outside the current conversation. Background mode uses `codex exec`, `microplan-progress.json`, a prompt file in the orchestration directory, and a cron/systemd periodic monitor.
 
 Create these files while the batch runs:
 
@@ -136,13 +146,13 @@ Remove or disable the cron/systemd monitor whenever the batch reaches any termin
 ```text
 You are continuing a microplan-batch run.
 
-Plan directory: {plan_dir}
+Orchestration directory: {plan_dir}
 Progress file: {plan_dir}/microplan-progress.json
-Context documents: {context_docs}
+Context sources: {context_sources}
 
 Use the microplan-batch skill. Read microplan-progress.json, continue from the first pending or interrupted task, perform exactly one task if the file says the batch is still running, update microplan-progress.json, and if more tasks remain launch the next background session using the same setsid codex exec pattern. If the batch reaches a terminal status, run the bundled `check_and_respawn.py` once after recording the terminal status and before removing the cron/systemd monitor so the terminal Telegram notification is sent. If the batch is complete with zero failures/skips, then delete the orchestration files, remove the cron/systemd monitor, and stop. If the batch is failed, complete_with_failures, or blocked, preserve orchestration files, remove the cron/systemd monitor, and stop.
 
-Before acting, classify the task document as implementation, procedure-check, verification-gate, or approval-gate. Only implementation tasks change code and create commits. Procedure and verification gates run their documented checks and record the result. Approval gates stop with status blocked when user approval or production/external action is required.
+Before acting, classify the task as implementation, procedure-check, verification-gate, or approval-gate. Use the current canonical source before older local-doc mirrors, deleted local planning docs, old master plans, or old microplans. Only implementation tasks change code and create commits. Procedure and verification gates run their documented checks and record the result. Approval gates stop with status blocked when user approval or production/external action is required.
 
 For every implementation task, after implementation and microplan verification have produced a candidate diff but before committing, invoke `$code-review-loop` in a separate subagent against the active task workspace. The subagent must review, fix, validate, and re-review only that task diff until no actionable findings remain or it reports a blocker. After the subagent finishes, rerun focused checks and `microplan-verify` in the main batch session before committing the task. Do not continue to the next task until this gate passes.
 
@@ -205,7 +215,7 @@ Notes:
 
 ### Periodic Monitor
 
-In background mode, register a periodic monitor after the first background session. Prefer cron or a systemd timer. The monitor runs once, checks the plan directory, respawns the background session only if needed, and exits. Do not keep a long-running watchdog loop for this job.
+In background mode, register a periodic monitor after the first background session. Prefer cron or a systemd timer. The monitor runs once, checks the orchestration directory, respawns the background session only if needed, and exits. Do not keep a long-running watchdog loop for this job.
 
 Purpose:
 
@@ -303,28 +313,39 @@ Rules:
 
 For each task in order:
 
-1. Read the plan document and context documents.
+1. Read the task artifact and current context sources.
 2. Classify the task from its title, purpose, sections, and explicit wording:
    - Classification priority: `approval-gate` first, then `verification-gate`, then `procedure-check`, then `implementation`.
-   - If a document contains production/deploy/backup/credential/external-action wording, classify it as `approval-gate` even if it also contains commands.
-   - If a document says code changes are not expected or failures should be fixed in earlier tasks, classify it as `verification-gate` even if it runs tests.
-   - `procedure-check`: "readiness", "baseline", "checklist", "절차", "완료 확인", or a document that only asks to inspect/run checks.
-   - `verification-gate`: "final verification", "통합 검증", "smoke", or a document that says code changes are not expected.
+   - If a task contains production/deploy/backup/credential/external-action wording, classify it as `approval-gate` even if it also contains commands.
+   - If a task says code changes are not expected or failures should be fixed in earlier tasks, classify it as `verification-gate` even if it runs tests.
+   - `procedure-check`: "readiness", "baseline", "checklist", "절차", "완료 확인", or a task that only asks to inspect/run checks.
+   - `verification-gate`: "final verification", "통합 검증", "smoke", or a task that says code changes are not expected.
    - `approval-gate`: "production", "deploy gate", "승인", "backup", "사용자가 직접", credentials, external services, or irreversible/costly actions.
-   - `implementation`: any document that names changed files, tests to write, migrations, deletes, refactors, or concrete edits.
+   - `implementation`: any task that names changed files, tests to write, migrations, deletes, refactors, or concrete edits.
 3. Record `kind` and `status: running` in `microplan-progress.json`.
 4. Before executing the task, check `quality_observations` for a repeated failure that affects this task. If the task depends on an unresolved repeated failure, mark it `skipped` with the reason instead of reproducing the same failure.
 5. After the task completes, fails, or blocks, update `fresh_verification`, `failure_signatures`, `quality_observations`, and `compound_candidates` before moving to the next task.
+
+### GBrain Package Status Updates
+
+When a task came from a GBrain planning package, update the task page and package root at every terminal task state:
+
+- `procedure-check` completed: record the check result in the task notes.
+- `verification-gate` completed: set the relevant task or final package status to `verified` and record the checks.
+- `implementation` completed: set the task status to `implemented` and record commit, checks, verification summary, and code-review-loop result.
+- Local progress `failed`, `skipped`, or `blocked`: set package task status to `blocked` and record the local progress status, reason, and next required action on both the task page and package root.
+
+If direct GBrain write access is unavailable, record the exact required package updates in `microplan-progress.json.reason` and report them; do not claim package state was updated.
 
 ### Procedure Check
 
 For `procedure-check` tasks:
 
-1. Run only the checks named by the document, normally in the active repository workspace.
+1. Run only the checks named by the task, normally in the active repository workspace.
 2. Do not create a task worktree.
 3. Do not commit.
 4. If the check passes, record `status: completed`, `verification`, `fresh_verification`, and `task_commit: null`.
-5. If the check fails, record `status: failed`, preserve the reason, set `batch_status: failed`, and stop unless the document explicitly says the batch may continue.
+5. If the check fails, record `status: failed`, preserve the reason, set `batch_status: failed`, and stop unless the task explicitly says the batch may continue.
 
 ### Verification Gate
 
@@ -332,7 +353,7 @@ For `verification-gate` tasks:
 
 1. Run the documented integration/final checks against the active repository workspace.
 2. Do not create a worktree or commit for the gate itself.
-3. If a check fails, record the failing command/output summary and mark the gate `failed`. Do not make new fixes inside the gate unless the document explicitly instructs that failures should be fixed there.
+3. If a check fails, record the failing command/output summary and mark the gate `failed`. Do not make new fixes inside the gate unless the task explicitly instructs that failures should be fixed there.
 4. If all checks pass, record `status: completed`, `verification`, `fresh_verification`, and `task_commit: null`.
 
 ### Approval Gate
@@ -340,12 +361,12 @@ For `verification-gate` tasks:
 For `approval-gate` tasks:
 
 1. In background mode, do not perform production deploys, production DB backups, credentialed external actions, paid actions, or user-owned external work.
-2. Run only safe local/reporting checks that the document asks for before approval.
+2. Run only safe local/reporting checks that the task asks for before approval.
 3. Record `status: blocked`, `reason` describing the required approval/action, and set `batch_status: blocked`.
 4. Stop and report the gate. The user can resume after approval or after performing the required external action.
 5. On resume, ask the user to choose `foreground` or `background` again before continuing the blocked gate. Do not infer approval or execution mode from elapsed time, previous mode, or the existence of a blocked progress file.
-6. If the user already performed the external action, run only the verification checks named by the document, then mark the gate `completed`.
-7. If the user explicitly approves Codex to perform an external action, perform only the exact action named and approved in the current conversation and only if the plan document allows Codex to perform it. If the document says the user must perform an action personally, keep the task `blocked` until the user confirms it is done.
+6. If the user already performed the external action, run only the verification checks named by the task, then mark the gate `completed`.
+7. If the user explicitly approves Codex to perform an external action, perform only the exact action named and approved in the current conversation and only if the task allows Codex to perform it. If the task says the user must perform an action personally, keep the task `blocked` until the user confirms it is done.
 
 ### Implementation Task
 
@@ -378,7 +399,7 @@ Rules:
 
 - Invoke `$code-review-loop` with an available multi-agent/subagent capability, not as an informal review inside the main batch agent.
 - Do not create a user-owned Codex thread for this gate.
-- Give the subagent only the active task workspace path, task plan, context documents, current diff, and required checks.
+- Give the subagent only the active task workspace path, task plan, current context sources, current diff, and required checks.
 - Tell the subagent to review, fix, validate, and re-review only the current task diff until no actionable findings remain.
 - The subagent may edit only the active task workspace.
 - If no subagent capability is available, mark the task `blocked`; do not skip the gate.
@@ -392,7 +413,7 @@ Subagent prompt contract:
 Use $code-review-loop on this implementation task workspace only.
 Workspace: {worktree_or_repo_path}
 Task plan: {plan}
-Context documents: {context_docs}
+Context sources: {context_sources}
 Required checks: {checks}
 
 Review the current task diff, fix actionable findings in this workspace only, run focused checks, and re-review until clean or blocked. Return status, remaining findings, changed files, and checks run. Do not merge, commit, or edit outside this workspace.
@@ -406,15 +427,16 @@ For `implementation` tasks:
 4. Run the plan's focused tests/checks inside the active workspace. If the plan names no checks, infer the narrowest useful checks from changed files.
 5. Run `microplan-verify` using:
    - the task plan
-   - all context documents
+   - all context sources
    - the current task diff
 6. Before each fix attempt after a failed implementation or verification run, increment the task's `attempts` count. If `attempts` reaches 3, stop making fixes, record the repeated failure in `quality_observations`, and perform root-cause investigation before any further code change.
 7. Fix concrete `FAIL` items in the active workspace and rerun focused checks.
 8. Invoke the mandatory code-review-loop gate in a separate subagent. If it fixes code, rerun focused checks and `microplan-verify`.
 9. Record `fresh_verification` and `code_review_loop` with final command/status summaries. Do not mark the task completed from stale or assumed verification.
 10. Stage only the current task's files and commit the active workspace when implementation, verification, and code-review-loop all pass.
-11. Confirm the workspace is clean before starting the next task.
-12. Record `status: completed` and `task_commit`.
+11. If the task came from a GBrain planning package, update its package status before starting the next task.
+12. Confirm the workspace is clean before starting the next task.
+13. Record `status: completed` and `task_commit`.
 
 ## Failure Handling
 
@@ -435,8 +457,8 @@ For `implementation` tasks:
 - Completion requires fresh verification evidence from the current task run. Do not mark a task `completed` because an earlier run passed or because the implementation looks correct.
 - Store the final proof in `fresh_verification`: command, exit status, and one-line result.
 - Use `microplan-verify` after implementation tasks, not before. Do not require `microplan-verify` for tasks with no diff.
-- Procedure and verification gates must pass the checks explicitly named in the document.
-- Treat plan/context documents as intent, but allow implementation-time correction when tests or current code reveal stale details.
+- Procedure and verification gates must pass the checks explicitly named in the task.
+- Treat plan/context sources as intent, but allow implementation-time correction when tests or current code reveal stale details.
 - Migration tasks must include `migrate`, `makemigrations --check --dry-run`, or the narrowest equivalent when feasible.
 - Report any checks not run and why.
 
@@ -446,7 +468,7 @@ Do not create separate reports, agreed-doc copies, failed-task directories, or g
 
 ## Resume
 
-If `microplan-progress.json` already exists in the plan directory:
+If `microplan-progress.json` already exists in the orchestration directory:
 
 1. Read it first.
 2. Compare recorded workspace, commits, and any recorded worktrees with `git status`, `git worktree list`, and `git log`.

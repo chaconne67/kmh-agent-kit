@@ -1,6 +1,6 @@
 ---
 name: microplan-write
-description: Write or rewrite a small, implementation-ready micro plan for one selected master-plan phase, todo item, or narrowly scoped coding task. Use only when the user explicitly asks for a micro plan, detailed implementation plan, task plan, or asks to break a specific phase/todo into an implementable unit. Do not use for broad requests like "make a plan", "create a roadmap", "plan this refactor", or "design a feature plan"; those belong to masterplan-write.
+description: Write or rewrite implementation-ready microplans from an approved master-plan phase map, selected phase, todo item, or narrowly scoped coding task. Use when the user explicitly asks for microplans, detailed implementation plans, task plans, or asks to turn master-plan phases/todos into implementable units. Do not use for broad requests like "make a plan", "create a roadmap", "plan this refactor", or "design a feature plan"; those belong to masterplan-write.
 ---
 
 # Microplan Write
@@ -10,6 +10,40 @@ description: Write or rewrite a small, implementation-ready micro plan for one s
 Use this skill only after a master plan, phase, or specific implementation todo already exists or the user clearly asks for a detailed implementation unit.
 
 Do not use this skill for broad planning requests. If the user asks for an overall plan, roadmap, refactoring plan, new-feature plan, migration plan, or "plan this topic" without selecting a concrete implementation unit, use `masterplan-write` instead.
+
+A microplan is an implementation handoff artifact. Write it so `microplan-review` can approve it and `microplan-implement` can execute it without rediscovering scope, order, or completion criteria.
+
+## Source Authority
+
+Before writing, identify the current source of intent. When the project has a planning authority index or a named canonical GBrain page, use that source before older docs or search results.
+
+Treat `local-docs/*`, deleted local planning docs, old master plans, and old microplans as historical references unless the current canonical source explicitly promotes them.
+
+Write the microplan into the storage surface implied by the current source. If the project policy says durable plans live in GBrain, write or update GBrain/task artifacts and use local files only when the user asks for them or an execution tool needs temporary files.
+
+When durable plans live in GBrain, microplan writing is not complete until every selected microplan has been saved with `gbrain put` or the available GBrain write tool and the parent package root has been updated with the task slugs and statuses. Do not leave microplans only in the chat response.
+
+Use the topic planning package created or identified by `masterplan-write`:
+
+- Package root slug: the stable topic slug.
+- Master plan slug: `{package-root}/master-plan`.
+- Microplan slugs: `{package-root}/task-001`, `{package-root}/task-002`, and so on in master-plan phase order.
+- Root page task status values: `planned`, `reviewed`, `implementing`, `implemented`, `verified`, `blocked`, `superseded`.
+- Root page task fields: slug, title, status, parent phase, dependencies, implemented commit when available, checks, notes.
+
+If the source master plan has no package root, search GBrain for the same topic and either attach the work to the current same-topic package or stop and report that a package root is required before durable microplans can be completed.
+
+If direct GBrain write access is unavailable, stop before presenting the plan as completed and report the exact slug and content for every microplan plus the exact package-root task-list update that must be written. Use temporary local artifacts only as execution handoff files, not as durable planning authority.
+
+## Selection Mode
+
+Choose scope from the conversation and source plan before writing.
+
+- Phase-map mode: If the latest approved or reviewed master plan contains a Microplan Phase Map or microplan artifact candidates, and the user asks to write microplans without naming one phase, write one microplan for every listed phase candidate in master-plan order.
+- Single-unit mode: If the user explicitly names one phase, todo, file, bug, or coding task, write only that one microplan.
+- Clarification mode: Ask the user only when there is no recent phase map and no selected implementation unit.
+
+In phase-map mode, keep each microplan independently small and implementation-ready. The request creates multiple small artifacts; it does not merge the whole master plan into one large microplan.
 
 ## Planning Hierarchy
 
@@ -29,13 +63,13 @@ Task
 → the smallest implementable and verifiable unit
 ```
 
-Do not treat many phases or tasks as a problem when Context and Master Plan are solid. Context is solid when it states intent, reasons, exclusions, and decision boundaries. Master Plan is solid when it states phase order and what each phase closes. This skill starts below that level: it turns one selected phase or todo into the smallest implementable and verifiable unit.
+Do not treat many phases or tasks as a problem when Context and Master Plan are solid. Context is solid when it states intent, reasons, exclusions, and decision boundaries. Master Plan is solid when it states phase order and what each phase closes. This skill starts below that level: it turns each selected phase or todo into the smallest implementable and verifiable unit.
 
 ## Preparation Gate
 
 Before writing the plan, run a short preparation pass inspired by Superpowers brainstorming, but keep it microplan-sized.
 
-Answer these questions from the named context, existing docs, and the selected task. Ask the user only when the answer is absent or ambiguous:
+Answer these questions from the current source of intent, current code, and the selected phase or task. In phase-map mode, answer them separately for each microplan. Ask the user only when the answer is absent or ambiguous:
 
 - What domain meaning does this task close?
 - What is explicitly out of scope?
@@ -47,7 +81,7 @@ If any answer is unclear, resolve it before writing the CRUD table. Do not compe
 
 ## Core Shape
 
-Write implementation plans in this order:
+Write implementation handoff plans in this order:
 
 1. Domain contract
 2. CRUD table
