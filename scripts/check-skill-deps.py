@@ -35,6 +35,9 @@ def profile_names(profile_dir: Path) -> set[str]:
         if not entry.is_symlink():
             errors.append(f"{entry}: 심링크가 아님 (프로필 항목은 skills/를 가리키는 링크여야 함)")
             continue
+        if os.path.isabs(os.readlink(entry)):
+            errors.append(f"{entry}: 절대경로 링크 (다른 clone에서 깨짐 — 상대경로여야 함)")
+            continue
         target = (entry.parent / os.readlink(entry)).resolve()
         expected = (SKILLS / entry.name).resolve()
         if target != expected:

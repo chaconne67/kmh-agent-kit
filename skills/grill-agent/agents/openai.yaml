@@ -1,0 +1,4 @@
+interface:
+  display_name: "그릴에이전트"
+  short_description: "grill-with-docs를 두 서브에이전트로 오케스트레이션"
+  default_prompt: "문서와 계획을 두 서브에이전트로 grill-with-docs 검증해줘."

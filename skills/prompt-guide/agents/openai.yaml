@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prompt Guide"
+  short_description: "Review LLM prompts and instructions with golden rules"
+  default_prompt: "LLM 프롬프트나 지시문을 prompt-guide 기준으로 점검해줘."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Writing Guide"
+  short_description: "Decide what belongs in skills and prompts"
+  default_prompt: "스킬이나 프롬프트 내용을 skill-writing-guide 기준으로 점검해줘."
