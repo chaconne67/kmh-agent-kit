@@ -1,0 +1,4 @@
+interface:
+  display_name: "Microplan Batch"
+  short_description: "Sequential microplan execution with gates."
+  default_prompt: "microplan-batch: 이 microplan task set을 현재 GBrain planning package 또는 canonical source 기준으로 순차 실행하고, 각 task 성격에 맞게 검증한 뒤 package task 상태와 commit/check 결과를 갱신해줘."

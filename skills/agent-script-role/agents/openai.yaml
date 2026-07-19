@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Script Role"
+  short_description: "LLM 판단과 스크립트 실행 책임을 명확히 분리하는 작업 지침"
+  default_prompt: "$agent-script-role을 사용해 LLM의 의미 판단과 스크립트의 기계적 책임을 분리한 뒤 구현하세요."

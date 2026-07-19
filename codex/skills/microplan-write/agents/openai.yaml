@@ -1,4 +1,0 @@
-interface:
-  display_name: "Micro Plan"
-  short_description: "Turn one selected phase into an implementation unit"
-  default_prompt: "선택한 Phase나 todo 하나를 마이크로 플랜으로 쪼개줘."

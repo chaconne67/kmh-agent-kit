@@ -1,0 +1,4 @@
+interface:
+  display_name: "Master Plan"
+  short_description: "Create implementation master plans before microplans"
+  default_prompt: "큰 구현 주제의 의도, 구현 방식, 이후 microplan 후보가 될 phase map을 현재 canonical source 기준의 GBrain planning package로 작성하고, 내부 점검까지 반영해줘."

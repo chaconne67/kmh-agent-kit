@@ -1,0 +1,6 @@
+interface:
+  display_name: "Code Review Loop"
+  short_description: "리뷰·수정·재리뷰 반복 실행"
+  default_prompt: "Use $code-review-loop to review, fix, validate, and re-review with compound round context until no actionable findings remain."
+policy:
+  allow_implicit_invocation: true

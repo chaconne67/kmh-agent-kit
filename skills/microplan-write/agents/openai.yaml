@@ -1,0 +1,4 @@
+interface:
+  display_name: "Micro Plan"
+  short_description: "Turn master-plan phases into implementation units"
+  default_prompt: "승인된 master plan의 phase map 전체 또는 사용자가 명시한 Phase/todo를 현재 GBrain planning package 기준으로 microplan-review와 microplan-implement가 바로 이어받을 수 있는 최소 구현 단위의 마이크로플랜으로 작성해줘. durable plan이 GBrain이면 task-001부터 고정 slug로 저장하고 package root에 task 목록과 상태를 남겨줘."

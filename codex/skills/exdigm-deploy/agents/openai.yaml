@@ -1,6 +1,0 @@
-interface:
-  display_name: "Exdigm Deploy"
-  short_description: "Exdigm 개발·운영 배포 정책 적용"
-  default_prompt: "Use $exdigm-deploy to deploy Exdigm through the dev, promote, and production flow."
-policy:
-  allow_implicit_invocation: true

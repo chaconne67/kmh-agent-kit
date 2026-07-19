@@ -1,0 +1,4 @@
+interface:
+  display_name: "코드 리뷰"
+  short_description: "PR 또는 diff에서 실제 버그를 리뷰합니다."
+  default_prompt: "$code-review를 사용해 이 변경을 리뷰해 주세요. 지적을 위한 지적은 제외하고, 제공된 변경 목적·마스터플랜·마이크로플랜의 취지를 실제로 깨는 고신뢰 버그와 프로젝트 지침 위반만 찾아 주세요."

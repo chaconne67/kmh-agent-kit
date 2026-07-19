@@ -1,4 +1,0 @@
-interface:
-  display_name: "Check Master Plan"
-  short_description: "Review master plans for intent and wording drift"
-  default_prompt: "마스터 플랜이 의도 문서와 맞는지, 오해 소지 있는 문구가 없는지 check-master-plan 기준으로 점검해줘."

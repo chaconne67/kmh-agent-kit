@@ -1,4 +1,0 @@
-interface:
-  display_name: "Master Plan"
-  short_description: "Create broad phase plans before microplans"
-  default_prompt: "큰 주제의 목적, 필요한 일, 구현 Phase를 나누어 마스터 플랜을 작성해줘."

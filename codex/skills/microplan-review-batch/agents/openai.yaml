@@ -1,4 +1,0 @@
-interface:
-  display_name: "Microplan Review Batch"
-  short_description: "Sequential microplan review cascade"
-  default_prompt: "Use $microplan-review-batch to review these microplans sequentially and propagate fixes."

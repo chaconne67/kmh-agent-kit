@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Automation"
+  short_description: "Gate browser investigation and final-path execution"
+  default_prompt: "Use $web-automation to classify this browser task and carry it through investigation, integration, or authorized final-path execution."

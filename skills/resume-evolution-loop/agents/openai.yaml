@@ -1,0 +1,4 @@
+interface:
+  display_name: "Resume Evolution Loop"
+  short_description: "Evolve resume generation safely."
+  default_prompt: "Use $resume-evolution-loop to improve one resume-generation sample through test, judgment, root-cause analysis, minimal fix, integrated main-path retest, distillation, and direct review."

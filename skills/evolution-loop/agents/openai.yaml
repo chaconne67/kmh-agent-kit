@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evolution Loop"
+  short_description: "Evolve prompts and agents safely."
+  default_prompt: "Use $evolution-loop to improve this prompt or agent workflow through case-first or aspect-sweep testing, root-cause analysis, minimal general fixes, retesting, and distillation."
