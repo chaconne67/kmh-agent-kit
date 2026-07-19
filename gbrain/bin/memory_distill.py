@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Daily GBrain memory distillation wrapper.
+"""Daily Codex-to-GBrain memory distillation.
 
-This script is glue around GBrain's own dream-cycle distillation engine.
-It does not implement a competing semantic classifier. It converts Codex
-JSONL session logs into transcript corpus files, runs `gbrain dream`, and
-keeps the operator-review ledger used by Codex session bootstrap.
+This script intentionally does not run GBrain's `dream` cycle. It reuses the
+useful distillation rubric from GBrain, then keeps the runtime small:
+
+Codex JSONL -> dated transcript -> one LLM JSON distillation -> gbrain capture.
 """
 
 from __future__ import annotations
@@ -17,26 +17,31 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
 
 HOME = Path.home()
-CODEX_HOME = Path(os.environ.get("CODEX_HOME", HOME / ".codex"))
-GBRAIN_HOME = Path(os.environ.get("GBRAIN_HOME", HOME / ".gbrain"))
-GBRAIN_CLI = Path(os.environ.get("GBRAIN_CLI", HOME / ".bun/bin/gbrain"))
-EXDIGM_ENV_PATH = Path(os.environ.get("KMH_AGENT_ENV_FILE", HOME / "exdigm" / ".env"))
+CODEX_HOME = HOME / ".codex"
+GBRAIN_HOME = HOME / ".gbrain"
+GBRAIN_CLI = HOME / ".bun/bin/gbrain"
+GBRAIN_WRAPPER = GBRAIN_HOME / "bin" / "gbrain_with_google_env.sh"
+EXDIGM_ENV_PATH = HOME / "exdigm" / ".env"
 REPORTS_DIR = GBRAIN_HOME / "reports"
 LEDGER_PATH = REPORTS_DIR / "index.json"
-BRAIN_DIR = GBRAIN_HOME / "brain"
 TRANSCRIPT_DIR = GBRAIN_HOME / "transcripts" / "codex"
-GBRAIN_DREAM_MODEL = os.environ.get("GBRAIN_DREAM_MODEL", "openrouter:google/gemini-3-flash-preview")
+DISTILLED_PAGES_DIR = REPORTS_DIR / "distilled-pages"
+OPENROUTER_MODEL = "google/gemini-3-flash-preview"
 KST = dt.timezone(dt.timedelta(hours=9), "Asia/Seoul")
 
 SECRET_PATTERNS = [
     re.compile(r"(?i)(api[_-]?key|token|password|secret)\s*[:=]\s*\S+"),
     re.compile(r"Bearer\s+[A-Za-z0-9._~+/-]+"),
 ]
+SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*)*$")
 
 
 def local_date_from_timestamp(value: str | None) -> str | None:
@@ -64,21 +69,6 @@ def now_iso() -> str:
     return dt.datetime.now(KST).isoformat(timespec="seconds")
 
 
-def run_env() -> dict[str, str]:
-    env = dict(os.environ)
-    gemini_key = load_exdigm_env_value("GEMINI_API_KEY") or env.get("GEMINI_API_KEY", "")
-    openrouter_key = load_exdigm_env_value("OPENROUTER_API_KEY") or env.get("OPENROUTER_API_KEY", "")
-    if gemini_key and not env.get("GOOGLE_GENERATIVE_AI_API_KEY"):
-        env["GOOGLE_GENERATIVE_AI_API_KEY"] = gemini_key
-    if openrouter_key:
-        env["OPENROUTER_API_KEY"] = openrouter_key
-    bun_bin = os.environ.get("BUN_BIN", f"{HOME}/.bun/bin")
-    env["PATH"] = f"{bun_bin}:" + env.get("PATH", "")
-    for key in ["DATABASE_URL", "OPENAI_API_KEY"]:
-        env.pop(key, None)
-    return env
-
-
 def load_exdigm_env_value(target_key: str) -> str:
     if not EXDIGM_ENV_PATH.exists():
         return ""
@@ -94,6 +84,20 @@ def load_exdigm_env_value(target_key: str) -> str:
         if key.strip() == target_key:
             return value.strip().strip('"').strip("'")
     return ""
+
+
+def run_env() -> dict[str, str]:
+    env = dict(os.environ)
+    gemini_key = load_exdigm_env_value("GEMINI_API_KEY") or env.get("GEMINI_API_KEY", "")
+    openrouter_key = load_exdigm_env_value("OPENROUTER_API_KEY") or env.get("OPENROUTER_API_KEY", "")
+    if gemini_key and not env.get("GOOGLE_GENERATIVE_AI_API_KEY"):
+        env["GOOGLE_GENERATIVE_AI_API_KEY"] = gemini_key
+    if openrouter_key:
+        env["OPENROUTER_API_KEY"] = openrouter_key
+    env["PATH"] = f"{HOME}/.bun/bin:" + env.get("PATH", "")
+    for key in ["DATABASE_URL", "OPENAI_API_KEY"]:
+        env.pop(key, None)
+    return env
 
 
 def redact(text: str) -> str:
@@ -147,25 +151,20 @@ def extract_user_messages(target_date: str) -> list[dict[str, Any]]:
 
 def transcript_path_for(target_date: str, messages: list[dict[str, Any]]) -> Path:
     digest = hashlib.sha1(
-        "\n".join(f"{m['timestamp']} {m['source'] if 'source' in m else m['path']}:{m['line']}" for m in messages).encode("utf-8")
+        "\n".join(f"{m['timestamp']} {m['path']}:{m['line']}" for m in messages).encode("utf-8")
     ).hexdigest()[:8]
     return TRANSCRIPT_DIR / f"{target_date}-codex-session-{digest}.txt"
 
 
 def render_transcript(target_date: str, messages: list[dict[str, Any]]) -> str:
     lines = [
-        f"Codex session transcript for GBrain dream synthesis",
+        "Codex session transcript for memory distillation",
         f"Date: {target_date} Asia/Seoul",
         "",
         "Purpose:",
         "- Distill durable agent-evolution lessons, work rules, project rationale, user feedback, and repeated-correction patterns.",
-        "- Prefer GBrain dream's built-in worth-processing and pattern synthesis judgment.",
-        "- Do not preserve secrets or raw transcript details that are not reusable.",
-        "",
-        "Operator intent:",
-        "- Reduce repeated explanations across Codex, Claude Code, and Hermes sessions.",
-        "- Capture durable lessons that should change future agent behavior.",
         "- Keep routine one-off operations out of long-term memory.",
+        "- Do not preserve secrets or raw transcript details that are not reusable.",
         "",
     ]
     for i, msg in enumerate(messages, start=1):
@@ -195,111 +194,20 @@ def write_transcript(target_date: str) -> tuple[Path | None, int]:
 
 
 def gbrain_available() -> bool:
-    return GBRAIN_CLI.exists()
+    return GBRAIN_WRAPPER.exists()
 
 
 def run_gbrain(args: list[str], timeout: int = 120) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [str(GBRAIN_CLI), *args],
+        [str(GBRAIN_WRAPPER), *args],
         check=False,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=timeout,
+        cwd=str(HOME),
         env=run_env(),
     )
-
-
-def configure_gbrain() -> list[dict[str, Any]]:
-    results: list[dict[str, Any]] = []
-    for key, value in [
-        ("dream.synthesize.session_corpus_dir", str(TRANSCRIPT_DIR)),
-        ("dream.synthesize.enabled", "true"),
-        ("models.dream.synthesize_verdict", GBRAIN_DREAM_MODEL),
-        ("models.dream.synthesize", GBRAIN_DREAM_MODEL),
-        ("models.dream.patterns", GBRAIN_DREAM_MODEL),
-    ]:
-        proc = run_gbrain(["config", "set", key, value])
-        verify = run_gbrain(["config", "get", key]) if proc.returncode == 0 else None
-        results.append(
-            {
-                "key": key,
-                "value": value,
-                "returncode": proc.returncode,
-                "stdout": proc.stdout.strip(),
-                "stderr": proc.stderr.strip(),
-                "verified": verify.returncode == 0 and verify.stdout.strip() == value if verify else False,
-                "verify_stdout": verify.stdout.strip() if verify else "",
-                "verify_stderr": verify.stderr.strip() if verify else "",
-            }
-        )
-    return results
-
-
-def run_dream(target_date: str, dry_run: bool) -> dict[str, Any]:
-    if not gbrain_available():
-        return {"ran": False, "reason": "gbrain CLI unavailable"}
-    BRAIN_DIR.mkdir(parents=True, exist_ok=True)
-    config_results = configure_gbrain()
-    if any(not item.get("verified") for item in config_results):
-        return {
-            "ran": True,
-            "dry_run": dry_run,
-            "config": config_results,
-            "synthesize": {
-                "returncode": None,
-                "stdout": "",
-                "stderr": "GBrain model/config verification failed; dream synthesize was not run.",
-                "json": None,
-            },
-            "patterns": None,
-        }
-    synth_args = ["dream", "--phase", "synthesize", "--json", "--dir", str(BRAIN_DIR), "--date", target_date]
-    if dry_run:
-        synth_args.insert(1, "--dry-run")
-    synth = run_gbrain(synth_args, timeout=900)
-
-    patterns: subprocess.CompletedProcess[str] | None = None
-    if not dry_run and synth.returncode == 0:
-        patterns = run_gbrain(["dream", "--phase", "patterns", "--json", "--dir", str(BRAIN_DIR)], timeout=900)
-
-    return {
-        "ran": True,
-        "dry_run": dry_run,
-        "config": config_results,
-        "synthesize": command_result(synth),
-        "patterns": command_result(patterns) if patterns else None,
-    }
-
-
-def command_result(proc: subprocess.CompletedProcess[str] | None) -> dict[str, Any] | None:
-    if proc is None:
-        return None
-    parsed = parse_json_payload(proc.stdout)
-    return {
-        "returncode": proc.returncode,
-        "stdout": proc.stdout.strip(),
-        "stderr": proc.stderr.strip(),
-        "json": parsed,
-    }
-
-
-def parse_json_payload(output: str) -> Any:
-    text = output.strip()
-    if not text:
-        return None
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-    start = text.find("{")
-    end = text.rfind("}")
-    if start == -1 or end == -1 or end <= start:
-        return None
-    try:
-        return json.loads(text[start : end + 1])
-    except json.JSONDecodeError:
-        return None
 
 
 def load_ledger() -> dict[str, Any]:
@@ -318,158 +226,360 @@ def save_ledger(ledger: dict[str, Any]) -> None:
     temp.replace(LEDGER_PATH)
 
 
-def dream_totals(dream: dict[str, Any]) -> dict[str, Any]:
-    synth_json = ((dream.get("synthesize") or {}).get("json") or {})
-    totals = synth_json.get("totals") if isinstance(synth_json, dict) else None
-    if not isinstance(totals, dict):
-        return {}
-    return {
-        "transcripts_processed": totals.get("transcripts_processed", 0),
-        "synth_pages_written": totals.get("synth_pages_written", 0),
-        "patterns_written": totals.get("patterns_written", 0),
-    }
-
-
-def dream_blockers(dream: dict[str, Any]) -> list[str]:
-    blockers: list[str] = []
-    for item in dream.get("config") or []:
-        if isinstance(item, dict) and not item.get("verified"):
-            detail = compact_multiline(item.get("verify_stderr") or item.get("stderr") or item.get("verify_stdout") or item.get("stdout") or "")
-            blockers.append(f"config verification failed for {item.get('key')}: {detail}")
-    synth = dream.get("synthesize") or {}
-    if synth.get("returncode") not in {None, 0}:
-        blockers.append(f"synthesize command failed: {compact_multiline(synth.get('stderr', ''))}")
-    synth_json = synth.get("json") or {}
-    phases = synth_json.get("phases") if isinstance(synth_json, dict) else []
-    if not isinstance(phases, list):
-        return blockers
-    for phase in phases:
-        if not isinstance(phase, dict):
-            continue
-        details = phase.get("details") or {}
-        verdicts = details.get("verdicts") if isinstance(details, dict) else []
-        if not isinstance(verdicts, list):
-            continue
-        for verdict in verdicts:
-            if not isinstance(verdict, dict):
-                continue
-            for reason in verdict.get("reasons") or []:
-                if not isinstance(reason, str):
-                    continue
-                if "no configured provider" in reason or "gateway error" in reason:
-                    blockers.append(reason)
-    return sorted(set(blockers))
-
-
-def render_report(target_date: str, transcript: Path | None, message_count: int, dream: dict[str, Any]) -> str:
-    totals = dream_totals(dream)
-    blockers = dream_blockers(dream)
-    synth = dream.get("synthesize") or {}
-    patterns = dream.get("patterns") or {}
-    lines = [
-        "---",
-        "type: report",
-        f"title: GBrain Dream Distillation {target_date}",
-        f"created: '{now_iso()}'",
-        "page_type: report",
-        "tags:",
-        "  - gbrain",
-        "  - memory-distillation",
-        "  - dream-cycle",
-        "  - review-required",
-        "---",
-        "",
-        f"# GBrain Dream Distillation Report - {target_date}",
-        "",
-        "This report is an operator-review artifact around GBrain's built-in dream cycle.",
-        "Semantic distillation is delegated to `gbrain dream --phase synthesize` and `gbrain dream --phase patterns`.",
-        "",
-        "## Inputs",
-        "",
-        f"- Transcript file: `{transcript}`" if transcript else "- Transcript file: none",
-        f"- User messages extracted: {message_count}",
-        f"- Brain dir: `{BRAIN_DIR}`",
-        f"- Transcript corpus dir: `{TRANSCRIPT_DIR}`",
-        "",
-        "## Dream Result",
-        "",
-        f"- Dream ran: {dream.get('ran')}",
-        f"- Dry run: {dream.get('dry_run')}",
-        f"- Transcripts processed: {totals.get('transcripts_processed', 0)}",
-        f"- Synth pages written: {totals.get('synth_pages_written', 0)}",
-        f"- Patterns written: {totals.get('patterns_written', 0)}",
-        f"- Blockers: {len(blockers)}",
-        "",
-        "## Blockers",
-        "",
-        *(f"- {blocker}" for blocker in blockers),
-        "" if blockers else "- None",
-        "",
-        "## Synthesize Command",
-        "",
-        f"- Return code: {synth.get('returncode')}",
-        f"- Stderr: `{compact_multiline(synth.get('stderr', ''))}`",
-        "",
-        "```json",
-        json.dumps(synth.get("json") or synth.get("stdout") or {}, ensure_ascii=False, indent=2)[:12000],
-        "```",
-        "",
-        "## Patterns Command",
-        "",
-        f"- Return code: {patterns.get('returncode') if patterns else 'not run'}",
-        f"- Stderr: `{compact_multiline(patterns.get('stderr', '')) if patterns else ''}`",
-    ]
-    if patterns:
-        lines.extend(["", "```json", json.dumps(patterns.get("json") or patterns.get("stdout") or {}, ensure_ascii=False, indent=2)[:12000], "```"])
-    return "\n".join(lines).rstrip() + "\n"
-
-
 def compact_multiline(text: str, limit: int = 500) -> str:
     one_line = re.sub(r"\s+", " ", text or "").strip()
     if len(one_line) <= limit:
         return one_line
-    return one_line[: limit - 1].rstrip() + "…"
+    return one_line[: limit - 1].rstrip() + "..."
+
+
+def slugify(value: str) -> str:
+    lower = value.lower()
+    lower = re.sub(r"[^a-z0-9가-힣/ -]+", "", lower)
+    lower = re.sub(r"[가-힣]+", "", lower)
+    lower = re.sub(r"[\s_]+", "-", lower)
+    lower = re.sub(r"-+", "-", lower).strip("-/")
+    return lower or "memory"
+
+
+def normalize_slug(raw_slug: Any, title: str, fallback_prefix: str = "reference") -> str:
+    slug = str(raw_slug or "").strip().lower()
+    slug = slug.replace("_", "-").strip("/")
+    slug = re.sub(r"[^a-z0-9/-]+", "-", slug)
+    slug = re.sub(r"-+", "-", slug)
+    slug = re.sub(r"/+", "/", slug).strip("-/")
+    if SLUG_RE.match(slug):
+        return slug
+    title_part = slugify(title)[:80].strip("-") or "distilled-memory"
+    return f"{fallback_prefix}/{title_part}"
+
+
+def page_type_for_slug(slug: str) -> str:
+    if slug.startswith("project/"):
+        return "project"
+    if slug.startswith("reference/"):
+        return "reference"
+    if slug.startswith("feedback/"):
+        return "concept"
+    if slug.startswith("report/"):
+        return "report"
+    return "concept"
+
+
+def build_distillation_prompt(target_date: str, transcript: str) -> list[dict[str, str]]:
+    system = """You distill Codex conversation logs into durable GBrain memory.
+
+Use this rubric.
+
+Worth storing:
+- new project/domain rules, feature behavior, model/status/field rationale
+- user feedback that should change future agent behavior
+- root-cause debugging lessons and verification order
+- strategic decisions, rejected alternatives, durable implementation direction
+- repeated correction patterns that prevent the user from explaining again
+
+Usually skip:
+- routine commands, short acknowledgements, simple status checks
+- one-off code debugging with no reusable lesson
+- raw transcript details, secrets, screenshots/attachment boilerplate
+- content already captured unless the new message corrects or sharpens it
+
+Memory shape:
+- Store by domain or feature, not by chat transcript.
+- Prefer slugs under project/, reference/, or feedback/.
+- Keep memories directly actionable for future agents.
+- Quote the user's wording only when it matters, and keep quotes short.
+- Do not invent decisions that were not in the transcript.
+
+Return JSON only with this schema:
+{
+  "summary": "short summary",
+  "candidates": [
+    {
+      "decision": "store|needs_review|skip",
+      "title": "short page title",
+      "slug": "project/... or reference/... or feedback/...",
+      "kind": "work_rule|project_context|design_decision|debug_lesson|operator_preference|pattern|other",
+      "reason": "why this decision",
+      "memory": "markdown body for the durable memory, empty for skip",
+      "evidence": ["short source quote or source pointer"],
+      "confidence": "high|medium|low"
+    }
+  ]
+}
+
+Limit store candidates to the highest-value 12 items."""
+    user = f"Target local date: {target_date}\n\nTranscript:\n\n{transcript}"
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+def openrouter_chat(messages: list[dict[str, str]], model: str, timeout: int = 900) -> str:
+    api_key = load_exdigm_env_value("OPENROUTER_API_KEY") or os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is not available")
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.1,
+        "max_tokens": 12000,
+        "response_format": {"type": "json_object"},
+    }
+    request = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost/gbrain-memory-distill",
+            "X-Title": "GBrain Memory Distillation",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"OpenRouter HTTP {exc.code}: {compact_multiline(body)}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"OpenRouter request failed: {exc.reason}") from exc
+    choices = data.get("choices") or []
+    if not choices:
+        raise RuntimeError("OpenRouter response had no choices")
+    content = ((choices[0].get("message") or {}).get("content") or "").strip()
+    if not content:
+        raise RuntimeError("OpenRouter response content was empty")
+    return content
+
+
+def parse_json_payload(output: str) -> Any:
+    text = output.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError("LLM response did not contain a JSON object")
+    return json.loads(text[start : end + 1])
+
+
+def normalize_distillation(raw: Any) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        raise ValueError("LLM JSON root must be an object")
+    candidates_in = raw.get("candidates")
+    if not isinstance(candidates_in, list):
+        raise ValueError("LLM JSON must contain candidates[]")
+    candidates: list[dict[str, Any]] = []
+    for item in candidates_in:
+        if not isinstance(item, dict):
+            continue
+        decision = str(item.get("decision") or "needs_review").strip().lower()
+        if decision not in {"store", "needs_review", "skip"}:
+            decision = "needs_review"
+        title = str(item.get("title") or "Distilled Memory").strip()
+        slug = normalize_slug(item.get("slug"), title)
+        memory = str(item.get("memory") or "").strip()
+        if decision == "store" and not memory:
+            decision = "needs_review"
+        evidence = item.get("evidence") if isinstance(item.get("evidence"), list) else []
+        candidates.append(
+            {
+                "decision": decision,
+                "title": title,
+                "slug": slug,
+                "kind": str(item.get("kind") or "other").strip(),
+                "reason": str(item.get("reason") or "").strip(),
+                "memory": memory,
+                "evidence": [str(e).strip() for e in evidence if str(e).strip()][:5],
+                "confidence": str(item.get("confidence") or "medium").strip().lower(),
+            }
+        )
+    return {"summary": str(raw.get("summary") or "").strip(), "candidates": candidates}
+
+
+def render_memory_page(candidate: dict[str, Any], target_date: str) -> str:
+    tags = ["gbrain", "memory-distillation", candidate["kind"] or "distilled"]
+    lines = [
+        "---",
+        f"type: {page_type_for_slug(candidate['slug'])}",
+        f"title: {json.dumps(candidate['title'], ensure_ascii=False)}",
+        f"created: '{now_iso()}'",
+        "page_type: project",
+        f"distilled_from: codex-jsonl-{target_date}",
+        "tags:",
+        *(f"  - {slugify(tag)}" for tag in tags),
+        "---",
+        "",
+        f"# {candidate['title']}",
+        "",
+        candidate["memory"].strip(),
+        "",
+        "## Distillation Metadata",
+        "",
+        f"- Source date: {target_date}",
+        f"- Kind: {candidate['kind']}",
+        f"- Confidence: {candidate['confidence']}",
+        f"- Reason: {candidate['reason'] or 'n/a'}",
+    ]
+    if candidate["evidence"]:
+        lines.extend(["", "## Evidence", ""])
+        lines.extend(f"- {e}" for e in candidate["evidence"])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def capture_page(slug: str, markdown: str) -> tuple[bool, str]:
+    if not gbrain_available():
+        return False, "gbrain CLI unavailable"
+    DISTILLED_PAGES_DIR.mkdir(parents=True, exist_ok=True)
+    path = DISTILLED_PAGES_DIR / f"{slug.replace('/', '__')}.md"
+    path.write_text(markdown, encoding="utf-8")
+    proc = run_gbrain(["capture", "--file", str(path), "--slug", slug, "--type", page_type_for_slug(slug), "--quiet"], timeout=120)
+    if proc.returncode != 0:
+        return False, compact_multiline(proc.stderr or proc.stdout)
+    return True, str(path)
 
 
 def write_gbrain_report(slug: str, report_path: Path) -> None:
     if not gbrain_available():
         return
     subprocess.run(
-        [str(GBRAIN_CLI), "capture", "--file", str(report_path), "--slug", slug, "--type", "report", "--quiet"],
+        [str(GBRAIN_WRAPPER), "capture", "--file", str(report_path), "--slug", slug, "--type", "report", "--quiet"],
         check=False,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         timeout=30,
+        cwd=str(HOME),
         env=run_env(),
     )
+
+
+def render_report(
+    target_date: str,
+    transcript: Path | None,
+    message_count: int,
+    model: str,
+    result: dict[str, Any],
+    applied: list[dict[str, str]],
+    blockers: list[str],
+) -> str:
+    candidates = result.get("candidates") or []
+    counts = {
+        "store": sum(1 for c in candidates if c.get("decision") == "store"),
+        "needs_review": sum(1 for c in candidates if c.get("decision") == "needs_review"),
+        "skip": sum(1 for c in candidates if c.get("decision") == "skip"),
+    }
+    lines = [
+        "---",
+        "type: report",
+        f"title: GBrain Memory Distillation {target_date}",
+        f"created: '{now_iso()}'",
+        "page_type: report",
+        "tags:",
+        "  - gbrain",
+        "  - memory-distillation",
+        "  - review-required",
+        "---",
+        "",
+        f"# GBrain Memory Distillation Report - {target_date}",
+        "",
+        "This report uses the lightweight Codex JSONL distillation pipeline.",
+        "It does not run `gbrain dream`, Minions, subagents, workers, or autopilot.",
+        "",
+        "## Inputs",
+        "",
+        f"- Transcript file: `{transcript}`" if transcript else "- Transcript file: none",
+        f"- User messages extracted: {message_count}",
+        f"- Model: `{model}`",
+        "",
+        "## Result",
+        "",
+        f"- Store recommended: {counts['store']}",
+        f"- Needs judgment: {counts['needs_review']}",
+        f"- Skip recommended: {counts['skip']}",
+        f"- Memories applied: {len(applied)}",
+        f"- Blockers: {len(blockers)}",
+    ]
+    if result.get("summary"):
+        lines.extend(["", "## Summary", "", result["summary"]])
+    if blockers:
+        lines.extend(["", "## Blockers", ""])
+        lines.extend(f"- {b}" for b in blockers)
+    if applied:
+        lines.extend(["", "## Applied Memories", ""])
+        lines.extend(f"- `{item['slug']}` -> `{item['path']}`" for item in applied)
+    if candidates:
+        lines.extend(["", "## Candidates", ""])
+        for candidate in candidates:
+            lines.extend(
+                [
+                    f"### {candidate.get('title') or candidate.get('slug')}",
+                    "",
+                    f"- Decision: `{candidate.get('decision')}`",
+                    f"- Slug: `{candidate.get('slug')}`",
+                    f"- Kind: `{candidate.get('kind')}`",
+                    f"- Confidence: `{candidate.get('confidence')}`",
+                    f"- Reason: {candidate.get('reason') or 'n/a'}",
+                ]
+            )
+            if candidate.get("evidence"):
+                lines.append(f"- Evidence: {' / '.join(candidate['evidence'])}")
+            if candidate.get("memory") and candidate.get("decision") != "skip":
+                lines.extend(["", candidate["memory"][:2500].rstrip(), ""])
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def generate(args: argparse.Namespace) -> int:
     target_date = args.date or default_target_date()
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    transcript, message_count = write_transcript(target_date)
+    transcript_path, message_count = write_transcript(target_date)
+    blockers: list[str] = []
+    applied: list[dict[str, str]] = []
+    result: dict[str, Any] = {"summary": "", "candidates": []}
 
-    dry_run = args.dream_dry_run
-    if transcript is None:
-        dream = {"ran": False, "dry_run": dry_run, "reason": "no Codex user messages for date"}
-    elif args.no_dream:
-        dream = {"ran": False, "dry_run": dry_run, "reason": "--no-dream"}
+    if transcript_path is None:
+        result["summary"] = "No Codex user messages for date."
     else:
-        dream = run_dream(target_date, dry_run=dry_run)
+        try:
+            transcript = transcript_path.read_text(encoding="utf-8", errors="replace")
+            messages = build_distillation_prompt(target_date, transcript)
+            raw = openrouter_chat(messages, args.model)
+            result = normalize_distillation(parse_json_payload(raw))
+        except Exception as exc:
+            blockers.append(str(exc))
+
+    if not blockers and not args.no_apply:
+        for candidate in result.get("candidates") or []:
+            if candidate.get("decision") != "store":
+                continue
+            ok, detail = capture_page(candidate["slug"], render_memory_page(candidate, target_date))
+            if ok:
+                applied.append({"slug": candidate["slug"], "path": detail})
+            else:
+                blockers.append(f"{candidate['slug']}: {detail}")
 
     report_path = REPORTS_DIR / f"{target_date}-memory-distillation.md"
-    slug = f"report/gbrain-distillation-{target_date}"
-    report_path.write_text(render_report(target_date, transcript, message_count, dream), encoding="utf-8")
+    report_slug = f"report/gbrain-distillation-{target_date}"
+    report_path.write_text(
+        render_report(target_date, transcript_path, message_count, args.model, result, applied, blockers),
+        encoding="utf-8",
+    )
     if not args.no_gbrain:
-        write_gbrain_report(slug, report_path)
+        write_gbrain_report(report_slug, report_path)
 
+    candidates = result.get("candidates") or []
     summary = {
+        "mode": "simple-llm-capture",
+        "model": args.model,
         "messages_extracted": message_count,
-        "transcript_path": str(transcript) if transcript else None,
-        **dream_totals(dream),
-        "blockers": dream_blockers(dream),
-        "dream_ran": dream.get("ran", False),
-        "dream_dry_run": dry_run,
+        "transcript_path": str(transcript_path) if transcript_path else None,
+        "store_recommended": sum(1 for c in candidates if c.get("decision") == "store"),
+        "needs_review": sum(1 for c in candidates if c.get("decision") == "needs_review"),
+        "skip_recommended": sum(1 for c in candidates if c.get("decision") == "skip"),
+        "memories_applied": len(applied),
+        "applied_slugs": [item["slug"] for item in applied],
+        "blockers": blockers,
     }
     ledger = load_ledger()
     existing = ledger.setdefault("reports", {}).get(target_date, {})
@@ -481,7 +591,7 @@ def generate(args: argparse.Namespace) -> int:
     ledger["reports"][target_date] = {
         **existing,
         "report_path": str(report_path),
-        "gbrain_slug": slug,
+        "gbrain_slug": report_slug,
         "generated_at": now_iso(),
         "status": status,
         "reviewed_at": existing.get("reviewed_at"),
@@ -491,7 +601,7 @@ def generate(args: argparse.Namespace) -> int:
     }
     save_ledger(ledger)
     print(json.dumps({"date": target_date, "report_path": str(report_path), "summary": summary}, ensure_ascii=False))
-    return 2 if summary["blockers"] else 0
+    return 2 if blockers else 0
 
 
 def pending_reports(ledger: dict[str, Any], today_value: str) -> list[tuple[str, dict[str, Any]]]:
@@ -513,7 +623,7 @@ def check_pending(args: argparse.Namespace) -> int:
     date, data = pending[0]
     already_prompted = data.get("last_prompted_date") == today_value
     message = (
-        f"{date} GBrain dream distillation 리포트가 미확인 상태입니다. "
+        f"{date} GBrain memory distillation 리포트가 미확인 상태입니다. "
         f"리포트: {data.get('report_path')}. 지금 리뷰할까요?"
     )
     if already_prompted:
@@ -550,18 +660,17 @@ def list_reports(_: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="GBrain dream distillation wrapper")
+    parser = argparse.ArgumentParser(description="Lightweight GBrain memory distillation")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    generate_parser = sub.add_parser("generate", help="Generate a daily GBrain dream distillation report")
+    generate_parser = sub.add_parser("generate", help="Generate a daily memory distillation report")
     generate_parser.add_argument("--date", help="Target local date YYYY-MM-DD. Defaults to yesterday.")
+    generate_parser.add_argument("--model", default=OPENROUTER_MODEL, help="OpenRouter model id.")
     generate_parser.add_argument("--no-gbrain", action="store_true", help="Do not write the report into GBrain.")
-    generate_parser.add_argument("--no-dream", action="store_true", help="Only create the transcript/report; do not run GBrain dream.")
-    generate_parser.add_argument(
-        "--dream-dry-run",
-        action="store_true",
-        help="Run GBrain synthesize in dry-run mode. Note: GBrain dry-run may still call its cheap verdict model.",
-    )
+    generate_parser.add_argument("--no-apply", action="store_true", help="Do not apply store candidates to GBrain.")
+    generate_parser.add_argument("--review-only", action="store_true", dest="no_apply", help=argparse.SUPPRESS)
+    generate_parser.add_argument("--no-dream", action="store_true", help=argparse.SUPPRESS)
+    generate_parser.add_argument("--dream-dry-run", action="store_true", dest="no_apply", help=argparse.SUPPRESS)
     generate_parser.set_defaults(func=generate)
 
     check_parser = sub.add_parser("check-pending", help="Check unchecked reports and prompt at most once per day")

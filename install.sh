@@ -82,6 +82,7 @@ backup_if_exists() {
 
 install_file() {
   local src="$1" dst="$2"
+  cmp -s "$src" "$dst" 2>/dev/null && return 0
   mkdir -p "$(dirname "$dst")"
   backup_if_exists "$dst"
   cp -a "$src" "$dst"
