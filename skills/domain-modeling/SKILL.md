@@ -72,3 +72,10 @@ Only offer to create an ADR when all three are true:
 3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
 
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+
+## Attribution
+
+- Original author: Matt Pocock
+- Upstream: [mattpocock/skills — domain-modeling](https://github.com/mattpocock/skills/tree/ee8bae40062cd6b435073368ed0c540f48c35862/skills/engineering/domain-modeling)
+- License: [MIT](https://github.com/mattpocock/skills/blob/ee8bae40062cd6b435073368ed0c540f48c35862/LICENSE)
+- The instruction and format files were imported unchanged from the pinned upstream revision before this attribution section was added.
