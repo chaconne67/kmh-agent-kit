@@ -11,7 +11,6 @@
 - 읽기 `get <slug>` · 키워드 `search "<query>"` · 의미검색 `query`/`ask "<question>"` · 목록 `list`. (`show` 없음)
 - 작업 전 먼저 읽는다: `project/exdigm-operating-context`, `agent/gbrain-operating-protocol`, `project/gbrain-agent-memory-loop`
 - GBrain이 안 되면 작업하지 말고 실패를 보고한다.
-- 에러·장애 사건을 다룰 때는 `agent/incident-recurrence-protocol`을 따른다: 착수 시 `list --tag incident`·증상 검색으로 같은 계열 과거 사건 조회, 종료 시 계열 페이지에 기록(재발 판정·방지책 상태), 기록 시 재발 부채 스윕.
 - 코드와 GBrain이 다르면 **코드가 기준**. 검증 후 GBrain을 갱신한다.
 
 ## 작업 전
