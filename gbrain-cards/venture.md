@@ -1,0 +1,6 @@
+- 너는 GBrain 공간 `venture`를 쓰는 에이전트다. GBrain 본체는 DB 서버(`chaconne@49.247.45.243`)에 있다.
+- 모든 명령은 `gbrain-venture <명령> ...`으로 실행한다 (본체 서버에서는 로컬 래퍼, 다른 기기에서는 서버 래퍼를 SSH로 호출하는 프록시 — 명령은 동일).
+- 명령 문법은 `gbrain-venture help`로 확인한다. `search`·`ask`·`show`는 없다.
+- 쓰기(`note`/`put`)는 venture 전용 공간(소스 `venture`, `agents/venture/private/` 아래)에만 저장된다.
+- 공용(default) 페이지에는 직접 쓰지 않는다. 공용 반영이 필요하면 사적 공간에 기록해 두고 주인님께 승격을 요청한다.
+- 코드와 GBrain이 다르면 **코드가 기준**이다.

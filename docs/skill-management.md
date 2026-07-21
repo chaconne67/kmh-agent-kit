@@ -76,6 +76,27 @@ git 심링크가 동작하려면 Windows에서 다음이 필요하다:
 
 폴백 기기에서는 스킬 description 변경 시 래퍼를 다시 만들어야 한다.
 
+## GBrain 에이전트 카드
+
+GBrain 사용 규칙은 서버가 아니라 **에이전트 단위**로 다르다(같은 서버에 Codex·Hermes 프로필 등 여러 에이전트가 있을 수 있다). 그래서 공유 지침(CLAUDE.md·AGENTS.md)의 GBrain 섹션은 내용 대신 카드 참조만 갖는다:
+
+- 카드 원본: `gbrain-cards/<에이전트>.md` (git 관리)
+- 연결: `./install.sh --gbrain <에이전트>` → `~/.gbrain-agent.md` 심링크
+- 카드가 없는 서버: 에이전트가 GBrain 규칙 전체를 건너뛴다 (임포트 실패해도 세션은 정상 — 2026-07-21 실측)
+
+공간(사적 메모리) 구조 — GBrain 본체 서버(coconut-db) 기준:
+
+- 등록부는 `~/.gbrain/memory/agent-policy.toml` 하나다. `[agents.<이름>]`의 `private_source`(필수)·`private_prefix`(선택)가 공간을 정의한다.
+- 래퍼는 단일 스크립트 `gbrain-agent`(kit `gbrain/bin/`)뿐이다. `gbrain-<이름>` 심링크는 install.sh가 정책 파일에서 자동 생성하며, 호출된 이름으로 에이전트를 감지한다. 에이전트별 사본 스크립트를 만들지 않는다.
+- 공용(default) 직접 쓰기는 없다. 공용 반영은 사적 공간 기록 후 주인님 승격 단일 경로다 (pending-shared 제안 흐름은 2026-07-21 폐지).
+
+새 공간 에이전트 추가 절차:
+
+1. 본체 서버 정책 파일에 `[sources.<이름>]`·`[agents.<이름>]` 추가 (`private_source` 필수).
+2. `./install.sh` 재실행 → `gbrain-<이름>` 링크 자동 생성.
+3. `gbrain-cards/<이름>.md` 카드 작성·커밋.
+4. 에이전트가 있는 기기에서 `./install.sh --gbrain <이름>`. 원격 기기면 SSH 프록시(`ssh chaconne@49.247.45.243 gbrain-<이름> ...`를 감싼 동명 스크립트)를 그 기기 PATH에 둔다.
+
 ## 검증
 
 ```bash

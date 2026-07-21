@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# kmh-agent-kit: 정책 기반 GBrain 공간 래퍼 (에이전트별 사본 스크립트를 대체).
+# 등록부는 ~/.gbrain/memory/agent-policy.toml 하나다. 새 에이전트 추가 = 정책 항목 + 카드.
+#
+# 호출 방법 두 가지 (동작 동일):
+#   gbrain-agent <에이전트> <명령> ...
+#   gbrain-<에이전트> <명령> ...        # 이름 심링크 (install.sh가 정책에서 자동 생성)
+#
+# 규칙: 사적 쓰기는 자기 소스(+정책에 프리픽스가 있으면 그 아래)로만.
+# 공용(default) 직접 쓰기 없음. 공용 반영은 사적 기록 후 주인님 승격 (pending-shared 폐지, 2026-07-21).
+
+POLICY_FILE="${GBRAIN_POLICY_FILE:-$HOME/.gbrain/memory/agent-policy.toml}"
+GBRAIN_BIN="${GBRAIN_CLI_WRAPPER:-$HOME/.gbrain/bin/gbrain_with_google_env.sh}"
+
+die() { echo "ERROR: $*" >&2; exit 64; }
+
+base="$(basename "$0")"
+if [[ "$base" == "gbrain-agent" ]]; then
+  agent="${1:-}"
+  [[ -n "$agent" ]] || { echo "usage: gbrain-agent <agent> <command> ..." >&2; exit 64; }
+  shift
+else
+  agent="${base#gbrain-}"
+fi
+
+[[ -f "$POLICY_FILE" ]] || die "policy file not found: $POLICY_FILE"
+block="$(sed -n "/^\[agents\.$agent\]/,/^\[/p" "$POLICY_FILE")"
+[[ -n "$block" ]] || die "unknown agent '$agent' — agent-policy.toml에 [agents.$agent] 항목을 등록하라"
+
+toml_get() { printf '%s\n' "$block" | sed -n "s/^$1 *= *\"\(.*\)\".*/\1/p" | head -1; }
+PRIVATE_SOURCE="$(toml_get private_source)"
+[[ -n "$PRIVATE_SOURCE" ]] || die "agent '$agent'에 private_source가 없다 (공간 없는 에이전트)"
+PRIVATE_PREFIX="$(toml_get private_prefix)"   # 비어 있으면 프리픽스 강제 없음 (예: judy)
+
+usage() {
+  cat <<USAGE
+gbrain-$agent — policy-safe GBrain wrapper (space: source '$PRIVATE_SOURCE'${PRIVATE_PREFIX:+, prefix $PRIVATE_PREFIX/})
+
+Usage:
+  gbrain-$agent policy
+  gbrain-$agent sources
+  gbrain-$agent put <slug> <file.md> [type]
+  gbrain-$agent note <slug-suffix> <markdown text...>
+  gbrain-$agent query <query...>          # default + 자기 공간
+  gbrain-$agent query-private <query...>
+  gbrain-$agent query-all <query...>
+  gbrain-$agent get <slug>
+  gbrain-$agent list
+
+Rules:
+  - 사적 쓰기는 소스 '$PRIVATE_SOURCE'${PRIVATE_PREFIX:+의 $PRIVATE_PREFIX/ 아래}에만 저장된다.
+  - 공용(default) 직접 쓰기는 없다. 공용 반영은 사적 공간에 기록 후 주인님께 승격을 요청한다.
+USAGE
+}
+
+require_prefix() {
+  local value="$1"
+  [[ -z "$PRIVATE_PREFIX" ]] && return 0
+  case "$value" in
+    "$PRIVATE_PREFIX"/*) ;;
+    *) die "private slug must start with $PRIVATE_PREFIX/ (got: $value)" ;;
+  esac
+}
+
+require_file() { [[ -f "$1" ]] || { echo "ERROR: file not found: $1" >&2; exit 66; }; }
+
+run_query_for_source() {
+  local source="$1" query="$2" limit="${3:-5}"
+  printf '\n[%s]\n' "$source"
+  "$GBRAIN_BIN" query "$query" --source-id "$source" --limit "$limit" || true
+}
+
+cmd="${1:-}"
+if [[ -z "$cmd" ]]; then usage; exit 0; fi
+shift || true
+
+case "$cmd" in
+  policy)
+    exec sed -n "/^\[sources\.$PRIVATE_SOURCE\]/,/^$/p; /^\[agents\.$agent\]/,/^$/p" "$POLICY_FILE"
+    ;;
+  sources)
+    exec "$GBRAIN_BIN" sources list
+    ;;
+  put)
+    slug="${1:-}"; file="${2:-}"; type="${3:-reference}"
+    [[ -n "$slug" && -n "$file" ]] || { usage; exit 64; }
+    require_prefix "$slug"
+    require_file "$file"
+    exec "$GBRAIN_BIN" capture --source "$PRIVATE_SOURCE" --slug "$slug" --type "$type" --file "$file" --json
+    ;;
+  note)
+    suffix="${1:-}"; shift || true
+    [[ -n "$suffix" && $# -gt 0 ]] || { usage; exit 64; }
+    if [[ -n "$PRIVATE_PREFIX" ]]; then
+      case "$suffix" in
+        "$PRIVATE_PREFIX"/*) slug="$suffix" ;;
+        *) slug="$PRIVATE_PREFIX/$suffix" ;;
+      esac
+    else
+      slug="$suffix"
+    fi
+    tmp="$(mktemp)"
+    trap 'rm -f "$tmp"' EXIT
+    cat > "$tmp" <<EOF
+---
+page_type: note
+agent_id: $agent
+logical_source_id: $PRIVATE_SOURCE
+visibility: private
+---
+
+$*
+EOF
+    exec "$GBRAIN_BIN" capture --source "$PRIVATE_SOURCE" --slug "$slug" --type note --file "$tmp" --json
+    ;;
+  query)
+    [[ $# -gt 0 ]] || { usage; exit 64; }
+    query="$*"
+    run_query_for_source default "$query" 5
+    run_query_for_source "$PRIVATE_SOURCE" "$query" 5
+    ;;
+  query-private)
+    [[ $# -gt 0 ]] || { usage; exit 64; }
+    exec "$GBRAIN_BIN" query "$*" --source-id "$PRIVATE_SOURCE" --limit 8
+    ;;
+  query-all)
+    [[ $# -gt 0 ]] || { usage; exit 64; }
+    exec "$GBRAIN_BIN" query "$*" --source-id __all__ --limit 8
+    ;;
+  get)
+    slug="${1:-}"
+    [[ -n "$slug" ]] || { usage; exit 64; }
+    GBRAIN_SOURCE="$PRIVATE_SOURCE" exec "$GBRAIN_BIN" get "$slug"
+    ;;
+  list)
+    GBRAIN_SOURCE="$PRIVATE_SOURCE" exec "$GBRAIN_BIN" list -n 50
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "ERROR: unknown command: $cmd" >&2
+    usage
+    exit 64
+    ;;
+esac

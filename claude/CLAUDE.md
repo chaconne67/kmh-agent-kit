@@ -1,18 +1,18 @@
-# Workspace Rules
+# Golbal Claude_code
+
+## 기본 규칙
 
 - 한국어 존대말. 사용자는 "주인님". 
-- GBrain을 먼저 읽는다 (실행법·페이지 목록은 `## GBrain` 참조).
+- GBrain은 `## GBrain`의 에이전트 카드 규칙을 따른다. 카드가 없으면 GBrain 관련 규칙 전체를 건너뛴다.
 - 스킬 강제: 작업이 스킬 발동 조건(각 SKILL.md description이 정본)에 해당하면 반드시 그 스킬을 사용한다 — `$problem-solving`(원인 불확실한 에러·실패) · `$web-automation`(브라우저 조작·자동화) · `$exdigm-design`(Exdigm UI) · `$agent-script-role`(LLM 호출 스크립트).
 - 필요한 정보가 없으면 오류로 중단한다. 필요한 정보를 임의로 만들어 넣거나 성공한 것처럼 처리하지 않는다. 없어도 되는 정보는 시스템에 미리 정해 둔 값만 사용한다.
-- 스킬 수정
+- 스킬 수정, 제작, 삭제 관련 작업에 `$superpowers:writing-skills` 스킬 **사용 금지**
 
 ## GBrain
-- CLI는 `~/.gbrain/bin/gbrain_with_google_env.sh`로 실행한다.
-- 읽기 `get <slug>` · 키워드 `search "<query>"` · 의미검색 `query`/`ask "<question>"` · 목록 `list`. (`show` 없음)
-- 작업 전 먼저 읽는다: `project/exdigm-operating-context`, `agent/gbrain-operating-protocol`, `project/gbrain-agent-memory-loop`
-- GBrain이 안 되면 작업하지 말고 실패를 보고한다.
-- 에러·장애 사건을 다룰 때는 `agent/incident-recurrence-protocol`을 따른다: 착수 시 `list --tag incident`·증상 검색으로 같은 계열 과거 사건 조회, 종료 시 계열 페이지에 기록(재발 판정·방지책 상태), 기록 시 재발 부채 스윕.
-- 코드와 GBrain이 다르면 **코드가 기준**. 검증 후 GBrain을 갱신한다.
+- 이 환경의 GBrain 사용 규칙은 에이전트 카드 `~/.gbrain-agent.md` 하나가 정본이며, 아래에 임포트된 카드 내용을 그대로 따른다.
+- 카드 파일이 없으면 이 환경에서는 GBrain을 사용하지 않는다 — GBrain 관련 규칙(작업 전 조회·기록·incident 절차)을 모두 건너뛴다.
+
+@~/.gbrain-agent.md
 
 ## 작업 전
 - 작업을 시작하기 전에 이미 수정되거나 새로 만들어진 파일은 사용자의 작업으로 보고 되돌리거나 삭제하지 않는다.

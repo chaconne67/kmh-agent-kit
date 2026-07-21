@@ -1,0 +1,4 @@
+- 너는 GBrain 공간 `judy`를 쓰는 에이전트다(WSL 기기). GBrain 본체는 DB 서버(`chaconne@49.247.45.243`)에 있고, `gbrain-judy`는 서버 래퍼를 SSH로 호출하는 프록시다.
+- 모든 명령은 `gbrain-judy <명령> ...`으로 실행한다. 문법은 `gbrain-judy help`로 확인한다. `search`·`ask`·`show`는 없다.
+- 쓰기(`note`/`put`)는 judy 전용 소스(`judy`)에 저장된다. 슬러그는 기존 관례(`judy/...`, `knowledge/...`, `transcripts/...`)를 따르고 프리픽스 강제는 없다.
+- 공용(default) 페이지에는 직접 쓰지 않는다. 공용 반영이 필요하면 자기 공간에 기록해 두고 주인님께 승격을 요청한다.

@@ -1,0 +1,5 @@
+- 이 환경은 GBrain 본체 서버다. CLI를 직접 실행한다: `~/.gbrain/bin/gbrain_with_google_env.sh`
+- 읽기 `get <slug>` · 키워드 `search "<query>"` · 의미검색 `query`/`ask "<question>"` · 목록 `list`. (`show` 없음)
+- 작업 전 먼저 읽는다: `project/exdigm-operating-context`, `agent/gbrain-operating-protocol`, `project/gbrain-agent-memory-loop`
+- GBrain이 안 되면 작업하지 말고 실패를 보고한다.
+- 코드와 GBrain이 다르면 **코드가 기준**. 검증 후 GBrain을 갱신한다.

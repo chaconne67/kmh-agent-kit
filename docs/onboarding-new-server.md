@@ -38,6 +38,14 @@ cd ~/kmh-agent-kit
 ./install.sh --project ~/exdigm exdigm
 ```
 
+이 서버의 에이전트가 GBrain을 쓴다면 카드를 연결한다 (카드 목록은 `gbrain-cards/`):
+
+```bash
+./install.sh --gbrain <에이전트>   # 예: main(본체 서버), rndlog, judy
+```
+
+카드를 연결하지 않으면 에이전트는 GBrain 규칙을 건너뛴다. 프로젝트는 **에이전트 실행 계정의 홈 바로 밑**(`~/<프로젝트>`)에 두는 것이 표준이다 — 다른 경로에 있던 프로젝트는 홈 밑으로 옮기고 구경로를 심링크로 남긴다.
+
 **Windows 기기**: clone 전에 개발자 모드를 켜고 `git config --global core.symlinks true`를 설정해야 심링크가 재현됩니다. 불가하면 `docs/skill-management.md`의 폴백(래퍼 파일 + `@` 임포트) 절차를 따릅니다.
 
 **도메인 전용 스킬**: exdigm-deploy처럼 레포에 없는 로컬 전용 스킬은 해당 도메인 서버에서만 실폴더로 존재합니다. 새 서버에 필요하면 운영 중인 서버에서 복사합니다.

@@ -51,6 +51,16 @@ link_profile() {
   done
 }
 
+if [ "${1:-}" = "--gbrain" ]; then
+  agent_name="${2:?usage: install.sh --gbrain <에이전트>}"
+  card="$repo_dir/gbrain-cards/$agent_name.md"
+  [ -f "$card" ] || { echo "[error] 카드 없음: $card" >&2; exit 1; }
+  link_entry "$card" "$home_dir/.gbrain-agent.md"
+  echo "gbrain card '$agent_name' → ~/.gbrain-agent.md"
+  [ -d "$backup_root" ] && echo "기존 파일 백업: $backup_root"
+  exit 0
+fi
+
 if [ "${1:-}" = "--project" ]; then
   proj_path="${2:?usage: install.sh --project <경로> <프로필명>}"
   proj_name="${3:?usage: install.sh --project <경로> <프로필명>}"
@@ -92,7 +102,21 @@ mkdir -p "$gbrain_home/bin" "$gbrain_home/logs" "$home_dir/.config/systemd/user"
 install_file "$repo_dir/gbrain/bin/gbrain_with_google_env.sh" "$gbrain_home/bin/gbrain_with_google_env.sh"
 install_file "$repo_dir/gbrain/bin/gbrain_http_with_google_env.sh" "$gbrain_home/bin/gbrain_http_with_google_env.sh"
 install_file "$repo_dir/gbrain/bin/memory_distill.py" "$gbrain_home/bin/memory_distill.py"
+install_file "$repo_dir/gbrain/bin/gbrain-agent" "$gbrain_home/bin/gbrain-agent"
 chmod 700 "$gbrain_home/bin/gbrain_with_google_env.sh" "$gbrain_home/bin/gbrain_http_with_google_env.sh" "$gbrain_home/bin/memory_distill.py"
+chmod 755 "$gbrain_home/bin/gbrain-agent"
+
+# GBrain 본체 서버(정책 파일 존재)에서만: 정책에 등록된 공간 에이전트마다 이름 심링크 생성
+policy_file="$home_dir/.gbrain/memory/agent-policy.toml"
+if [ -f "$policy_file" ]; then
+  mkdir -p "$home_dir/.local/bin"
+  link_entry "$gbrain_home/bin/gbrain-agent" "$home_dir/.local/bin/gbrain-agent"
+  for agent_name in $(sed -n 's/^\[agents\.\([A-Za-z0-9_-]*\)\]/\1/p' "$policy_file"); do
+    if sed -n "/^\[agents\.$agent_name\]/,/^\[/p" "$policy_file" | grep -q '^private_source'; then
+      link_entry "$gbrain_home/bin/gbrain-agent" "$home_dir/.local/bin/gbrain-$agent_name"
+    fi
+  done
+fi
 
 install_file "$repo_dir/gbrain/systemd/gbrain-http.service" "$home_dir/.config/systemd/user/gbrain-http.service"
 install_file "$repo_dir/gbrain/systemd/gbrain-memory-distill.service" "$home_dir/.config/systemd/user/gbrain-memory-distill.service"
