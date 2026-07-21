@@ -113,7 +113,7 @@ visibility: private
 
 $*
 EOF
-    exec "$GBRAIN_BIN" capture --source "$PRIVATE_SOURCE" --slug "$slug" --type note --file "$tmp" --json
+    "$GBRAIN_BIN" capture --source "$PRIVATE_SOURCE" --slug "$slug" --type note --file "$tmp" --json
     ;;
   query)
     [[ $# -gt 0 ]] || { usage; exit 64; }
