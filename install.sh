@@ -124,7 +124,8 @@ install_file "$repo_dir/gbrain/systemd/gbrain-memory-distill.timer" "$home_dir/.
 
 python3 "$repo_dir/scripts/check-skill-deps.py"
 
-if command -v systemctl >/dev/null 2>&1; then
+# GBrain CLI가 있는 서버에서만 서비스 활성화 (없는 서버에 실패 서비스를 만들지 않는다)
+if command -v systemctl >/dev/null 2>&1 && [ -x "${GBRAIN_CLI:-$home_dir/.bun/bin/gbrain}" ]; then
   systemctl --user daemon-reload || true
   systemctl --user enable --now gbrain-http.service || true
   systemctl --user enable --now gbrain-memory-distill.timer || true
