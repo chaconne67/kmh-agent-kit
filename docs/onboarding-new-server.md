@@ -61,6 +61,12 @@ docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}'
 ~/.gbrain/bin/gbrain_with_google_env.sh embed --stale --dry-run
 ```
 
+설치 직후 기본 소스를 명시 고정합니다 — 소스 등록 상태에 따라 bare CLI가 다른 소스로 라우팅되는 함정(sole_non_default tier)을 차단합니다:
+
+```bash
+~/.gbrain/bin/gbrain_with_google_env.sh sources default default
+```
+
 임베딩은 `google:gemini-embedding-001`, 768 dimensions를 기준으로 합니다. Distillation 모델은 기본값으로 OpenRouter의 Gemini 모델을 사용하지만 `GBRAIN_DREAM_MODEL`로 바꿀 수 있습니다.
 
 ## 5. Enable Services

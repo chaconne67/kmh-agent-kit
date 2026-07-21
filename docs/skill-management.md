@@ -92,7 +92,7 @@ GBrain 사용 규칙은 서버가 아니라 **에이전트 단위**로 다르다
 
 새 공간 에이전트 추가 절차:
 
-1. 본체 서버 정책 파일에 `[sources.<이름>]`·`[agents.<이름>]` 추가 (`private_source` 필수).
+1. 본체 서버 정책 파일에 `[sources.<이름>]`·`[agents.<이름>]` 추가 (`private_source` 필수). GBrain 소스 등록·설정 변경 후에는 반드시 bare CLI로 공용 페이지 1건을 `get`해 기본 소스 라우팅이 유지되는지 재검증한다 (incident/gbrain-cli-source-resolution 교훈).
 2. `./install.sh` 재실행 → `gbrain-<이름>` 링크 자동 생성.
 3. `gbrain-cards/<이름>.md` 카드 작성·커밋.
 4. 에이전트가 있는 기기에서 `./install.sh --gbrain <이름>`. 본체가 아닌 기기에서는 이 명령이 카드 연결과 함께 SSH 프록시 링크(`~/.local/bin/gbrain-<이름>` → kit `gbrain/bin/gbrain-remote-proxy`)까지 만든다. 전제: 그 기기의 SSH 키가 본체 서버에 등록되어 있어야 한다.
