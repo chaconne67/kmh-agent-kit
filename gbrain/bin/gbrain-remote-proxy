@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 원격 기기용 GBrain 프록시 — 본체 서버의 동명 래퍼(gbrain-<agent>)를 SSH로 호출한다.
+# install.sh --gbrain <agent>가 본체가 아닌 기기에서 ~/.local/bin/gbrain-<agent> 이름 링크를 만든다.
+# 본체 주소는 GBRAIN_HOST로 재정의 가능.
+
+GBRAIN_HOST="${GBRAIN_HOST:-chaconne@49.247.45.243}"
+
+base="$(basename "$0")"
+if [[ "$base" == "gbrain-remote-proxy" ]]; then
+  agent="${1:?usage: gbrain-remote-proxy <agent> <command> ...}"
+  shift
+else
+  agent="${base#gbrain-}"
+fi
+
+exec ssh "$GBRAIN_HOST" "/home/chaconne/.local/bin/gbrain-$agent $(printf '%q ' "$@")"

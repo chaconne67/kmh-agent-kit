@@ -57,6 +57,12 @@ if [ "${1:-}" = "--gbrain" ]; then
   [ -f "$card" ] || { echo "[error] 카드 없음: $card" >&2; exit 1; }
   link_entry "$card" "$home_dir/.gbrain-agent.md"
   echo "gbrain card '$agent_name' → ~/.gbrain-agent.md"
+  # 본체가 아닌 기기(정책 파일 없음)면 SSH 프록시 이름 링크도 함께 생성 (main 카드는 본체 전용)
+  if [ ! -f "$home_dir/.gbrain/memory/agent-policy.toml" ] && [ "$agent_name" != "main" ]; then
+    mkdir -p "$home_dir/.local/bin"
+    link_entry "$repo_dir/gbrain/bin/gbrain-remote-proxy" "$home_dir/.local/bin/gbrain-$agent_name"
+    echo "SSH 프록시 링크: ~/.local/bin/gbrain-$agent_name"
+  fi
   [ -d "$backup_root" ] && echo "기존 파일 백업: $backup_root"
   exit 0
 fi
