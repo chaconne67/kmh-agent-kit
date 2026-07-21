@@ -128,6 +128,12 @@ install_file "$repo_dir/gbrain/systemd/gbrain-http.service" "$home_dir/.config/s
 install_file "$repo_dir/gbrain/systemd/gbrain-memory-distill.service" "$home_dir/.config/systemd/user/gbrain-memory-distill.service"
 install_file "$repo_dir/gbrain/systemd/gbrain-memory-distill.timer" "$home_dir/.config/systemd/user/gbrain-memory-distill.timer"
 
+# ── 셸 별칭: ~/.bashrc에 source 라인 1회 추가 (멱등) ──────────────────
+if [ -f "$repo_dir/shell/kit-aliases.sh" ] && ! grep -q "kmh-agent-kit/shell/kit-aliases.sh" "$home_dir/.bashrc" 2>/dev/null; then
+  printf '\n# kmh-agent-kit aliases\n[ -f "%s/shell/kit-aliases.sh" ] && . "%s/shell/kit-aliases.sh"\n' "$repo_dir" "$repo_dir" >> "$home_dir/.bashrc"
+  echo "~/.bashrc에 kit-aliases source 라인 추가"
+fi
+
 python3 "$repo_dir/scripts/check-skill-deps.py"
 
 # GBrain CLI가 있는 서버에서만 서비스 활성화 (없는 서버에 실패 서비스를 만들지 않는다)
