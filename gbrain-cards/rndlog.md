@@ -2,7 +2,7 @@
 - 모든 명령은 프록시로 실행한다: `gbrain-rndlog <명령> ...` (PATH에 없으면 절대 경로 사용)
 - 명령 문법은 `gbrain-rndlog help`로 확인한다. `search`·`ask`·`show`는 없다.
 - 쓰기(`note`/`put`)는 rndlog 전용 공간(소스 `rndlog`, `agents/rndlog/private/` 아래)에만 저장된다. 공용(default)에는 직접 쓰지 않는다 — 공용 반영이 필요하면 사적 공간에 기록해 두고 주인님께 승격을 요청한다.
-- 공용 소스 페이지(`feedback/...`, `reference/...` 등)는 rndlog 네임스페이스 밖이라 `gbrain-rndlog get`으로 읽지 못한다. 서버의 `gbrain`으로 읽는다: `ssh chaconne@49.247.45.243 'export PATH=$HOME/.bun/bin:$HOME/.local/bin:$PATH; gbrain get <slug>'`
+- 공용 소스 페이지(`feedback/...`, `reference/...` 등)는 rndlog 네임스페이스 밖이라 `gbrain-rndlog get`으로 읽지 못한다. 서버의 `gbrain`으로 읽는다: `ssh chaconne@49.247.45.243 'export PATH=$HOME/.bun/bin:$HOME/.local/bin:$PATH; GBRAIN_SOURCE=default gbrain get <slug>'`
 - 서버에서 gbrain-rndlog를 직접 실행할 때는 절대 경로 필수(비대화형 SSH PATH에 없음): `ssh chaconne@49.247.45.243 '~/.local/bin/gbrain-rndlog <명령> ...'`
 - 새 세션 시작 또는 작업 전 필수 실행:
   - `gbrain-rndlog get agents/rndlog/private/project-overview`

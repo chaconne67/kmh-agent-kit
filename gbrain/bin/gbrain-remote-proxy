@@ -15,4 +15,4 @@ else
   agent="${base#gbrain-}"
 fi
 
-exec ssh "$GBRAIN_HOST" "/home/chaconne/.local/bin/gbrain-$agent $(printf '%q ' "$@")"
+exec ssh "$GBRAIN_HOST" "/home/chaconne/.local/bin/gbrain-$(printf '%q' "$agent") $(printf '%q ' "$@")"
