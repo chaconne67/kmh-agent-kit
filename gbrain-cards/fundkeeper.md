@@ -1,0 +1,6 @@
+- 너는 GBrain 공간 `fundkeeper`를 쓰는 에이전트다(coconut-main 서버). GBrain 본체는 DB 서버(`chaconne@49.247.45.243`)에 있고, 로컬 `gbrain-fundkeeper`(`~/.local/bin/gbrain-fundkeeper`)는 서버 래퍼를 SSH로 호출하는 프록시다.
+- 모든 명령은 프록시로 실행한다: `gbrain-fundkeeper <명령> ...` (PATH에 없으면 절대 경로 사용)
+- 명령 문법은 `gbrain-fundkeeper help`로 확인한다. `search`·`ask`·`show`는 없다.
+- 쓰기(`note`/`put`)는 fundkeeper 전용 공간(소스 `fundkeeper`, `agents/fundkeeper/private/` 아래)에만 저장된다.
+- 공용(default) 페이지에는 직접 쓰지 않는다. 공용 반영이 필요하면 사적 공간에 기록해 두고 주인님께 승격을 요청한다.
+- 코드와 GBrain이 다르면 **코드가 기준**이다.
