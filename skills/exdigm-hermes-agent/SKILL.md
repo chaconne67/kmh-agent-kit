@@ -1,142 +1,90 @@
 ---
 name: exdigm-hermes-agent
-description: Use when creating, changing, operating, debugging, or documenting Exdigm Hermes Telegram employee agents, including BotFather onboarding, profile rendering, Docker provisioning, shared Hermes recipes, MCP tools, Agent API routes/catalog/menu, owner self-bind, key rotation, offboarding, fleet refresh, and stale skill/session troubleshooting.
+description: Use when changing, operating, debugging, or documenting Exdigm Hermes Telegram employee agents and their onboarding, provisioning, runtime, access, notification, migration, or offboarding boundaries.
 ---
 
 # Exdigm Hermes Agent
 
-Exdigm 직원별 Hermes Telegram 에이전트의 판단 규칙. 파일·route·test 탐색은 코드 지도를 먼저 사용하고, 이 스킬은 Agent API, MCP 메뉴, 프로비저닝, 보안, 운영 판단에 집중한다.
+Exdigm 직원별 Telegram Hermes의 구현·운영 규칙이다. 코드 위치는 코드 목차로
+찾고, 이 스킬은 서비스 경계와 보존해야 할 계약에 집중한다.
 
 ## Start With Code Knowledge
 
-작업 시작 시 가장 가까운 주제 또는 파일 하나를 선택해 네비게이션 지도를 조회한다.
-
 ```bash
-uv run --locked python -m tools.code_knowledge code_query --query "헤르메스 에이전트 API"
+uv run --locked python -m tools.code_knowledge code_query --query "헤르메스 에이전트"
 uv run --locked python -m tools.code_knowledge code_query --query "Telegram 온보딩"
-uv run --locked python -m tools.code_knowledge code_query --query "권한·팀"
-uv run --locked python -m tools.code_knowledge code_query --query "accounts/urls_agent.py"
+uv run --locked python -m tools.code_knowledge code_query --query "에이전트 API"
 ```
 
-종료 코드 `3`이면 표현을 구체화한다. 종료 코드 `4`이면 등록된 힌트가 없는 것이므로 `rg`로 현재 코드를 탐색한다. 새 Agent API route, capability metadata, menu/catalog surface, prompt recipe, provisioning file, test가 업무 routing·불변조건·대표 경로를 바꾸면 근거와 함께 관련 canonical GBrain page를 갱신한다.
+종료 코드 `3`이면 질의를 구체화한다. 종료 코드 `4`이면 `rg`로 현재 코드를
+탐색한다. 공식 경로가 바뀌면 코드 목차와 canonical GBrain page를 함께 갱신한다.
 
-## Core Rule
+## Official Boundaries
 
-Exdigm 직원 assistant는 직원 1명당 `AgentProfile` 1개, Docker container 1개, Hermes data directory 1개, Telegram bot 1개다.
+- 직원 1명당 `AgentProfile` 1개, 공식 Hermes container 1개, Telegram bot 1개다.
+- 공식 온보딩: Exdigm 웹 → 텔레그램 관리자봇 → 관리형 봇 승인 → 독립 프로비저닝.
+- 공식 업무: Hermes → 직원 container의 로컬 Exdigm MCP → Django 에이전트API.
+- 공식 알림: Django → 직원 Hermes HMAC webhook → `deliver_only` → Telegram.
+- Django는 직원 Telegram bot token을 읽거나 Telegram API로 직접 발송하지 않는다.
+- 독립 프로비저닝 서비스만 직원 Hermes container와 profile secret 파일을 관리한다.
+- 직원 비활성화·복귀·삭제는 Django의 수명주기 요청 DB에 먼저 확정한다.
+- 기존 알림 배달 작업자가 독립 프로비저닝의 pause·resume·offboard HTTP 경계로
+  전달하고 실패한 요청을 재시도한다.
+- 기존 BotFather 입력, owner-bind, Django Docker 실행, `/agent/django`, custom image는 폐기 경로다.
 
-Exdigm app은 onboarding state, credential, Agent API authorization, Docker provisioning, shared runtime artifact를 소유한다. Hermes는 직원 컨테이너 안의 live conversation loop를 소유한다.
+## Hermes Defaults
 
-## Source Order
+- Nous Research 공식 Hermes image를 digest로 고정한다.
+- Hermes의 기본 추론, 메모리, 도구, 개인화, 스킬 학습 기능을 유지한다.
+- Exdigm 업무를 주 역할로 안내하되 기본 Hermes 기능을 막지 않는다.
+- `code_execution` 비활성, bundled skill 차단, 강제 SOUL 같은 구형 제한을 되살리지 않는다.
+- GBrain은 개발 환경의 선택 지식원이다. 없거나 실패해도 업무 경로는 계속 작동한다.
 
-1. 현재 코드 `/home/chaconne/exdigm`가 최우선이다.
-2. recipe prompt 원본은 `accounts/agent_prompts/`이며 app container에는 `/opt/agent-prompts`로 mount된다.
-3. runtime common artifact의 소스는 `accounts/services/hermes_provisioning.py::_render_common_files()`다.
-4. 운영 설명은 이 스킬의 `references/`를 참고한다.
+## Exdigm Access Policy
 
-필요할 때만 아래 reference를 읽는다.
+- Hermes의 Exdigm 탐색과 도구 사용은 기본 허용한다.
+- 안내 지도는 길 찾기 힌트다. 전체 스키마나 실행 허용 목록으로 사용하지 않는다.
+- 에이전트API는 직원 인증과 현재 웹 권한을 적용한다. 제한된 JSON을 Django ORM으로
+  바꾸는 것을 목표 역할로 삼지 않는다.
+- 인증 우회, 현재 권한 초과, 다른 직원·환경으로의 경계 이탈, 시스템 비밀값 접근,
+  데이터 삭제, 시스템 훼손과 권한 상승만 기계적으로 차단한다.
+- 사용자 요청 유형별 tool·route·workflow, 모델·필드·함수 allowlist와 오류별
+  보정 문법을 추가하지 않는다.
+- 파일·코드·DB를 탐색하는 격리 방식은 ADR-0022의 후속 grill 결정 전까지 임의로
+  확정하거나 구현하지 않는다.
 
-- `references/architecture.md`: 구조와 source map
-- `references/onboarding-provisioning-ops.md`: BotFather, profile, Docker provisioning, owner-bind, operations
-- `references/agent-api.md`: Agent API, MCP tools, catalog/menu, route surface
-- `references/troubleshooting.md`: stale skill/session, deployment smoke, incident handling
+## Profile Preservation
 
-## Agent API Rules
+- 보존: profile name, `memories/`, `workspace/`, 직원 생성 `skills/`, Hermes state.
+- 교체: `config.yaml`, `SOUL.md`, 예약 `skills/exdigm-work`, `.env`.
+- 제거: `.no-bundled-skills`, 구형 snapshot·fingerprint·refresh marker, stale session.
+- 직원 생성 skill 전체를 지우지 않는다.
+- 관리형 Gateway와 webhook 준비 완료 뒤에만 Django의 구형 bot token 필드를 비운다.
+- 같은 준비 완료 뒤 구형 `hermes-config/<profile>`의 관리 secret·config 파일도 제거한다.
 
-- Hermes가 자연어로 route를 고르고, Exdigm server는 지정된 route를 인증·scope 확인·payload 검증·실행·감사만 한다.
-- Hermes business work는 `exdigm_agent_menu*`와 `exdigm_agent_api_*` 도구를 통해 수행한다.
-- 서버 측 자연어 fallback이나 `exdigm_request` fallback을 되살리지 않는다.
-- Agent API catalog route metadata는 route 단위다. capability 수준의 write/confirmation flag를 GET route에 복사하지 않는다.
-- Delete route는 Hermes menu workflow에 노출하지 않는다.
-- 다운로드 응답은 상대 `download.url`이나 내부 path가 아니라 `download.absolute_url`을 Telegram 사용자에게 보여준다.
-- 업로드 route는 Hermes container 내부 실제 file path와 catalog의 `file_fields`가 맞아야 한다.
+## References
 
-허용 MCP tool:
-
-- `exdigm_agent_menu`
-- `exdigm_agent_menu_section`
-- `exdigm_agent_menu_task`
-- `exdigm_agent_api_route`
-- `exdigm_agent_api_call`
-
-## Menu And Glossary Rules
-
-- menu/catalog 변경은 `/opt/common` artifact로 갱신되며 MCP menu/catalog call마다 다시 읽힌다.
-- 사용자의 "후보자" 표현은 넓다. 프로젝트 맥락에서는 `Candidate`, `ProjectBasketItem`, `Application`을 구분한다.
-- 후보자 단독 검색에서 `agent_candidate_search`는 후보자명/회사/직무/태그 literal 검색만 담당한다.
-- 내부 명칭, 짧은 약칭, 관리 분류, 상태명, 추천/배제 의미처럼 route schema에 직접 없는 후보자 조건은 `agent_candidate_natural_search`로 사용자 표현을 `query.q`에 그대로 전달한다.
-- `project_relation=global`이면 `agent_project_candidate_add` 대상이다.
-- `project_relation=basket`이면 예비 후보이며 `basket_items[].id`로 `agent_project_basket_promote`를 사용한다.
-- `project_relation=application`이면 이미 진행 후보이며 Application route를 사용한다.
-- `candidate_already_registered`인데 project detail에 보이지 않으면 coworker/out-of-scope 가능성을 보고하고 예비/진행 상태를 단정하지 않는다.
-- 사용자에게는 "예비 후보" 또는 "진행 후보"처럼 상태를 구분해 말한다.
-
-## Recipe Vs Tool Changes
-
-Hermes 변경은 recipe와 tool로 나눈다.
-
-- Recipe: `SOUL.md`, `exdigm-work` `SKILL.md`, `WORKFLOW.md`, menu/catalog text처럼 자주 튜닝하는 instruction artifact.
-- Tool: Django Agent API view, MCP server behavior, Docker image/entrypoint, DB schema 같은 코드 capability.
-
-Hermes 운영 반영은 사람이 단계를 옵션으로 고르지 않는다. 기본 명령은 항상 아래 단일 자동 경로다.
-
-```bash
-scripts/deploy_hermes.sh
-```
-
-`scripts/deploy_hermes.sh`는 이미지, `/opt/common`, profile 재적용, recipe refresh를 순서대로 실행하되 각 단계가 fingerprint로 no-op 여부를 판단한다.
-
-`HERMES_RESTART_AGENTS=true`는 common artifact 변경 뒤 active gateway를 즉시 restart해야 할 때만 쓰고, `HERMES_FORCE_AGENT_IMAGE_BUILD=true`는 같은 image fingerprint라도 강제 rebuild가 필요할 때만 쓴다.
-
-`scripts/refresh_hermes_recipes.sh`는 하위 live-refresh 도구다. `deploy_hermes.sh`가 호출하면 common artifact 변경 여부를 `HERMES_FORCE_RECIPE_REFRESH`로 전달해 `exdigm-work`/menu/catalog 변경도 stale session marker를 쓰게 한다.
-
-Tool 변경은 deploy/provisioning과 관련 테스트가 필요하다.
-
-## Onboarding And Provisioning Rules
-
-- onboarding 흐름은 BotFather token input → token validation → `AgentProfile`/`AgentCredential` 저장 → Agent API key issue → Docker provisioning → Telegram `/start` owner self-bind 순서다.
-- BotFather token은 Exdigm secure input 경로로만 받고, 실제 token을 붙여 넣거나 로그에 남기지 않는다.
-- Telegram authorization은 numeric user ID 기준이다.
-- `code_execution`은 Hermes profile config에서 비활성화되어야 한다.
-- Terminal은 diagnostic only다. Exdigm business work는 Agent API route로만 수행한다.
-- provisioning 변경은 `render_profile_bundle()`과 `_render_common_files()`를 재사용한다.
-- SSH provisioning 또는 Hermes 내부 multi-profile model을 되살리지 않는다.
-
-## Runtime Paths
-
-- shared menu/skill files는 `/var/lib/exdigm/hermes-common`에 있고, agent container에는 `/opt/common`으로 read-only mount된다.
-- host-managed per-profile config는 `/var/lib/exdigm/hermes-config/<profile_name>`에 있고, agent container에는 `/opt/config`로 read-only mount된다.
-- per-user runtime data는 `/var/lib/exdigm/hermes-agents/<profile_name>`에 있고, agent container에는 `/opt/data`로 read-write mount된다.
-- entrypoint는 `/opt/config/config.yaml`과 `.env`를 `/opt/data`로 복사하고, `/opt/config/SOUL.md`와 `.no-bundled-skills`를 `/opt/data`에 symlink한다.
-- `HERMES_BUNDLED_SKILLS`는 빈 디렉터리를 가리켜야 한다. `config.yaml`에 bundled skill name을 나열하지 않는다.
-- entrypoint는 agent-created custom skills를 보존하되 예약 이름 `skills/exdigm-work`가 symlink가 아니면 제거하고 `/opt/common/skills/exdigm-work` symlink로 복구한다.
-- reprovisioning은 profile fingerprint로 stale `/opt/data/.skills_prompt_snapshot.json`, `/opt/data/sessions/sessions.json`을 제거해야 하며, `/opt/data/skills` 전체 wipe를 되살리지 않는다.
-
-## Stale Behavior Rules
-
-Recipe refresh 후 stale behavior가 남으면 active profile의 실제 runtime 파일을 확인한다.
-
-- `/opt/config/SOUL.md`
-- `/opt/config/.exdigm-profile-fingerprint`
-- `/opt/data/SOUL.md`
-- `/opt/common/skills/exdigm-work/SKILL.md`
-- `/opt/data/.skills_prompt_snapshot.json`
-- `/opt/data/sessions/sessions.json`
-- `/opt/data/.exdigm_recipe_refresh_epoch`
-
-사용자에게 `/new`를 실행하라고 요구하지 않는다. Exdigm wrapper가 refresh marker를 보고 다음 메시지에서 내부 fresh-session reset을 수행해야 한다.
+- `references/architecture.md`: 역할과 공식 실행 경로
+- `references/agent-api.md`: 네거티브 접근 경계와 현재 전환 상태
+- `references/onboarding-provisioning-ops.md`: 관리형 연결·secret·프로비저닝
+- `references/troubleshooting.md`: 장애 분리와 검증
 
 ## Verification
 
-상황에 맞는 코드 지도 결과와 focused 테스트를 우선한다.
-
 ```bash
-uv run --locked python -m tools.code_knowledge code_query --query "헤르메스 에이전트 API"
-uv run pytest -q \
-  tests/test_agent_docker_profile_apply.py \
-  tests/accounts/test_telegram_onboarding.py \
-  tests/test_refresh_hermes_fleet_command.py \
-  tests/test_agent_mcp_candidate_tools.py \
-  tests/test_agent_menu_workflow_contract.py
+flock -E 75 -w 55 /tmp/exdigm-pytest.lock uv run --locked pytest -q \
+  tests/test_agent_api_foundation.py \
+  tests/test_agent_api_read.py \
+  tests/test_agent_api_write.py \
+  tests/test_agent_api_email.py \
+  tests/test_provisioning_service.py \
+  tests/accounts/test_agent_lifecycle.py \
+  tests/accounts/test_telegram_connection_boundary.py \
+  tests/test_telegram_connection_service.py \
+  tests/test_notification_dispatch_worker.py
+
+uv run --locked python -m tools.code_knowledge catalog_update
+uv run --locked python manage.py check
 ```
 
-운영 검증은 사용자가 live operation을 요청했거나 실제 운영 장애 확인이 필요한 경우에만 수행한다.
+운영 container·Telegram 검증은 사용자가 운영 작업을 요청한 경우에만 수행한다.

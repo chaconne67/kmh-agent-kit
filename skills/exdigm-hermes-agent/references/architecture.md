@@ -1,136 +1,77 @@
 # Architecture
 
-## Current Shape
+## Components
 
-- Product: Exdigm employee personal assistant over Telegram.
-- Runtime: Exdigm wrapper Docker image `exdigm-hermes-gateway:dev` over `nousresearch/hermes-agent:main`.
-- One employee maps to one `AgentProfile`, one `AgentCredential`, one container, one `/opt/data`, and one Telegram bot.
-- Hermes internal profiles are not used for employees. `profile_name` only makes safe container and data directory names.
-- Profile name: `AgentProfile.profile_name_for(user)` -> `exdigm-employee-<user.pk>`.
-- Runtime user inside official Hermes image is UID/GID `10000`; host-managed config files must be readable through the entrypoint, and `.env` stays `0600`.
-- Default model provider is Gemini, model `gemini-3.1-flash-lite`.
-- Timezone is `Asia/Seoul`.
+| 정확한 이름 | 역할 | 실행 위치 |
+|---|---|---|
+| 텔레그램 관리자봇 | 직원이 처음 대화하는 실제 Telegram bot 계정 | Telegram |
+| Telegram 연결 API | 관리자봇 update 처리, 계정 연결, 관리형 봇 승인·token 취득 | 독립 서비스 |
+| 프로비저닝 | 직원별 profile·secret·공식 Hermes container 생성 | 독립 서비스 |
+| 직원별 Telegram 봇 | 직원이 자기 Hermes와 대화하는 실제 bot 계정 | Telegram |
+| 직원별 Hermes | 기억·세션·스킬·추론을 가진 에이전트 | 직원별 container |
+| Exdigm MCP | Hermes의 Exdigm 접근 도구 연결 | 직원별 container |
+| 에이전트API | 직원 인증·현재 웹 권한과 명시적 deny 정책을 적용하는 경계 | Django 웹 서버 |
 
-## Main Source Files
+텔레그램 bot 계정 자체는 코드를 실행하지 않는다. Telegram이 보낸 update를
+Telegram 연결 API가 관리자봇 token으로 수신하고 처리한다.
 
-| Path | Role |
-|---|---|
-| `accounts/models.py` | `AgentProfile`, `AgentCredential`, `AgentAuditLog`, router session state, write confirmation state. |
-| `accounts/services/telegram_onboarding.py` | Employee-facing Telegram setup flow and BotFather token handling. |
-| `accounts/services/hermes_profile.py` | Deterministic Hermes profile/common artifact rendering. |
-| `accounts/services/hermes_provisioning.py` | Docker apply, fleet common artifact rendering, Agent API catalog/menu generation. |
-| `accounts/services/agent_api_keys.py` | Agent API key issue, reissue, revoke. |
-| `accounts/services/agent_recovery.py` | Reapply, restart, offboard operations. |
-| `accounts/services/agent_profile_status.py` | Status display for UI. |
-| `deploy/hermes-agent/Dockerfile` | Wrapper image with Node, RTK, self-bind helper, entrypoint. |
-| `deploy/hermes-agent/entrypoint.sh` | Runtime patching, bundled skill hiding, custom skill preservation, Hermes gateway start. |
-| `deploy/hermes-agent/exdigm_self_bind.py` | First Telegram sender numeric ID owner-bind helper. |
-| `deploy/hermes-agent/exdigm_agent_mcp/server.py` | Hermes MCP tools that read menu/catalog and call Agent API. |
-| `accounts/agent_prompts/soul.md` | X-Dime persona and state-first behavior. |
-| `accounts/agent_prompts/exdigm_work_skill.md` | Shared Hermes `exdigm-work` skill template. |
-| `accounts/agent_prompts/exdigm_business_workflow.md` | Project/Candidate/Application/Submission workflow model. |
-| `accounts/urls_agent.py` | Agent API route surface. |
-| `accounts/agent_api/` | Agent API implementation by domain. |
-| `accounts/agent_capabilities/registry.yaml` | Capability metadata used by catalog generation. |
-| `accounts/templates/accounts/partials/settings_telegram.html` | Token input UI and completed bot link. |
-| `accounts/templates/accounts/partials/_telegram_setup_guide.html` | Employee BotFather guide. |
-| `accounts/management/commands/refresh_hermes_fleet.py` | Emits common artifacts JSON for deployment refresh. |
+## Single Success Paths
 
-## Data Model
+### Onboarding
 
-`AgentProfile`
+```text
+Exdigm 설정 화면
+→ Telegram 관리자봇 deep link
+→ 직원의 Telegram 숫자 ID 연결
+→ Telegram 관리형 봇 생성 승인
+→ Telegram 연결 API가 직원 봇 token 취득
+→ 독립 프로비저닝 접수
+→ profile secret 생성
+→ 공식 Hermes container 시작
+→ webhook health 확인
+→ Django 연결 상태 active
+→ Django 구형 bot token 정리
+```
 
-- `role`: `STAFF` or `BOSS`.
-- `status`: `pending`, `telegram_token_ready`, `telegram_id_ready`, `provisioning`, `active`, `failed`.
-- Telegram fields: `telegram_user_id`, `telegram_bot_id`, `telegram_bot_username`, `telegram_capture_nonce`, `telegram_capture_expires_at`.
-- `telegram_capture_last_update_id` is deprecated but kept until the deferred migration is safe.
-- `profile_name_for(user)` returns `exdigm-employee-<user.pk>`.
-- `role_for_user(user)` requires approved staff; boss level maps to `BOSS`.
+### Current Work Path
 
-`AgentCredential`
+```text
+직원 Telegram
+→ 직원별 Hermes
+→ 로컬 Exdigm MCP
+→ Django 에이전트API
+→ 웹 사용자와 같은 권한의 데이터·이메일 기능
+```
 
-- Stores encrypted BotFather token and encrypted Agent API key.
-- Stores token/API key fingerprints, bot token mask, allowed scopes, API key expiry, rotation timestamp.
-- `set_agent_api_key()` requires approved staff, expiry, and string scopes.
+현재 경로는 배포된 전환 상태다. 목표 접근 방식은 네거티브 제어를 사용하며,
+파일·코드·DB 접근의 격리 방식은 후속 grill-with-docs에서 결정한다.
 
-`AgentAuditLog`
+### Notification
 
-- Every Agent API auth failure/success is logged with endpoint, method, status, result, failure reason, request ID, and key fingerprint prefix.
+```text
+Exdigm_net 안의 Django NotificationDispatch 작업자
+→ 직원 Hermes의 HMAC V2 webhook
+→ deliver_only route
+→ 직원별 Telegram 봇
+→ 직원 Telegram
+```
 
-`AgentWriteConfirmation`
+## Deployment Boundary
 
-- Dangerous writes return one-time `confirmation_token`; execution happens through the action execute route.
-
-## Generated Artifacts
-
-Runtime instruction artifacts have a hot-swap boundary:
-
-- Local recipe source: `/home/chaconne/exdigm/accounts/agent_prompts`.
-- App container mount: `/opt/agent-prompts`.
-- Loader: `accounts.agent_prompts.load_prompt()` prefers `AGENT_PROMPTS_DIR` and falls back to packaged image files only when the mounted file is missing.
-- Normal Hermes deploy command: `scripts/deploy_hermes.sh`.
-- Lower-level recipe refresh tool: `scripts/refresh_hermes_recipes.sh`.
-
-Do not use `/app/accounts/agent_prompts/*.md` as the runtime truth when `AGENT_PROMPTS_DIR=/opt/agent-prompts` is configured.
-
-Host-managed profile config under `/var/lib/exdigm/hermes-config/<profile_name>`:
-
-- `config.yaml`
-- `.env`
-- `SOUL.md`
-- `.no-bundled-skills`
-- `.exdigm-profile-fingerprint`
-
-Runtime data under `/var/lib/exdigm/hermes-agents/<profile_name>`:
-
-- `sessions/`
-- `state.db`
-- `skills/`
-- `.skills_prompt_snapshot.json`
-- `.exdigm_recipe_refresh_epoch`
-
-Common artifacts under `/var/lib/exdigm/hermes-common`:
-
-- `skills/exdigm-work/SKILL.md`
-- `skills/exdigm-work/WORKFLOW.md`
-- `exdigm-agent-mcp/server.py`
-- `exdigm-agent-api-catalog.json`
-- `exdigm-agent-menu.json`
-- `exdigm-agent-connection.json`
-
-`SOUL.md`, `SKILL.md`, `WORKFLOW.md`, menu/catalog text, and route semantics in generated catalog/menu are recipes. Agent API route implementations, MCP server code behavior, Docker image/entrypoint behavior, and DB schema are tools. Normal operations use `scripts/deploy_hermes.sh`; it decides rebuild, common refresh, profile reapply, and recipe refresh by fingerprint.
-
-## Profile Config Contract
-
-`render_config_yaml()` sets:
-
-- `agent.max_turns: 90`
-- `agent.reasoning_effort: medium`
-- `agent.disabled_toolsets: ["code_execution"]`
-- memory and user profile enabled
-- manual approvals
-- secret redaction and Tirith enabled
-- Telegram `allow_from: ["${TELEGRAM_ALLOWED_USERS}"]`
-- no Telegram admin allowlist
-- user command allowlist only `status`
-- shared `exdigm-work` skill path `/opt/common/skills/exdigm-work`
-- MCP server `exdigm` with menu/catalog paths under `/opt/common`
-- shared connection file `/opt/common/exdigm-agent-connection.json`; MCP falls back to env when the file is missing or invalid
-- plugin `rtk-rewrite`
-
-Entrypoint materialization:
-
-- `/opt/config/config.yaml` and `.env` are copied into `/opt/data`.
-- `/opt/config/SOUL.md` and `.no-bundled-skills` are symlinked into `/opt/data`.
-- `/opt/data/skills` is preserved for agent-created skills; reserved `skills/exdigm-work` is forced to a symlink to `/opt/common/skills/exdigm-work`.
-- `.exdigm-profile-fingerprint` changes remove `/opt/data/sessions/sessions.json` and `.skills_prompt_snapshot.json`.
-
-## Business Model Embedded In Hermes
-
-- `Project` is one client job order.
-- `Candidate` is a person in the global candidate DB.
-- `ProjectBasketItem` is a project preliminary candidate.
-- `Application` is a project active candidate.
-- User-facing stages: `contact -> pre_meeting -> recommendation -> interview -> closing`.
-- Discovery happens before `Application`; resume receipt/conversion helps the `recommendation` stage.
-- "추천서" is not a customer deliverable. Say "제출용 이력서" or "고객사 제출용 이력서"; "추천 단계" remains a stage name.
+- Django 웹 배포와 Hermes 인프라 배포는 별개다.
+- 알림 배달 작업자는 Django 앱 image의 별도 stack service이며 `Exdigm_net` 안에서
+  실행한다. 호스트 systemd 작업자로 실행하지 않는다.
+- Django stack 배포는 새 알림 작업자를 시작하기 전에 구형 host
+  `exdigm-notification-dispatcher.service`를 정지·비활성화·삭제한다.
+- Django web container는 Docker socket이나 직원 profile directory를 소유하지 않는다.
+- Telegram 연결 API와 프로비저닝은 같은 저장소여도 서로 다른 프로세스·container다.
+- 프로비저닝은 Nous Research 공식 image, 직원 profile directory, 로컬 Exdigm MCP를 소유한다.
+- Django 직원 lifecycle signal은 외부 HTTP를 호출하지 않고 수명주기 요청을
+  같은 DB transaction에 기록한다.
+- 기존 알림 배달 작업자가 확정된 수명주기 요청을 독립 프로비저닝의 인증된
+  pause·resume·offboard endpoint로 전달하고 일시 실패를 재시도한다.
+- 같은 profile의 수명주기 요청은 생성 순서를 앞지르지 않는다.
+- offboard는 이전 pending 요청을 대체하는 최종 상태다.
+- 프로비저닝은 container 준비 뒤 Django의 현재 직원 상태를 다시 확인하고,
+  비활성 직원의 새 container를 성공 처리 전에 정지한다.
+- GBrain은 개발 프로비저닝에서만 선택적으로 연결한다.
