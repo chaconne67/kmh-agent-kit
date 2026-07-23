@@ -35,6 +35,9 @@ uv run --locked python -m tools.code_knowledge code_query --query "에이전트 
 ## Hermes Defaults
 
 - Nous Research 공식 Hermes image를 digest로 고정한다.
+- 기본 추론 공급자는 `gemini`, 기본 모델은 `gemini-3.1-flash-lite`다.
+- 직원 profile에는 최소 `GEMINI_API_KEY`가 있어야 하며 모델 선택 화면에
+  Gemini 공급자가 나타나야 한다.
 - Hermes의 기본 추론, 메모리, 도구, 개인화, 스킬 학습 기능을 유지한다.
 - Exdigm 업무를 주 역할로 안내하되 기본 Hermes 기능을 막지 않는다.
 - `code_execution` 비활성, bundled skill 차단, 강제 SOUL 같은 구형 제한을 되살리지 않는다.
