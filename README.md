@@ -16,7 +16,7 @@ projects/<프로젝트>/       (선택) 여러 기기가 공유하는 프로젝�
 gbrain-cards/<에이전트>.md  에이전트별 GBrain 사용 규칙 카드 (~/.gbrain-agent.md로 링크)
 manifests/skills.json     스킬 간 의존관계(depends_on)만 보관 — 배치 정본은 프로필 심링크
 gbrain/                   GBrain 실행 래퍼·gbrain-agent 공간 래퍼·systemd 유닛 (복사식 설치)
-docs/                     온보딩·운영 문서, Exdigm 지식 문서
+docs/                     온보딩·키트 운영 문서 (프로젝트 지식 문서는 각 프로젝트 폴더에)
 scripts/                  구조 검증 스크립트
 ```
 

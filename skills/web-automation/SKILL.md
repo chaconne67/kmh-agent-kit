@@ -26,7 +26,7 @@ Manual reproduction proves only observed page behavior, not the automation. If n
 
 Execution must remain within the authority granted by the user. Stop before externally visible or destructive actions when approval is absent or ambiguous.
 
-For Exdigm UI or template changes, also use [$exdigm-design](/home/chaconne/.codex/skills/exdigm-design/SKILL.md). Its project URL, interaction acceptance, and screenshot verification rules are the source of truth; this skill still owns browser phase classification.
+If the project provides a UI design skill (for example `$exdigm-design` in the Exdigm project), use it together with this one for UI or template changes. That skill owns project URLs, interaction acceptance, and screenshot verification; this skill still owns browser phase classification.
 
 ## Preflight
 
