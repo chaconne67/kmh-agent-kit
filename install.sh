@@ -7,7 +7,7 @@ set -euo pipefail
 #
 # usage:
 #   ./install.sh                              # 전역 설치 (claude + codex + gbrain)
-#   ./install.sh --project <경로> <프로필명>   # 프로젝트 프로필 연결 (예: --project ~/exdigm exdigm)
+#   ./install.sh --project <경로> <프로필명>   # 프로젝트 프로필 연결 (projects/에 프로필이 있을 때)
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 home_dir="${HOME:?HOME is required}"

@@ -6,7 +6,9 @@
 
 - **배치의 정본은 프로필 심링크다.** 어떤 스킬이 어느 도구·프로젝트에서 발동하는지는 `claude/skills/`, `codex/skills/`, `projects/<프로젝트>/skills/`의 링크 존재 여부가 결정한다.
 - `manifests/skills.json`은 심링크로 표현할 수 없는 **스킬 간 의존관계만** 담는다. 배치 정보를 여기 중복 기록하지 않는다.
-- 도메인 전용이라 공유하지 않는 스킬(예: exdigm-deploy)은 레포에 넣지 않고 해당 서버의 live 디렉토리에 실폴더로 둔다.
+- **도메인 전용 자산은 키트에 넣지 않는다.** 특정 프로젝트에서만 쓰는 스킬·지침·문서는 그 프로젝트 폴더 안에 로컬 실파일로 두고, 프로젝트 레포가 gitignore한다. 키트는 여러 프로젝트·기기에서 공통으로 쓰는 자산만 소유한다.
+  - 예: exdigm의 스킬 4개(auto-posting, extraction-pipeline-verify, exdigm-design, exdigm-hermes-agent)와 지식 문서는 `~/exdigm/.claude/skills/`·`~/exdigm/.claude/agent-docs/`에 있다. `.codex/skills/`는 `.claude/skills/`를 가리키는 로컬 심링크로 두 도구가 같은 원본을 쓴다.
+  - 예: exdigm-deploy 스킬은 해당 서버의 `~/.codex/skills/`에 실폴더로만 있다.
 
 ## 일상 수정 (git만 사용)
 
@@ -60,7 +62,10 @@ pull만으로 live에 즉시 반영된다(같은 파일이므로). `install.sh` 
    ./install.sh --project <프로젝트 경로> <프로젝트명>
    ```
 
-프로젝트 지침 파일 소유권: 프로젝트 자체 git 레포가 CLAUDE.md·AGENTS.md를 이미 추적하면(예: gbrain) 그 레포가 정본이고 키트에 넣지 않는다. 프로젝트 레포가 이 파일들을 gitignore하면(예: exdigm) 키트의 `projects/<프로젝트>/`가 정본이고 live 파일은 심링크다.
+프로젝트 지침 파일 소유권 판정:
+
+1. 프로젝트 내용이 그 프로젝트에서만 쓰이면 → 프로젝트 폴더의 로컬 파일이 정본, 키트에 넣지 않는다.
+2. 여러 기기·프로젝트가 공유할 내용이면 → 키트 `projects/<프로젝트>/`에 두고 live는 심링크로 연결한다.
 
 ## Windows 기기
 

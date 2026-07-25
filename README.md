@@ -12,7 +12,7 @@ claude/skills/<이름>      Claude Code 전역 프로필 — ../../skills/<이�
 claude/CLAUDE.md          Claude Code 전역 지침 원본
 codex/skills/<이름>       Codex 전역 프로필 — 상대 심링크
 codex/AGENTS.md           Codex 전역 지침 원본
-projects/<프로젝트>/       프로젝트 프로필: skills/ 심링크 + CLAUDE.md·AGENTS.md 원본
+projects/<프로젝트>/       (선택) 여러 기기가 공유하는 프로젝트 프로필: skills/ 심링크 + 지침 원본
 gbrain-cards/<에이전트>.md  에이전트별 GBrain 사용 규칙 카드 (~/.gbrain-agent.md로 링크)
 manifests/skills.json     스킬 간 의존관계(depends_on)만 보관 — 배치 정본은 프로필 심링크
 gbrain/                   GBrain 실행 래퍼·gbrain-agent 공간 래퍼·systemd 유닛 (복사식 설치)
@@ -32,7 +32,7 @@ scripts/                  구조 검증 스크립트
 git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
 cd ~/kmh-agent-kit
 ./install.sh                      # 전역 연결 (claude + codex + gbrain)
-./install.sh --project ~/exdigm exdigm   # 프로젝트 프로필 연결
+./install.sh --project ~/<프로젝트> <프로필명>   # 프로젝트 프로필 연결 (프로필이 있을 때만)
 ./install.sh --gbrain <에이전트>          # GBrain 카드 연결 (예: main, rndlog, judy)
 ```
 
@@ -59,7 +59,7 @@ python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
 
 - API key, DB password, OAuth token 같은 비밀값
 - 외부에서 가져온 타사 스킬 원본
-- 프로젝트 코드, 도메인 전용 로컬 스킬(예: exdigm-deploy)
+- 프로젝트 코드, 도메인 전용 자산 — 특정 프로젝트에서만 쓰는 스킬·지침·문서는 그 프로젝트 폴더의 로컬 실파일로 둔다 (예: exdigm의 `.claude/skills/`·`.claude/agent-docs/`, exdigm-deploy 스킬)
 - GBrain 데이터베이스 덤프
 
 ## Core Rules

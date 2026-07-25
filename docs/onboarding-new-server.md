@@ -32,10 +32,10 @@ cd ~/kmh-agent-kit
 
 `install.sh`는 스킬과 전역 지침을 이 레포로 **심볼릭 링크**합니다. 링크가 아닌 기존 파일은 `~/.kmh-agent-kit-backup-<시각>/`으로 옮겨 보존합니다. 설치 후 일상 동기화는 `git pull`이 전부입니다 — 스킬 추가·삭제가 있었던 pull 뒤에만 `./install.sh`를 다시 실행합니다.
 
-프로젝트 프로필(예: exdigm)이 필요한 서버라면:
+키트에 프로젝트 프로필이 있는 경우에만 연결합니다 (`projects/` 참조):
 
 ```bash
-./install.sh --project ~/exdigm exdigm
+./install.sh --project ~/<프로젝트> <프로필명>
 ```
 
 이 서버의 에이전트가 GBrain을 쓴다면 카드를 연결한다 (카드 목록은 `gbrain-cards/`):
