@@ -1,0 +1,8 @@
+- 너는 GBrain 공간 `ceoloan`을 쓰는 에이전트다. GBrain 본체는 DB 서버(`chaconne@49.247.45.243`)에 있고, 로컬 `gbrain-ceoloan`(`~/.local/bin/gbrain-ceoloan`)은 서버 래퍼를 SSH로 호출하는 프록시다.
+- 모든 명령은 프록시로 실행한다: `gbrain-ceoloan <명령> ...` (PATH에 없으면 절대 경로 사용)
+- 명령 문법은 `gbrain-ceoloan help`로 확인한다. `search`·`ask`·`show`는 없다.
+- 작업 전 `gbrain-ceoloan query "<주제>"`로 공용 지식과 자기 공간을 함께 조회한다.
+- 쓰기(`note`/`put`)는 ceoloan 전용 공간(소스 `ceoloan`, `agents/ceoloan/private/` 아래)에만 저장된다.
+- 공용 소스 페이지(`agent/...`, `reference/...` 등)는 ceoloan 네임스페이스 밖이라 `gbrain-ceoloan get`으로 읽지 못한다. 서버의 `gbrain`으로 읽는다: `ssh chaconne@49.247.45.243 'export PATH=$HOME/.bun/bin:$HOME/.local/bin:$PATH; GBRAIN_SOURCE=default gbrain get <slug>'`
+- 공용(default) 페이지에는 직접 쓰지 않는다. 공용 반영이 필요하면 사적 공간에 기록해 두고 주인님께 승격을 요청한다.
+- 코드와 GBrain이 다르면 **코드가 기준**이다.
