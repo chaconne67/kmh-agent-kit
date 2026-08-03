@@ -1,6 +1,6 @@
 ---
 name: fundkeeper
-description: FundKeeper 퀀트 동적 자산배분 & 리밸런싱 운영 시스템
+description: FundKeeper 퀀트 동적 자산배분·리밸런싱 운영 시스템. Use when working on FundKeeper/coconut.im, including 수동계좌 잔고를 스크린샷에서 추출·검증해 ClientAccount, ClientCash, ClientTicker에 반영할 때.
 ---
 
 # FundKeeper Skill - 퀀트 동적 자산배분 & 리밸런싱 운영 시스템
@@ -11,6 +11,10 @@ description: FundKeeper 퀀트 동적 자산배분 & 리밸런싱 운영 시스�
 코스콤 로보어드바이저 테스트베드 2차에서 검증 중인 퀀트 동적 자산배분 웹 + 리밸런싱 운영 시스템.
 
 **관련 스킬**: `testbed-base` (테스트베드 계좌/전략/서류), `fundkeeper-deploy` (배포/운영)
+
+## 작업별 워크플로우
+
+- 수동계좌 잔고 입력: [workflows/client-balance.md](workflows/client-balance.md)를 끝까지 읽고 따른다.
 
 ## 접속 정보
 
