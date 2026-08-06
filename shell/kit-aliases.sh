@@ -10,9 +10,11 @@ alias kitinstall='git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-ag
 alias kitpull='git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh'
 
 # 사용: kitpush "커밋 메시지"  (생략 시 기본 메시지)
+# 커밋할 변경이 없어도 미푸시 커밋은 올린다.
 kitpush() {
-  git -C ~/kmh-agent-kit status --short
-  git -C ~/kmh-agent-kit add -A \
-    && git -C ~/kmh-agent-kit commit -m "${1:-Update agent kit}" \
-    && git -C ~/kmh-agent-kit push
+  local kit="$HOME/kmh-agent-kit"
+  git -C "$kit" status --short
+  git -C "$kit" add -A
+  git -C "$kit" diff --cached --quiet || git -C "$kit" commit -m "${1:-Update agent kit}" || return 1
+  git -C "$kit" push
 }
