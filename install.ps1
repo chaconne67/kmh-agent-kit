@@ -33,7 +33,9 @@ $backupRoot = Join-Path $homeDir ".kmh-agent-kit-backup-$stamp"
 function Backup-Entry {
     param([string]$Path)
     if (-not (Test-Path -LiteralPath $backupRoot)) { New-Item -ItemType Directory -Path $backupRoot | Out-Null }
-    $flat = $Path.Substring($homeDir.Length).TrimStart('\').Replace('\', '_')
+    # -Project 대상은 홈 밖일 수 있으므로 홈 기준 상대화가 항상 성립하지는 않는다.
+    $flat = if ($Path.StartsWith($homeDir, 'OrdinalIgnoreCase')) { $Path.Substring($homeDir.Length) } else { $Path -replace '^[A-Za-z]:', '' }
+    $flat = $flat.TrimStart('\').Replace('\', '_')
     Move-Item -LiteralPath $Path -Destination (Join-Path $backupRoot $flat) -Force
     Write-Host "  backup: $Path"
 }
