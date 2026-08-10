@@ -6,6 +6,9 @@ Windows에서 `ln -s` 없이 프로필 항목을 만들면 git에 일반 파일(
 링크해 설치가 조용히 깨진다. 이 스크립트는 작업트리 표현과 무관하게 git 인덱스에
 항상 심링크(mode 120000)로 등록해 그 사고를 막는다.
 
+스킬 원본은 공용이면 skills/common/<이름>, 도메인 전용이면 skills/domains/<도메인>/<이름>에
+있다. 이름만 주면 어느 쪽이든 찾아 상대경로를 계산한다.
+
 usage:
   python scripts/link-skill.py add <스킬명> --claude --codex
   python scripts/link-skill.py add <스킬명> --project <프로젝트명>
@@ -21,6 +24,18 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+SKILLS = REPO / "skills"
+
+
+def find_skill(name: str) -> Path | None:
+    """스킬 원본 경로. 공용은 skills/common/, 도메인은 skills/domains/<도메인>/ 아래에 있다."""
+    common = SKILLS / "common" / name
+    if common.is_dir():
+        return common
+    for domain in sorted((SKILLS / "domains").iterdir()) if (SKILLS / "domains").is_dir() else []:
+        if (domain / name).is_dir():
+            return domain / name
+    return None
 
 
 def git(*args: str, capture: bool = False) -> str:
@@ -44,8 +59,8 @@ def profile_dirs(args: argparse.Namespace) -> list[Path]:
     return dirs
 
 
-def add(skill: str, profile: Path) -> None:
-    rel = os.path.relpath(REPO / "skills" / skill, profile).replace(os.sep, "/")
+def add(skill: str, source: Path, profile: Path) -> None:
+    rel = os.path.relpath(source, profile).replace(os.sep, "/")
     link = profile / skill
     profile.mkdir(parents=True, exist_ok=True)
     if link.exists() or link.is_symlink():
@@ -86,8 +101,9 @@ def main() -> int:
     parser.add_argument("--project", action="append", help="프로젝트 프로필명 (반복 가능)")
     args = parser.parse_args()
 
-    if not (REPO / "skills" / args.skill).is_dir():
-        print(f"[error] skills/{args.skill} 없음", file=sys.stderr)
+    source = find_skill(args.skill)
+    if source is None:
+        print(f"[error] '{args.skill}' 스킬 없음 (skills/common/ 또는 skills/domains/*/ 아래여야 함)", file=sys.stderr)
         return 1
 
     targets = profile_dirs(args)
@@ -95,9 +111,15 @@ def main() -> int:
         print("[error] 프로필을 하나 이상 지정하세요 (--claude / --codex / --project)", file=sys.stderr)
         return 1
 
+    # 도메인 스킬은 그 도메인의 프로젝트 프로필에만 배치한다 (check-skill-deps.py가 강제).
+    is_domain = source.parent.parent.name == "domains"
     for profile in targets:
         if args.action == "add":
-            add(args.skill, profile)
+            if is_domain and profile.parent.parent.name != "projects":
+                print(f"[error] '{args.skill}'은 도메인 스킬({source.parent.name})이라 전역 프로필에 둘 수 없다 "
+                      f"— --project {source.parent.name} 을 쓰라", file=sys.stderr)
+                return 1
+            add(args.skill, source, profile)
         else:
             remove(args.skill, profile)
 

@@ -7,17 +7,38 @@ KMH Agent Kit은 Codex, Claude Code, Hermes 같은 여러 에이전트가 같은
 ## 구조 (단일 원본 + 심링크 프로필)
 
 ```
-skills/<이름>/            스킬 단일 원본 (도구 중립). 편집은 여기서만 일어난다.
-claude/skills/<이름>      Claude Code 전역 프로필 — ../../skills/<이름> 상대 심링크
+skills/common/<이름>/           공용 스킬 단일 원본 (도구·도메인 중립)
+skills/domains/<도메인>/<이름>/  도메인 전용 스킬 원본 (fundkeeper, testbed)
+claude/skills/<이름>      Claude Code 전역 프로필 — ../../skills/common/<이름> 상대 심링크
 claude/CLAUDE.md          Claude Code 전역 지침 원본
 codex/skills/<이름>       Codex 전역 프로필 — 상대 심링크
 codex/AGENTS.md           Codex 전역 지침 원본
-projects/<프로젝트>/       (선택) 여러 기기가 공유하는 프로젝트 프로필: skills/ 심링크 + 지침 원본
+projects/<프로젝트>/       프로젝트 프로필: 도메인 스킬 심링크 + 프로젝트 지침 원본
 gbrain-cards/<에이전트>.md  에이전트별 GBrain 사용 규칙 카드 (~/.gbrain-agent.md로 링크)
 manifests/skills.json     스킬 간 의존관계(depends_on)만 보관 — 배치 정본은 프로필 심링크
 gbrain/                   GBrain 실행 래퍼·gbrain-agent 공간 래퍼·systemd 유닛 (복사식 설치)
 docs/                     온보딩·키트 운영 문서 (프로젝트 지식 문서는 각 프로젝트 폴더에)
-scripts/                  구조 검증 스크립트
+scripts/                  구조 검증·프로필 링크 스크립트
+```
+
+## 공용 / 도메인 구분
+
+스킬은 **원본 위치로 분류하고, 발동 범위는 프로필로 정한다.** 두 축을 분리해 두면 "무엇인지"와 "어디서 뜨는지"를 따로 바꿀 수 있다.
+
+| | 원본 | 전역 프로필 | 프로젝트 프로필 |
+|---|---|---|---|
+| 공용 스킬 | `skills/common/<이름>` | O (어디서든 발동) | 보통 불필요 |
+| 도메인 스킬 | `skills/domains/<도메인>/<이름>` | **금지** | O (그 프로젝트에서만 발동) |
+
+도메인 스킬을 전역 프로필에 두면 `scripts/check-skill-deps.py`가 오류로 막는다. `scripts/link-skill.py`도 같은 규칙을 적용해 잘못된 배치를 애초에 만들지 않는다.
+
+현재 도메인: `fundkeeper`(fundkeeper, fundkeeper-deploy), `testbed`(testbed-base, testbed-etf, testbed-algo-report, testbed-rebal-report).
+
+도메인 스킬은 프로젝트 프로필을 연결한 폴더에서만 뜨므로, **그 도메인 작업을 하는 폴더에 프로필을 연결해야 한다**:
+
+```bash
+./install.sh --project ~/<프로젝트> <도메인명>            # Linux
+.\install.ps1 -Project <경로> -ProfileName <도메인명>     # Windows
 ```
 
 설치(`install.sh`, Windows는 `install.ps1`)는 live 위치(`~/.claude/skills/*`, `~/.codex/skills/*`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`)를 이 레포의 프로필로 **심볼릭 링크**합니다. 그 후에는:

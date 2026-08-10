@@ -2,11 +2,26 @@
 
 이 저장소의 `skills/`가 모든 커스텀 스킬의 단일 원본이다. live 위치(`~/.claude/skills`, `~/.codex/skills`, `<프로젝트>/.claude/skills`, `<프로젝트>/.codex/skills`)에는 프로필 심링크만 있다. 외부에서 가져온 스킬 원본은 포함하지 않는다.
 
+## 공용 / 도메인 구분
+
+**분류는 원본 위치가, 발동 범위는 프로필이 정한다.** 두 축을 분리해 두면 "무엇인지"와 "어디서 뜨는지"를 따로 바꿀 수 있다.
+
+| | 원본 | 전역 프로필 | 프로젝트 프로필 |
+|---|---|---|---|
+| 공용 스킬 | `skills/common/<이름>` | O (어디서든 발동) | 보통 불필요 |
+| 도메인 스킬 | `skills/domains/<도메인>/<이름>` | **금지** | O (그 프로젝트에서만 발동) |
+
+판정 기준은 "이 스킬이 특정 제품·업무 맥락을 알아야만 쓸모가 있는가"다. 그렇다면 도메인 스킬이다. 현재 도메인은 `fundkeeper`, `testbed` 두 개다.
+
+`scripts/check-skill-deps.py`가 도메인 스킬의 전역 배치를 오류로 막고, `scripts/link-skill.py`도 같은 규칙을 적용해 잘못된 배치를 애초에 만들지 않는다.
+
+도메인 스킬은 프로필을 연결한 폴더에서만 뜬다. 그 도메인 작업을 하는 폴더에 반드시 연결해야 한다 — 연결을 잊으면 스킬이 조용히 안 뜨는 것이 이 구조의 유일한 함정이다.
+
 ## 배치 규칙
 
 - **배치의 정본은 프로필 심링크다.** 어떤 스킬이 어느 도구·프로젝트에서 발동하는지는 `claude/skills/`, `codex/skills/`, `projects/<프로젝트>/skills/`의 링크 존재 여부가 결정한다.
 - `manifests/skills.json`은 심링크로 표현할 수 없는 **스킬 간 의존관계만** 담는다. 배치 정보를 여기 중복 기록하지 않는다.
-- **도메인 전용 자산은 키트에 넣지 않는다.** 특정 프로젝트에서만 쓰는 스킬·지침·문서는 그 프로젝트 폴더 안에 로컬 실파일로 두고, 프로젝트 레포가 gitignore한다. 키트는 여러 프로젝트·기기에서 공통으로 쓰는 자산만 소유한다.
+- **키트 소유 기준은 "여러 기기·프로젝트가 공유하는가"다.** 한 서버·한 프로젝트에서만 쓰는 스킬·지침·문서는 키트에 넣지 않고 그 프로젝트 폴더 안에 로컬 실파일로 두며, 프로젝트 레포가 gitignore한다. 여러 기기에서 쓰는 도메인 스킬은 키트가 소유하되 `skills/domains/` 아래에 둔다.
   - 예: exdigm의 스킬 4개(auto-posting, extraction-pipeline-verify, exdigm-design, exdigm-hermes-agent)와 지식 문서는 `~/exdigm/.claude/skills/`·`~/exdigm/.claude/agent-docs/`에 있다. `.codex/skills/`는 `.claude/skills/`를 가리키는 로컬 심링크로 두 도구가 같은 원본을 쓴다.
   - 예: exdigm-deploy 스킬은 해당 서버의 `~/.codex/skills/`에 실폴더로만 있다.
 
@@ -30,34 +45,32 @@ pull만으로 live에 즉시 반영된다(같은 파일이므로). `install.sh` 
 
 ## 새 스킬 추가
 
-1. `skills/<이름>/SKILL.md` 작성 (frontmatter: `name`, `description` — description이 발동 조건의 정본).
-2. 발동시킬 프로필에 상대 심링크 추가:
+1. 공용이면 `skills/common/<이름>/SKILL.md`, 도메인 전용이면 `skills/domains/<도메인>/<이름>/SKILL.md` 작성 (frontmatter: `name`, `description` — description이 발동 조건의 정본).
+2. 발동시킬 프로필에 링크 추가. `scripts/link-skill.py`가 원본 위치를 찾아 상대경로를 계산하고, 작업트리 표현과 무관하게 git 인덱스에 항상 심링크(mode 120000)로 등록한다:
    ```bash
-   ln -s ../../skills/<이름> claude/skills/<이름>     # Claude 전역
-   ln -s ../../skills/<이름> codex/skills/<이름>      # Codex 전역
-   ln -s ../../../skills/<이름> projects/<프로젝트>/skills/<이름>   # 프로젝트
+   python scripts/link-skill.py add <이름> --claude --codex     # 공용
+   python scripts/link-skill.py add <이름> --project <도메인>    # 도메인
    ```
-   Windows이거나 여러 프로필에 한 번에 걸 때는 `scripts/link-skill.py`를 쓴다 — 작업트리 표현과 무관하게 git 인덱스에 항상 심링크(mode 120000)로 등록한다:
+   손으로 걸 때는(Linux 한정) 상대 심링크여야 한다:
    ```bash
-   python scripts/link-skill.py add <이름> --claude --codex
-   python scripts/link-skill.py add <이름> --project <프로젝트>
+   ln -s ../../skills/common/<이름> claude/skills/<이름>
+   ln -s ../../../skills/domains/<도메인>/<이름> projects/<도메인>/skills/<이름>
    ```
 3. 다른 스킬을 전제로 하면 `manifests/skills.json`의 `depends_on`에 추가.
 4. `python3 scripts/check-skill-deps.py` 통과 확인 → 커밋·푸시.
 5. 다른 서버: `git pull && ./install.sh`.
 
-작성 원칙은 `skills/skill-writing-guide/`와 `skills/prompt-guide/`를 따른다.
+작성 원칙은 `skills/common/skill-writing-guide/`와 `skills/common/prompt-guide/`를 따른다.
 
 ## 프로젝트 온보딩 (의존성 기반 선별 설치)
 
 새 프로젝트에 키트를 적용할 때 에이전트가 수행하는 절차:
 
-1. **필요 스킬 파악**: 프로젝트의 성격(도메인, 사용하는 도구, 반복 작업)을 분석해 `skills/`에서 필요한 스킬을 고른다. 각 SKILL.md의 description이 판단 기준이다.
+1. **필요 스킬 파악**: 프로젝트의 성격(도메인, 사용하는 도구, 반복 작업)을 분석해 필요한 스킬을 고른다. 그 프로젝트의 도메인 스킬(`skills/domains/<도메인>/`)은 전부, 공용 스킬은 전역에 없는 것만 고르면 된다. 각 SKILL.md의 description이 판단 기준이다.
 2. **의존성 폐포 계산**: 고른 스킬마다 `manifests/skills.json`의 `depends_on`을 재귀로 따라가 필요한 스킬을 전부 포함시킨다. 의존 스킬이 이미 전역 프로필(claude/skills, codex/skills)에 있으면 프로젝트 프로필에 중복으로 넣지 않아도 된다.
 3. **프로필 생성·커밋**:
    ```bash
-   mkdir -p projects/<프로젝트>/skills
-   ln -s ../../../skills/<이름> projects/<프로젝트>/skills/<이름>   # 선별된 스킬마다
+   python scripts/link-skill.py add <이름> --project <프로젝트>   # 선별된 스킬마다
    # 프로젝트 전용 지침이 있으면 projects/<프로젝트>/CLAUDE.md, AGENTS.md 작성
    python3 scripts/check-skill-deps.py
    git add -A && git commit -m "Add <프로젝트> project profile" && git push
