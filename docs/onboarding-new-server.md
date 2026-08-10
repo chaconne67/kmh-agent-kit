@@ -46,7 +46,13 @@ cd ~/kmh-agent-kit
 
 카드를 연결하지 않으면 에이전트는 GBrain 규칙을 건너뛴다. 프로젝트는 **에이전트 실행 계정의 홈 바로 밑**(`~/<프로젝트>`)에 두는 것이 표준이다 — 다른 경로에 있던 프로젝트는 홈 밑으로 옮기고 구경로를 심링크로 남긴다.
 
-**Windows 기기**: clone 전에 개발자 모드를 켜고 `git config --global core.symlinks true`를 설정해야 심링크가 재현됩니다. 불가하면 `docs/skill-management.md`의 폴백(래퍼 파일 + `@` 임포트) 절차를 따릅니다.
+**Windows 기기**: `install.sh` 대신 `install.ps1`을 씁니다. 개발자 모드나 관리자 권한은 필요 없습니다 — 심링크 대신 junction·하드링크로 연결하고, 심링크가 일반 파일로 체크아웃된 프로필도 그대로 해석합니다. 2~5단계(Bun·GBrain 런타임·systemd)는 Linux 전용이라 건너뜁니다.
+
+```powershell
+git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
+cd $env:USERPROFILE\kmh-agent-kit
+.\install.ps1
+```
 
 **도메인 전용 스킬**: exdigm-deploy처럼 레포에 없는 로컬 전용 스킬은 해당 도메인 서버에서만 실폴더로 존재합니다. 새 서버에 필요하면 운영 중인 서버에서 복사합니다.
 

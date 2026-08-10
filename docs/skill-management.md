@@ -37,6 +37,11 @@ pull만으로 live에 즉시 반영된다(같은 파일이므로). `install.sh` 
    ln -s ../../skills/<이름> codex/skills/<이름>      # Codex 전역
    ln -s ../../../skills/<이름> projects/<프로젝트>/skills/<이름>   # 프로젝트
    ```
+   Windows이거나 여러 프로필에 한 번에 걸 때는 `scripts/link-skill.py`를 쓴다 — 작업트리 표현과 무관하게 git 인덱스에 항상 심링크(mode 120000)로 등록한다:
+   ```bash
+   python scripts/link-skill.py add <이름> --claude --codex
+   python scripts/link-skill.py add <이름> --project <프로젝트>
+   ```
 3. 다른 스킬을 전제로 하면 `manifests/skills.json`의 `depends_on`에 추가.
 4. `python3 scripts/check-skill-deps.py` 통과 확인 → 커밋·푸시.
 5. 다른 서버: `git pull && ./install.sh`.
@@ -69,17 +74,23 @@ pull만으로 live에 즉시 반영된다(같은 파일이므로). `install.sh` 
 
 ## Windows 기기
 
-git 심링크가 동작하려면 Windows에서 다음이 필요하다:
+`install.ps1`을 쓴다. 개발자 모드도 관리자 권한도 필요 없고, 별도 폴백 절차도 없다.
 
-1. 설정 → 개발자 모드(Developer Mode) 활성화 (또는 관리자 권한).
-2. `git config --global core.symlinks true` **후에** clone.
+```powershell
+git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
+cd $env:USERPROFILE\kmh-agent-kit
+.\install.ps1
+```
 
-심링크를 쓸 수 없는 기기에서는 폴백으로:
+동작이 Linux와 다른 지점은 세 곳뿐이다:
 
-- 스킬: live `skills/<이름>/SKILL.md`를 frontmatter(name, description)만 있는 실파일 래퍼로 만들고 본문에 `~/kmh-agent-kit/skills/<이름>/SKILL.md를 읽고 따르라` 한 줄을 둔다.
-- CLAUDE.md: 실파일에 `@~/kmh-agent-kit/claude/CLAUDE.md` 임포트 한 줄만 둔다 (공식 지원).
+- **live 연결** — 심링크 대신 junction(디렉토리)·하드링크(파일). 권한이 필요 없고, live에서 편집하면 레포 작업트리가 바뀌는 동작은 같다.
+- **프로필 항목** — 개발자 모드가 꺼진 Windows는 git이 `core.symlinks=false`로 clone하므로 `claude/skills/<이름>`이 링크가 아니라 대상 경로만 담긴 일반 파일이 된다. `install.ps1`과 `check-skill-deps.py`가 이 표현도 링크로 인정한다.
+- **GBrain 런타임** — bash 래퍼·systemd 유닛은 건너뛴다. 규칙 카드(`-Gbrain`)는 연결된다.
 
-폴백 기기에서는 스킬 description 변경 시 래퍼를 다시 만들어야 한다.
+**주의**: 이 기기에서 프로필 링크를 손으로 만들면(탐색기 복사, `New-Item -ItemType File` 등) git에 일반 파일로 커밋되어 **Linux 서버의 설치가 조용히 깨진다**. 반드시 `scripts/link-skill.py`를 써서 인덱스에 심링크로 등록한다.
+
+하드링크는 inode 공유라서, 일부 에디터처럼 저장 시 파일을 새로 만들어 교체하는 방식이면 연결이 끊긴다. `~/.claude/CLAUDE.md`를 편집한 뒤 레포 `git status`에 변경이 안 보이면 `.\install.ps1`을 다시 실행해 다시 잇는다.
 
 ## GBrain 에이전트 카드
 

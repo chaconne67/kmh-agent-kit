@@ -3,7 +3,9 @@
 
 - skills/: 모든 스킬 폴더에 SKILL.md가 있는지
 - 프로필(claude/skills, codex/skills, projects/*/skills): 모든 항목이
-  skills/<이름>을 가리키는 심링크이고 해상되는지
+  skills/<이름>을 가리키는 링크이고 해상되는지
+  (Windows에서 core.symlinks=false로 clone하면 git이 심링크를 경로 문자열이 담긴
+   일반 파일로 체크아웃한다 — 두 표현 모두 유효한 링크로 인정한다)
 - manifests/skills.json: depends_on의 모든 이름이 skills/에 존재하고,
   프로필에 링크된 스킬의 의존 스킬이 같은 가시 범위에 있는지
   (전역 프로필은 같은 프로필 안, 프로젝트 프로필은 프로젝트+양쪽 전역)
@@ -27,18 +29,34 @@ errors: list[str] = []
 warnings: list[str] = []
 
 
+def read_profile_link(entry: Path) -> str | None:
+    """프로필 항목이 가리키는 경로 문자열. 링크가 아니면 None.
+
+    심링크를 만들 수 없는 clone(Windows, core.symlinks=false)에서는 git이 링크 대상
+    경로만 담긴 한 줄짜리 일반 파일로 체크아웃하므로 그 표현도 링크로 읽는다.
+    """
+    if entry.is_symlink():
+        return os.readlink(entry)
+    if entry.is_file() and entry.stat().st_size < 4096:
+        text = entry.read_text(encoding="utf-8", errors="replace").strip()
+        if text and "\n" not in text and text.startswith(".."):
+            return text
+    return None
+
+
 def profile_names(profile_dir: Path) -> set[str]:
     names: set[str] = set()
     if not profile_dir.is_dir():
         return names
     for entry in sorted(profile_dir.iterdir()):
-        if not entry.is_symlink():
-            errors.append(f"{entry}: 심링크가 아님 (프로필 항목은 skills/를 가리키는 링크여야 함)")
+        link = read_profile_link(entry)
+        if link is None:
+            errors.append(f"{entry}: 링크가 아님 (프로필 항목은 skills/를 가리키는 상대 심링크여야 함)")
             continue
-        if os.path.isabs(os.readlink(entry)):
+        if os.path.isabs(link):
             errors.append(f"{entry}: 절대경로 링크 (다른 clone에서 깨짐 — 상대경로여야 함)")
             continue
-        target = (entry.parent / os.readlink(entry)).resolve()
+        target = (entry.parent / link).resolve()
         expected = (SKILLS / entry.name).resolve()
         if target != expected:
             errors.append(f"{entry}: {expected}가 아니라 {target}을 가리킴")

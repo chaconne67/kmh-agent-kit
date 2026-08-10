@@ -1,0 +1,11 @@
+# 줄바꿈 고정. Windows에서 clone해도 셸 스크립트가 CRLF로 체크아웃되지 않게 한다
+# (CRLF인 install.sh·gbrain 래퍼는 bash에서 `\r` 오류로 실패하고, 그대로 리눅스 서버에 복사되면 런타임까지 깨진다).
+* text=auto eol=lf
+
+*.sh      text eol=lf
+*.py      text eol=lf
+*.service text eol=lf
+*.timer   text eol=lf
+
+# PowerShell 5.1은 CRLF를 기대한다.
+*.ps1     text eol=crlf

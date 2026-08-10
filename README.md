@@ -20,13 +20,13 @@ docs/                     온보딩·키트 운영 문서 (프로젝트 지식 �
 scripts/                  구조 검증 스크립트
 ```
 
-설치(`install.sh`)는 live 위치(`~/.claude/skills/*`, `~/.codex/skills/*`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`)를 이 레포의 프로필로 **심볼릭 링크**합니다. 그 후에는:
+설치(`install.sh`, Windows는 `install.ps1`)는 live 위치(`~/.claude/skills/*`, `~/.codex/skills/*`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`)를 이 레포의 프로필로 **심볼릭 링크**합니다. 그 후에는:
 
 - live에서 스킬·지침을 편집하면 링크를 통해 레포 작업트리가 직접 바뀐다 → `git status`에 바로 보인다.
 - 동기화는 `git commit / push / pull`이 전부다. 별도 동기화 스크립트가 없다.
 - git은 레포 안의 상대 심링크를 그대로 커밋·복원하므로 clone/pull만으로 프로필이 재현된다.
 
-## Quick Start
+## Quick Start (Linux / macOS)
 
 ```bash
 git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
@@ -44,6 +44,30 @@ cd ~/kmh-agent-kit
 python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
 ~/.gbrain/bin/gbrain_with_google_env.sh doctor --fast
 ```
+
+## Quick Start (Windows)
+
+```powershell
+git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
+cd $env:USERPROFILE\kmh-agent-kit
+.\install.ps1                                        # 전역 연결 (claude + codex)
+.\install.ps1 -Project <경로> -ProfileName <프로필명>  # 프로젝트 프로필 연결
+.\install.ps1 -Gbrain <에이전트>                       # GBrain 카드 연결
+```
+
+`install.sh`는 bash·systemd·POSIX 심링크를 전제하므로 Windows에서는 `install.ps1`을 쓴다. 결과는 같고 다음 세 가지만 다르다:
+
+- **링크 방식** — Windows 심링크 생성은 관리자 권한이 필요해서, 디렉토리는 junction, 파일은 하드링크로 연결한다. 권한 없이 만들 수 있고 live에서 편집하면 레포 작업트리가 바뀌는 동작은 동일하다.
+- **프로필 항목 해석** — 개발자 모드가 꺼진 Windows는 git이 `core.symlinks=false`로 clone해서 `claude/skills/<이름>`이 링크가 아니라 대상 경로(`../../skills/<이름>`)만 담긴 일반 파일이 된다. 설치기와 `check-skill-deps.py`는 이 표현도 링크로 인정하므로 개발자 모드 없이 그대로 설치·검증된다.
+- **GBrain 런타임** — bash 래퍼와 systemd 유닛은 Linux 전용이라 건너뛴다. GBrain 규칙 카드(`-Gbrain`)는 Windows에서도 연결된다.
+
+설치 후 확인:
+
+```powershell
+python $env:USERPROFILE\kmh-agent-kit\scripts\check-skill-deps.py
+```
+
+기존 파일은 덮어쓰지 않고 `~\.kmh-agent-kit-backup-<타임스탬프>\`로 옮긴 뒤 링크를 건다.
 
 ## 일상 관리
 
