@@ -8,7 +8,7 @@ KMH Agent Kit은 Codex, Claude Code, Hermes 같은 여러 에이전트가 같은
 
 ```
 skills/common/<이름>/           공용 스킬 단일 원본 (도구·도메인 중립)
-skills/domains/<도메인>/<이름>/  도메인 전용 스킬 원본 (fundkeeper, testbed)
+skills/domains/<도메인>/<이름>/  도메인 전용 스킬 원본 (exdigm, fundkeeper, testbed)
 claude/skills/<이름>      Claude Code 전역 프로필 — ../../skills/common/<이름> 상대 심링크
 claude/CLAUDE.md          Claude Code 전역 지침 원본
 codex/skills/<이름>       Codex 전역 프로필 — 상대 심링크
@@ -27,12 +27,14 @@ scripts/                  구조 검증·프로필 링크 스크립트
 
 | | 원본 | 전역 프로필 | 프로젝트 프로필 |
 |---|---|---|---|
-| 공용 스킬 | `skills/common/<이름>` | O (어디서든 발동) | 보통 불필요 |
+| 공용 스킬 | `skills/common/<이름>` | O — **claude·codex 양쪽 모두** | 보통 불필요 |
 | 도메인 스킬 | `skills/domains/<도메인>/<이름>` | **금지** | O (그 프로젝트에서만 발동) |
+
+공용 스킬은 도구를 가리지 않는다는 뜻이므로 **claude·codex 전역 프로필에 모두 연결한다.** 한쪽에만 걸면 같은 작업이 도구에 따라 다른 규칙으로 처리된다. 도구 기본 기능과 이름이 겹치는 스킬(`code-review` 등)도 키트 원본을 연결한다 — 키트가 그 이름의 정본이다.
 
 도메인 스킬을 전역 프로필에 두면 `scripts/check-skill-deps.py`가 오류로 막는다. `scripts/link-skill.py`도 같은 규칙을 적용해 잘못된 배치를 애초에 만들지 않는다.
 
-현재 도메인: `fundkeeper`(fundkeeper, fundkeeper-deploy), `testbed`(testbed-base, testbed-etf, testbed-algo-report, testbed-rebal-report).
+현재 도메인: `exdigm`(data-extraction, resume-evolution-loop), `fundkeeper`(fundkeeper, fundkeeper-deploy), `testbed`(testbed-base, testbed-etf, testbed-algo-report, testbed-rebal-report).
 
 도메인 스킬은 프로젝트 프로필을 연결한 폴더에서만 뜨므로, **그 도메인 작업을 하는 폴더에 프로필을 연결해야 한다**:
 

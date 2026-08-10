@@ -3,6 +3,8 @@
   "depends_on": {
     "code-review-loop": ["code-review"],
     "full-review": ["code-review"],
+    "grill-agent": ["grill-with-docs"],
+    "grill-with-docs": ["grilling", "domain-modeling"],
     "microplan-batch": ["microplan-implement", "microplan-verify", "code-review-loop"],
     "microplan-implement": ["microplan-review"],
     "microplan-review-batch": ["microplan-review", "code-review-loop"],

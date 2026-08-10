@@ -8,10 +8,12 @@
 
 | | 원본 | 전역 프로필 | 프로젝트 프로필 |
 |---|---|---|---|
-| 공용 스킬 | `skills/common/<이름>` | O (어디서든 발동) | 보통 불필요 |
+| 공용 스킬 | `skills/common/<이름>` | O — **claude·codex 양쪽 모두** | 보통 불필요 |
 | 도메인 스킬 | `skills/domains/<도메인>/<이름>` | **금지** | O (그 프로젝트에서만 발동) |
 
-판정 기준은 "이 스킬이 특정 제품·업무 맥락을 알아야만 쓸모가 있는가"다. 그렇다면 도메인 스킬이다. 현재 도메인은 `fundkeeper`, `testbed` 두 개다.
+판정 기준은 "이 스킬이 특정 제품·업무 맥락을 알아야만 쓸모가 있는가"다. 그렇다면 도메인 스킬이다. 현재 도메인은 `exdigm`, `fundkeeper`, `testbed` 세 개다.
+
+공용 스킬은 **한쪽 전역 프로필에만 걸지 않는다.** 한쪽에만 걸면 같은 작업이 Claude냐 Codex냐에 따라 다른 규칙으로 처리되고, 그 차이가 프로필을 열어보기 전에는 드러나지 않는다. 도구 기본 기능과 이름이 겹치는 스킬(`code-review` 등)도 마찬가지로 양쪽에 연결한다 — 겹친다는 이유로 빼면 도구마다 다른 리뷰 기준을 쓰게 된다. 이름이 같으면 키트 원본이 그 이름의 정본이다.
 
 `scripts/check-skill-deps.py`가 도메인 스킬의 전역 배치를 오류로 막고, `scripts/link-skill.py`도 같은 규칙을 적용해 잘못된 배치를 애초에 만들지 않는다.
 
@@ -22,7 +24,7 @@
 - **배치의 정본은 프로필 심링크다.** 어떤 스킬이 어느 도구·프로젝트에서 발동하는지는 `claude/skills/`, `codex/skills/`, `projects/<프로젝트>/skills/`의 링크 존재 여부가 결정한다.
 - `manifests/skills.json`은 심링크로 표현할 수 없는 **스킬 간 의존관계만** 담는다. 배치 정보를 여기 중복 기록하지 않는다.
 - **키트 소유 기준은 "여러 기기·프로젝트가 공유하는가"다.** 한 서버·한 프로젝트에서만 쓰는 스킬·지침·문서는 키트에 넣지 않고 그 프로젝트 폴더 안에 로컬 실파일로 두며, 프로젝트 레포가 gitignore한다. 여러 기기에서 쓰는 도메인 스킬은 키트가 소유하되 `skills/domains/` 아래에 둔다.
-  - 예: exdigm의 스킬 4개(auto-posting, extraction-pipeline-verify, exdigm-design, exdigm-hermes-agent)와 지식 문서는 `~/exdigm/.claude/skills/`·`~/exdigm/.claude/agent-docs/`에 있다. `.codex/skills/`는 `.claude/skills/`를 가리키는 로컬 심링크로 두 도구가 같은 원본을 쓴다.
+  - 예: exdigm은 두 갈래로 나뉜다. 서버 화면·배포에 묶인 스킬 4개(auto-posting, extraction-pipeline-verify, exdigm-design, exdigm-hermes-agent)와 지식 문서는 `~/exdigm/.claude/skills/`·`~/exdigm/.claude/agent-docs/`에 로컬로 두고, 여러 기기에서 쓰는 판단 규칙(data-extraction, resume-evolution-loop)만 키트가 `skills/domains/exdigm/`으로 소유한다. `.codex/skills/`는 `.claude/skills/`를 가리키는 로컬 심링크로 두 도구가 같은 원본을 쓴다.
   - 예: exdigm-deploy 스킬은 해당 서버의 `~/.codex/skills/`에 실폴더로만 있다.
 
 ## 일상 수정 (git만 사용)
