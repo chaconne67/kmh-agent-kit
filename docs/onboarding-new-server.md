@@ -2,63 +2,46 @@
 
 ## 개요
 
-새 Linux 서버의 공식 설치 경로는 `install.sh` 한 번입니다. 서버 이름을 주면 공용 자산, GBrain 카드, SSH 프록시, 알려진 프로젝트 프로필, 연결 검증까지 이어서 실행합니다.
+설치 명령에 넣는 값은 장비의 호스트명이 아니라 GBrain 공간·정책·카드를 고르는 **등록 이름**입니다.
 
-```bash
-~/kmh-agent-kit/install.sh rndlog
-```
+| 상황 | 설치 방식 |
+|---|---|
+| 새로운 프로젝트 역할을 처음 등록 | `--new` 사용 |
+| 기존 역할을 새 장비에 설치 | 기존 등록 이름 사용 |
 
-신규 에이전트는 `--new`로 중앙 GBrain 공간과 정책, 카드까지 함께 만듭니다.
-
-```bash
-~/kmh-agent-kit/install.sh --new analytics
-```
+GBrain 등록 이름은 영문 소문자·숫자·중간 하이픈으로 된 1~32자입니다. 밑줄은 허용되지 않으므로 `abc_project`는 `abc-project`로 등록합니다.
 
 ## 퀵 설치 방법
 
-### 중앙 DB·GBrain `49.247.45.243`
+### 처음 등록하는 `abc_project` 서버
+
+먼저 변경 내용을 확인하려면:
 
 ```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh main
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh --new abc-project --dry-run
 ```
 
-### FundKeeper `49.247.38.186`
+확인 후 실제 설치:
 
 ```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh fundkeeper
+~/kmh-agent-kit/install.sh --new abc-project
 ```
 
-### Rndlog `49.247.207.147`
+처음부터 바로 설치하려면 다음 한 줄만 실행합니다.
 
 ```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh rndlog
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh --new abc-project
 ```
 
-### Ceoloan `49.247.205.170`
+### 기존 역할을 새 장비에 설치
 
-```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh ceoloan
-```
-
-### Judy WSL
-
-```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh judy
-```
-
-### 신규 에이전트
-
-`analytics`라는 이름으로 먼저 확인:
-
-```bash
-~/kmh-agent-kit/install.sh --new analytics --dry-run
-```
-
-확인 후 생성·설치:
-
-```bash
-~/kmh-agent-kit/install.sh --new analytics
-```
+| 역할 | 최초 설치 명령 |
+|---|---|
+| 중앙 DB·GBrain `49.247.45.243` | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh main` |
+| FundKeeper `49.247.38.186` | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh fundkeeper` |
+| Rndlog `49.247.207.147` | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh rndlog` |
+| Ceoloan `49.247.205.170` | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh ceoloan` |
+| Judy WSL | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh judy` |
 
 ## 그 외
 
@@ -78,13 +61,13 @@ ssh -o BatchMode=yes -o ConnectTimeout=10 chaconne@49.247.45.243 true
 
 ### 신규 생성 범위
 
-`--new analytics`는 다음 항목만 새로 만듭니다.
+`--new abc-project`는 다음 항목만 새로 만듭니다.
 
-- 중앙 GBrain 소스 `analytics`
-- 중앙 정책의 `[sources.analytics]`, `[agents.analytics]`
-- 전용 쓰기 경로 `agents/analytics/private`
-- 저장소 카드 `gbrain-cards/analytics.md`
-- 현재 서버의 `~/.gbrain-agent.md`, `~/.local/bin/gbrain-analytics`
+- 중앙 GBrain 소스 `abc-project`
+- 중앙 정책의 `[sources.abc-project]`, `[agents.abc-project]`
+- 전용 쓰기 경로 `agents/abc-project/private`
+- 저장소 카드 `gbrain-cards/abc-project.md`
+- 현재 서버의 `~/.gbrain-agent.md`, `~/.local/bin/gbrain-abc-project`
 
 기존 공간·정책·카드는 덮어쓰지 않습니다. 정책 충돌이 있으면 중단합니다. 정책 변경 전 백업은 `agent-policy.toml.backup-날짜-시각`으로 남깁니다.
 
@@ -101,11 +84,15 @@ ssh -o BatchMode=yes -o ConnectTimeout=10 chaconne@49.247.45.243 true
 
 ### 기존 서버 업데이트
 
-서버 이름까지 포함해 다시 실행합니다.
+서버별 정확한 이름을 포함해 다시 실행합니다.
 
-```bash
-git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh rndlog
-```
+| 서버 | 업데이트 명령 |
+|---|---|
+| 중앙 DB·GBrain | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh main` |
+| FundKeeper | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh fundkeeper` |
+| Rndlog | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh rndlog` |
+| Ceoloan | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh ceoloan` |
+| Judy WSL | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh judy` |
 
 ### 설치 결과 확인
 
@@ -114,11 +101,10 @@ python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
 readlink -f ~/.gbrain-agent.md
 ```
 
-Rndlog:
+신규 `abc-project`:
 
 ```bash
-gbrain-rndlog policy
-gbrain-rndlog get agents/rndlog/private/project-overview
+gbrain-abc-project policy
 ```
 
 Ceoloan:
@@ -167,7 +153,7 @@ Windows는 junction과 하드링크를 사용하며 Linux 전용 GBrain 프록�
 
 ### 주의
 
-- 기존 서버에는 `--new`를 쓰지 않고 `./install.sh rndlog`처럼 이름만 사용합니다.
+- 기존 역할을 새 장비에 설치할 때는 `--new`를 쓰지 않고 위 표의 등록 이름을 사용합니다.
 - 신규 카드 파일은 자동 commit·push하지 않습니다. 내용을 검토한 뒤 저장소에 반영합니다.
 - Exdigm 운영 서버 `115.68.224.161`은 현재 이 저장소의 설치 대상이 아닙니다.
 - API 키, DB 비밀번호, OAuth 토큰은 저장소와 GBrain 카드에 넣지 않습니다.

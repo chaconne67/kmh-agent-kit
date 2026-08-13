@@ -25,21 +25,20 @@ show_usage() {
   cat <<'EOF'
 KMH Agent Kit
 
-퀵 설치 — 서버 이름 하나만 사용:
+새로운 프로젝트 역할을 처음 등록:
+  ./install.sh --new abc-project
+  ./install.sh --new abc-project --dry-run
+
+이미 등록된 역할을 설치 — 해당 등록 이름 하나만 사용:
   ./install.sh main
   ./install.sh fundkeeper
   ./install.sh rndlog
   ./install.sh ceoloan
   ./install.sh judy
 
-신규 GBrain 에이전트 추가:
-  ./install.sh --new 새이름
-  ./install.sh --new 새이름 --dry-run
-
 그 외:
   ./install.sh                         공용 스킬·전역 지침만 설치
   ./install.sh --project ~/exdigm exdigm
-  ./install.sh --gbrain rndlog         이전 명령 호환용; ./install.sh rndlog와 같음
   ./install.sh --help
 EOF
 }
@@ -449,7 +448,7 @@ case "${1:-}" in
   "")
     [ "$#" -eq 0 ] || die "인수가 올바르지 않습니다. ./install.sh --help"
     install_global
-    echo "공용 설치 완료. GBrain 카드까지 설치하려면 서버 이름을 사용하세요. 예: ./install.sh rndlog"
+    echo "공용 설치 완료. 전체 설치 명령은 ./install.sh --help에서 서버별로 확인하세요."
     ;;
   -h|--help)
     [ "$#" -eq 1 ] || die "도움말에는 추가 인수를 사용할 수 없습니다."
@@ -469,11 +468,11 @@ case "${1:-}" in
     elif [ "$#" -eq 2 ]; then
       add_new_agent "$2"
     else
-      die "사용법: ./install.sh --new 새이름 [--dry-run]"
+      die "사용법: ./install.sh --new abc-project [--dry-run]"
     fi
     ;;
   --register-agent)
-    [ "$#" -eq 2 ] || die "내부 사용법: ./install.sh --register-agent 새이름"
+    [ "$#" -eq 2 ] || die "내부 사용법: ./install.sh --register-agent abc-project"
     register_agent_central "$2"
     ;;
   --*)
