@@ -6,8 +6,10 @@ set -euo pipefail
 # 새 서버 최초 연결, 새 스킬 추가 후 링크 반영, 프로젝트 프로필 연결에만 쓴다.
 #
 # usage:
-#   ./install.sh                              # 전역 설치 (claude + codex + gbrain)
-#   ./install.sh --project <경로> <프로필명>   # 프로젝트 프로필 연결 (projects/에 프로필이 있을 때)
+#   ./install.sh
+#   ./install.sh --help
+#   ./install.sh --gbrain rndlog
+#   ./install.sh --project ~/exdigm exdigm
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 home_dir="${HOME:?HOME is required}"
@@ -16,6 +18,55 @@ codex_home="${CODEX_HOME:-$home_dir/.codex}"
 gbrain_home="${GBRAIN_HOME:-$home_dir/.gbrain}"
 stamp="$(date +%Y%m%d-%H%M%S)"
 backup_root="$home_dir/.kmh-agent-kit-backup-$stamp"
+
+show_usage() {
+  cat <<'EOF'
+KMH Agent Kit 설치 명령
+
+전역 설치:
+  ./install.sh
+
+서버별 GBrain 카드:
+  ./install.sh --gbrain main        # 중앙 DB·GBrain 49.247.45.243
+  ./install.sh --gbrain fundkeeper  # FundKeeper 49.247.38.186
+  ./install.sh --gbrain rndlog      # Rndlog 49.247.207.147
+  ./install.sh --gbrain ceoloan     # Ceoloan 49.247.205.170
+  ./install.sh --gbrain judy        # Judy WSL
+  ./install.sh --gbrain gram17      # Gram17
+  ./install.sh --gbrain venture     # Venture
+  ./install.sh --gbrain sam         # Hermes Sam 전용 환경
+
+프로젝트 프로필:
+  ./install.sh --project ~/exdigm exdigm
+  ./install.sh --project ~/fundkeeper fundkeeper
+  ./install.sh --project ~/testbed testbed
+
+도움말:
+  ./install.sh --help
+EOF
+}
+
+case "${1:-}" in
+  "")
+    [ "$#" -eq 0 ] || { show_usage >&2; exit 64; }
+    ;;
+  -h|--help)
+    [ "$#" -eq 1 ] || { show_usage >&2; exit 64; }
+    show_usage
+    exit 0
+    ;;
+  --gbrain)
+    [ "$#" -eq 2 ] || { show_usage >&2; exit 64; }
+    ;;
+  --project)
+    [ "$#" -eq 3 ] || { show_usage >&2; exit 64; }
+    ;;
+  *)
+    echo "[error] 알 수 없는 옵션: $1" >&2
+    show_usage >&2
+    exit 64
+    ;;
+esac
 
 # 링크가 아닌 기존 항목은 백업 폴더로 옮긴 뒤 심링크를 건다. 이미 올바른 링크면 그대로 둔다.
 link_entry() {
@@ -52,7 +103,7 @@ link_profile() {
 }
 
 if [ "${1:-}" = "--gbrain" ]; then
-  agent_name="${2:?usage: install.sh --gbrain <에이전트>}"
+  agent_name="$2"
   card="$repo_dir/gbrain-cards/$agent_name.md"
   [ -f "$card" ] || { echo "[error] 카드 없음: $card" >&2; exit 1; }
   link_entry "$card" "$home_dir/.gbrain-agent.md"
@@ -68,8 +119,8 @@ if [ "${1:-}" = "--gbrain" ]; then
 fi
 
 if [ "${1:-}" = "--project" ]; then
-  proj_path="${2:?usage: install.sh --project <경로> <프로필명>}"
-  proj_name="${3:?usage: install.sh --project <경로> <프로필명>}"
+  proj_path="$2"
+  proj_name="$3"
   profile="$repo_dir/projects/$proj_name"
   [ -d "$profile" ] || { echo "[error] 프로젝트 프로필 없음: $profile" >&2; exit 1; }
   [ -d "$proj_path" ] || { echo "[error] 프로젝트 경로 없음: $proj_path" >&2; exit 1; }

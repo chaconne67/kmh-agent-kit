@@ -1,117 +1,230 @@
 # KMH Agent Kit
 
-KMH Agent Kit은 Codex, Claude Code, Hermes 같은 여러 에이전트가 같은 스킬, 같은 작업 규칙, 같은 장기 기억을 공유하도록 만드는 개인 에이전트 운영 키트입니다.
+KMH Agent Kit은 여러 서버의 Codex·Claude Code가 같은 스킬과 작업 규칙을 쓰게 만드는 저장소입니다. GBrain을 쓰는 서버에는 그 서버 역할에 맞는 카드도 연결합니다.
 
-목표는 사용자가 같은 설명을 반복하지 않게 하는 것입니다. 에이전트는 작업 전에 GBrain을 조회하고, 작업 중 발견한 지속 가능한 규칙과 교훈을 GBrain에 저장하며, 코드 작업 후에는 코드 리뷰 루프를 실행합니다.
+처음 설치할 때는 아래에서 **서버 이름을 찾고 명령을 그대로 실행**하면 됩니다. 에이전트명이나 프로젝트명을 직접 바꿔 넣는 예시는 사용하지 않습니다.
 
-## 구조 (단일 원본 + 심링크 프로필)
+## 서버별 처음 설치
 
-```
-skills/common/<이름>/           공용 스킬 단일 원본 (도구·도메인 중립)
-skills/domains/<도메인>/<이름>/  도메인 전용 스킬 원본 (exdigm, fundkeeper, testbed)
-claude/skills/<이름>      Claude Code 전역 프로필 — ../../skills/common/<이름> 상대 심링크
-claude/CLAUDE.md          Claude Code 전역 지침 원본
-codex/skills/<이름>       Codex 전역 프로필 — 상대 심링크
-codex/AGENTS.md           Codex 전역 지침 원본
-projects/<프로젝트>/       프로젝트 프로필: 도메인 스킬 심링크 + 프로젝트 지침 원본
-gbrain-cards/<에이전트>.md  에이전트별 GBrain 사용 규칙 카드 (~/.gbrain-agent.md로 링크)
-manifests/skills.json     스킬 간 의존관계(depends_on)만 보관 — 배치 정본은 프로필 심링크
-gbrain/                   GBrain 실행 래퍼·gbrain-agent 공간 래퍼·systemd 유닛 (복사식 설치)
-docs/                     온보딩·키트 운영 문서 (프로젝트 지식 문서는 각 프로젝트 폴더에)
-scripts/                  구조 검증·프로필 링크 스크립트
-```
-
-## 공용 / 도메인 구분
-
-스킬은 **원본 위치로 분류하고, 발동 범위는 프로필로 정한다.** 두 축을 분리해 두면 "무엇인지"와 "어디서 뜨는지"를 따로 바꿀 수 있다.
-
-| | 원본 | 전역 프로필 | 프로젝트 프로필 |
-|---|---|---|---|
-| 공용 스킬 | `skills/common/<이름>` | O — **claude·codex 양쪽 모두** | 보통 불필요 |
-| 도메인 스킬 | `skills/domains/<도메인>/<이름>` | **금지** | O (그 프로젝트에서만 발동) |
-
-공용 스킬은 도구를 가리지 않는다는 뜻이므로 **claude·codex 전역 프로필에 모두 연결한다.** 한쪽에만 걸면 같은 작업이 도구에 따라 다른 규칙으로 처리된다. 도구 기본 기능과 이름이 겹치는 스킬(`code-review` 등)도 키트 원본을 연결한다 — 키트가 그 이름의 정본이다.
-
-도메인 스킬을 전역 프로필에 두면 `scripts/check-skill-deps.py`가 오류로 막는다. `scripts/link-skill.py`도 같은 규칙을 적용해 잘못된 배치를 애초에 만들지 않는다.
-
-현재 도메인: `exdigm`(data-extraction, resume-evolution-loop), `fundkeeper`(fundkeeper, fundkeeper-deploy), `testbed`(testbed-base, testbed-etf, testbed-algo-report, testbed-rebal-report).
-
-도메인 스킬은 프로젝트 프로필을 연결한 폴더에서만 뜨므로, **그 도메인 작업을 하는 폴더에 프로필을 연결해야 한다**:
-
-```bash
-./install.sh --project ~/<프로젝트> <도메인명>            # Linux
-.\install.ps1 -Project <경로> -ProfileName <도메인명>     # Windows
-```
-
-설치(`install.sh`, Windows는 `install.ps1`)는 live 위치(`~/.claude/skills/*`, `~/.codex/skills/*`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`)를 이 레포의 프로필로 **심볼릭 링크**합니다. 그 후에는:
-
-- live에서 스킬·지침을 편집하면 링크를 통해 레포 작업트리가 직접 바뀐다 → `git status`에 바로 보인다.
-- 동기화는 `git commit / push / pull`이 전부다. 별도 동기화 스크립트가 없다.
-- git은 레포 안의 상대 심링크를 그대로 커밋·복원하므로 clone/pull만으로 프로필이 재현된다.
-
-## Quick Start (Linux / macOS)
+### 중앙 DB·GBrain 서버 — coconut-db (`49.247.45.243`)
 
 ```bash
 git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
 cd ~/kmh-agent-kit
-./install.sh                      # 전역 연결 (claude + codex + gbrain)
-./install.sh --project ~/<프로젝트> <프로필명>   # 프로젝트 프로필 연결 (프로필이 있을 때만)
-./install.sh --gbrain <에이전트>          # GBrain 카드 연결 (예: main, rndlog, judy)
+./install.sh
+./install.sh --gbrain main
+./install.sh --project ~/exdigm exdigm
 ```
 
-공유 지침의 GBrain 규칙은 `~/.gbrain-agent.md` 카드 하나를 참조한다. 카드를 연결하지 않은 서버에서는 에이전트가 GBrain 규칙 전체를 건너뛴다.
-
-설치 후 확인:
+### FundKeeper 서버 — coconut-main (`49.247.38.186`)
 
 ```bash
-python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
-~/.gbrain/bin/gbrain_with_google_env.sh doctor --fast
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
+cd ~/kmh-agent-kit
+./install.sh
+./install.sh --gbrain fundkeeper
+./install.sh --project ~/fundkeeper fundkeeper
 ```
 
-## Quick Start (Windows)
+### Rndlog 서버 (`49.247.207.147`)
+
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
+cd ~/kmh-agent-kit
+./install.sh
+./install.sh --gbrain rndlog
+```
+
+### Ceoloan 서버 (`49.247.205.170`)
+
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
+cd ~/kmh-agent-kit
+./install.sh
+./install.sh --gbrain ceoloan
+```
+
+### Judy WSL
+
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
+cd ~/kmh-agent-kit
+./install.sh
+./install.sh --gbrain judy
+```
+
+### Gram17 Windows PC
 
 ```powershell
 git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
 cd $env:USERPROFILE\kmh-agent-kit
-.\install.ps1                                        # 전역 연결 (claude + codex)
-.\install.ps1 -Project <경로> -ProfileName <프로필명>  # 프로젝트 프로필 연결
-.\install.ps1 -Gbrain <에이전트>                       # GBrain 카드 연결
+.\install.ps1
+.\install.ps1 -Gbrain gram17
 ```
 
-`install.sh`는 bash·systemd·POSIX 심링크를 전제하므로 Windows에서는 `install.ps1`을 쓴다. 결과는 같고 다음 세 가지만 다르다:
-
-- **링크 방식** — Windows 심링크 생성은 관리자 권한이 필요해서, 디렉토리는 junction, 파일은 하드링크로 연결한다. 권한 없이 만들 수 있고 live에서 편집하면 레포 작업트리가 바뀌는 동작은 동일하다.
-- **프로필 항목 해석** — 개발자 모드가 꺼진 Windows는 git이 `core.symlinks=false`로 clone해서 `claude/skills/<이름>`이 링크가 아니라 대상 경로(`../../skills/<이름>`)만 담긴 일반 파일이 된다. 설치기와 `check-skill-deps.py`는 이 표현도 링크로 인정하므로 개발자 모드 없이 그대로 설치·검증된다.
-- **GBrain 런타임** — bash 래퍼와 systemd 유닛은 Linux 전용이라 건너뛴다. GBrain 규칙 카드(`-Gbrain`)는 Windows에서도 연결된다.
-
-설치 후 확인:
+### Venture Windows PC
 
 ```powershell
-python $env:USERPROFILE\kmh-agent-kit\scripts\check-skill-deps.py
+git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
+cd $env:USERPROFILE\kmh-agent-kit
+.\install.ps1
+.\install.ps1 -Gbrain venture
 ```
 
-기존 파일은 덮어쓰지 않고 `~\.kmh-agent-kit-backup-<타임스탬프>\`로 옮긴 뒤 링크를 건다.
+Exdigm 운영 서버(`115.68.224.161`)는 현재 이 저장소로 관리하지 않습니다. 그 서버에서는 위 명령을 임의로 실행하지 않습니다.
 
-## 일상 관리
+## 설치 명령 표
 
-| 작업 | 방법 |
+### Linux·WSL
+
+| 목적 | 실행할 명령 |
 |---|---|
-| 스킬·지침 수정 | live에서 그대로 편집 → `git commit && git push` |
-| 다른 서버 반영 | `git pull` (즉시 live 반영, 재설치 불필요) |
-| 새 스킬 추가 | `skills/<이름>/SKILL.md` 작성 → 프로필에 `ln -s` → 커밋 → 다른 서버는 `git pull && ./install.sh` |
-| 스킬 삭제 | `git rm` (skills/ + 프로필 링크) → 다른 서버는 `git pull && ./install.sh` |
-| 새 프로젝트 적용 | `docs/skill-management.md`의 프로젝트 온보딩 절차 (의존성 포함 선별 설치) |
+| 가능한 명령 보기 | `./install.sh --help` |
+| 공용 스킬·전역 지침 설치 | `./install.sh` |
+| 중앙 GBrain 서버 카드 | `./install.sh --gbrain main` |
+| FundKeeper 카드 | `./install.sh --gbrain fundkeeper` |
+| Rndlog 카드 | `./install.sh --gbrain rndlog` |
+| Ceoloan 카드 | `./install.sh --gbrain ceoloan` |
+| Judy 카드 | `./install.sh --gbrain judy` |
+| Venture 카드 | `./install.sh --gbrain venture` |
+| Gram17 카드 | `./install.sh --gbrain gram17` |
+| Hermes Sam 카드 | `./install.sh --gbrain sam` |
+| Exdigm 프로젝트 스킬 | `./install.sh --project ~/exdigm exdigm` |
+| FundKeeper 프로젝트 스킬 | `./install.sh --project ~/fundkeeper fundkeeper` |
+| Testbed 프로젝트 스킬 | `./install.sh --project ~/testbed testbed` |
 
-## What Is Not Included
+한 계정의 `~/.gbrain-agent.md`에는 카드 하나만 연결됩니다. 다른 카드 명령을 실행하면 기존 카드가 새 카드로 바뀝니다. `sam`은 Hermes Sam 전용 환경에서만 사용합니다.
 
-- API key, DB password, OAuth token 같은 비밀값
-- 외부에서 가져온 타사 스킬 원본
-- 프로젝트 코드, 도메인 전용 자산 — 특정 프로젝트에서만 쓰는 스킬·지침·문서는 그 프로젝트 폴더의 로컬 실파일로 둔다 (예: exdigm의 `.claude/skills/`·`.claude/agent-docs/`, exdigm-deploy 스킬)
-- GBrain 데이터베이스 덤프
+### Windows PowerShell
 
-## Core Rules
+| 목적 | 실행할 명령 |
+|---|---|
+| 공용 스킬·전역 지침 설치 | `.\install.ps1` |
+| Gram17 카드 | `.\install.ps1 -Gbrain gram17` |
+| Venture 카드 | `.\install.ps1 -Gbrain venture` |
+| Exdigm 프로젝트 스킬 | `.\install.ps1 -Project $env:USERPROFILE\exdigm -ProfileName exdigm` |
+| FundKeeper 프로젝트 스킬 | `.\install.ps1 -Project $env:USERPROFILE\fundkeeper -ProfileName fundkeeper` |
+| Testbed 프로젝트 스킬 | `.\install.ps1 -Project $env:USERPROFILE\testbed -ProfileName testbed` |
 
-- 바퀴를 재발명하지 않습니다. GBrain 자체 기능, 기존 스킬, 기존 프로젝트 코드를 먼저 찾고 재사용합니다.
-- 새 코드는 없으면 동작하지 않는 경우에만 작성합니다.
-- 임시방편보다 근본 원인을 해결합니다.
-- 코드·스크립트·설정·서비스·schema·자동화 변경 후에는 코드 리뷰를 실행합니다.
+Windows 설치기는 관리자 권한 없이 junction과 하드링크를 사용합니다. GBrain의 Linux 실행 프록시는 설치하지 않으므로 카드에 적힌 SSH 명령으로 중앙 서버를 호출합니다.
+
+## 무엇이 어떻게 연결되는가
+
+| 설치 대상 | 원본 | 실제 사용 위치 | 결과 |
+|---|---|---|---|
+| 공용 스킬 | `skills/common/` | `~/.claude/skills/`, `~/.codex/skills/` | 두 도구가 같은 스킬을 사용 |
+| 전역 지침 | `claude/CLAUDE.md`, `codex/AGENTS.md` | `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` | 서버마다 같은 기본 작업 규칙 사용 |
+| 프로젝트 스킬 | `projects/` | 각 프로젝트의 `.claude/skills/`, `.codex/skills/` | 해당 프로젝트에서만 도메인 스킬 노출 |
+| GBrain 카드 | `gbrain-cards/` | `~/.gbrain-agent.md` | 에이전트가 사용할 기억 공간과 규칙 선택 |
+| GBrain 프록시 | `gbrain/bin/gbrain-remote-proxy` | `~/.local/bin/gbrain-rndlog` 등 | 원격 서버가 중앙 GBrain을 SSH로 호출 |
+
+Linux에서는 위 위치를 저장소 원본에 **심볼릭 링크**합니다. 따라서 원본을 수정하면 즉시 실제 에이전트 환경에도 반영되고, 다른 서버는 `git pull`만 하면 같은 내용을 받습니다.
+
+링크가 아닌 기존 파일이 있으면 지우지 않고 `~/.kmh-agent-kit-backup-날짜-시각/`으로 옮긴 뒤 연결합니다. 비밀번호·API 키·GBrain DB 데이터는 이 저장소에 포함하지 않습니다.
+
+## 공용 스킬과 프로젝트 스킬
+
+| 구분 | 원본 위치 | 연결 위치 | 예시 |
+|---|---|---|---|
+| 여러 프로젝트가 함께 쓰는 공용 스킬 | `skills/common/` | Claude·Codex 전역 | `problem-solving`, `code-review` |
+| 특정 업무에서만 쓰는 프로젝트 스킬 | `skills/domains/` | 해당 프로젝트 프로필 | `data-extraction`, `fundkeeper-deploy` |
+
+프로젝트 스킬을 전역에 연결하면 다른 프로젝트에서도 잘못 발동할 수 있습니다. `scripts/check-skill-deps.py`가 이 배치 오류를 검사합니다.
+
+## 이 저장소에 넣지 않는 것
+
+- API 키, 비밀번호, OAuth 토큰
+- GBrain 데이터베이스와 백업 덤프
+- 외부에서 받은 타사 스킬 원본
+- Exdigm·Rndlog·Ceoloan 같은 실제 서비스 코드
+- 한 서버·한 프로젝트에서만 사용하는 로컬 전용 자산
+
+## 설치 후 확인
+
+Linux 서버에서는 다음을 실행합니다.
+
+```bash
+cd ~/kmh-agent-kit
+python3 scripts/check-skill-deps.py
+readlink -f ~/.gbrain-agent.md
+```
+
+Rndlog 서버라면 중앙 GBrain 연결도 확인합니다.
+
+```bash
+gbrain-rndlog get agents/rndlog/private/project-overview
+```
+
+Ceoloan과 FundKeeper는 각각 `gbrain-ceoloan`, `gbrain-fundkeeper`로 같은 방식으로 확인합니다. 중앙 GBrain 서버는 다음 명령을 사용합니다.
+
+```bash
+~/.gbrain/bin/gbrain_with_google_env.sh doctor --fast
+```
+
+## 업데이트 방법
+
+기존 서버는 다시 clone하지 않습니다.
+
+```bash
+cd ~/kmh-agent-kit
+git pull --ff-only
+```
+
+문서·기존 스킬·기존 지침 수정은 pull 즉시 반영됩니다. 새 스킬이 추가·삭제됐거나 `gbrain/` 실행 파일과 서비스가 바뀐 경우에는 전역 설치를 한 번 더 실행합니다.
+
+```bash
+./install.sh
+```
+
+Windows는 pull 후 전역 지침과 GBrain 카드의 하드링크를 다시 연결합니다.
+
+Gram17:
+
+```powershell
+cd $env:USERPROFILE\kmh-agent-kit
+git pull --ff-only
+.\install.ps1
+.\install.ps1 -Gbrain gram17
+```
+
+Venture:
+
+```powershell
+cd $env:USERPROFILE\kmh-agent-kit
+git pull --ff-only
+.\install.ps1
+.\install.ps1 -Gbrain venture
+```
+
+## 자주 하는 작업
+
+| 작업 | 명령 |
+|---|---|
+| 현재 변경 확인 | `git status --short` |
+| 구조·의존성 검사 | `python3 scripts/check-skill-deps.py` |
+| 공용 스킬을 Claude와 Codex에 연결 | `python3 scripts/link-skill.py add problem-solving --claude --codex` |
+| Exdigm 스킬을 프로젝트 프로필에 연결 | `python3 scripts/link-skill.py add data-extraction --project exdigm` |
+| 다른 서버의 변경 받기 | `git pull --ff-only` |
+
+스킬을 새로 만들거나 배치하는 방법은 [Skill Management](docs/skill-management.md), 새 서버의 세부 점검은 [New Server Onboarding](docs/onboarding-new-server.md), 장애 해결은 [Troubleshooting](docs/troubleshooting.md)을 봅니다.
+
+## 관리 원칙
+
+- 기존 GBrain 기능·스킬·프로젝트 코드를 먼저 찾아 재사용합니다.
+- 새 코드는 기존 기능으로 해결할 수 없을 때만 추가합니다.
+- 임시 우회보다 원인을 고칩니다.
+- 실행 동작이 달라지는 변경은 검증하고 코드 리뷰를 거칩니다.
+
+## 저장소 구조
+
+```text
+skills/common/                 여러 프로젝트가 함께 쓰는 공용 스킬 원본
+skills/domains/                특정 도메인에서만 쓰는 스킬 원본
+claude/                        Claude Code 전역 프로필과 지침
+codex/                         Codex 전역 프로필과 지침
+projects/                      프로젝트별 스킬 프로필
+gbrain-cards/                  에이전트별 GBrain 카드
+gbrain/                        GBrain 실행 래퍼와 Linux 서비스 파일
+scripts/                       구조 검사와 스킬 연결 도구
+docs/                          상세 운영 문서
+```

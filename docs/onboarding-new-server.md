@@ -1,28 +1,18 @@
 # New Server Onboarding
 
-이 문서는 아무 설명 없이 새 서버에 온 에이전트가 `kmh-agent-kit`만 보고 설치를 진행하기 위한 순서입니다.
+새 서버에서는 **공용 설치 → 서버 카드 설치 → 필요한 프로젝트 프로필 설치 → 검증** 순서로 진행합니다. 중앙 GBrain 서버와 일반 애플리케이션 서버의 설정은 다르므로 섞지 않습니다.
 
-## 1. Local Resources First
+## 1. 기존 파일 확인
 
-먼저 현재 접근 가능한 자원을 확인합니다.
-
-```bash
-ls -la ~
-ls -la ~/.claude ~/.codex ~/.gbrain 2>/dev/null || true
-```
-
-Exdigm 서버라면 `/home/chaconne/exdigm/.env`에 `GEMINI_API_KEY`와 필요 시 `OPENROUTER_API_KEY`가 있어야 합니다. 키 값은 출력하지 않습니다.
-
-## 2. Install Runtime
-
-GBrain CLI는 Bun 기반입니다.
+설치기는 기존 일반 파일을 백업하지만, 먼저 현재 상태를 확인합니다. 비밀값은 출력하지 않습니다.
 
 ```bash
-command -v unzip || { sudo apt-get update && sudo apt-get install -y unzip; }
-command -v bun || curl -fsSL https://bun.sh/install | bash
+ls -ld ~/.claude ~/.codex ~/.gbrain ~/kmh-agent-kit 2>/dev/null || true
 ```
 
-## 3. Install Kit
+## 2. 저장소 설치
+
+Linux와 WSL에서 공통으로 실행합니다.
 
 ```bash
 git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
@@ -30,52 +20,79 @@ cd ~/kmh-agent-kit
 ./install.sh
 ```
 
-`install.sh`는 스킬과 전역 지침을 이 레포로 **심볼릭 링크**합니다. 링크가 아닌 기존 파일은 `~/.kmh-agent-kit-backup-<시각>/`으로 옮겨 보존합니다. 설치 후 일상 동기화는 `git pull`이 전부입니다 — 스킬 추가·삭제가 있었던 pull 뒤에만 `./install.sh`를 다시 실행합니다.
+기존 파일은 `~/.kmh-agent-kit-backup-날짜-시각/`에 보존됩니다. 공용 스킬과 지침은 저장소에 심볼릭 링크되므로 이후에는 `git pull`로 갱신됩니다.
 
-키트에 프로젝트 프로필이 있는 경우에만 연결합니다 (`projects/` 참조):
+## 3. 이 서버에 맞는 명령 실행
+
+아래 표에서 현재 서버 한 줄만 실행합니다.
+
+| 서버 | 실행할 명령 |
+|---|---|
+| 중앙 DB·GBrain `49.247.45.243` | `./install.sh --gbrain main` |
+| FundKeeper `49.247.38.186` | `./install.sh --gbrain fundkeeper` |
+| Rndlog `49.247.207.147` | `./install.sh --gbrain rndlog` |
+| Ceoloan `49.247.205.170` | `./install.sh --gbrain ceoloan` |
+| Judy WSL | `./install.sh --gbrain judy` |
+
+프로젝트 프로필이 있는 서버만 이어서 실행합니다.
+
+| 서버·프로젝트 | 실행할 명령 |
+|---|---|
+| 중앙 서버의 Exdigm | `./install.sh --project ~/exdigm exdigm` |
+| FundKeeper 서버 | `./install.sh --project ~/fundkeeper fundkeeper` |
+| Testbed가 `~/testbed`에 있는 서버 | `./install.sh --project ~/testbed testbed` |
+
+Rndlog와 Ceoloan에는 현재 별도 프로젝트 프로필이 없으므로 GBrain 카드까지만 설치합니다.
+
+## 4. 일반 서버의 GBrain 연결 확인
+
+Rndlog:
 
 ```bash
-./install.sh --project ~/<프로젝트> <프로필명>
+readlink -f ~/.gbrain-agent.md
+readlink -f ~/.local/bin/gbrain-rndlog
+gbrain-rndlog get agents/rndlog/private/project-overview
 ```
 
-이 서버의 에이전트가 GBrain을 쓴다면 카드를 연결한다 (카드 목록은 `gbrain-cards/`):
+Ceoloan:
 
 ```bash
-./install.sh --gbrain <에이전트>   # 예: main(본체 서버), rndlog, judy
+readlink -f ~/.gbrain-agent.md
+readlink -f ~/.local/bin/gbrain-ceoloan
+gbrain-ceoloan query "ceoloan 운영 구조"
 ```
 
-카드를 연결하지 않으면 에이전트는 GBrain 규칙을 건너뛴다. 프로젝트는 **에이전트 실행 계정의 홈 바로 밑**(`~/<프로젝트>`)에 두는 것이 표준이다 — 다른 경로에 있던 프로젝트는 홈 밑으로 옮기고 구경로를 심링크로 남긴다.
+FundKeeper:
 
-**Windows 기기**: `install.sh` 대신 `install.ps1`을 씁니다. 개발자 모드나 관리자 권한은 필요 없습니다 — 심링크 대신 junction·하드링크로 연결하고, 심링크가 일반 파일로 체크아웃된 프로필도 그대로 해석합니다. 2~5단계(Bun·GBrain 런타임·systemd)는 Linux 전용이라 건너뜁니다.
-
-```powershell
-git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
-cd $env:USERPROFILE\kmh-agent-kit
-.\install.ps1
+```bash
+readlink -f ~/.gbrain-agent.md
+readlink -f ~/.local/bin/gbrain-fundkeeper
+gbrain-fundkeeper query "fundkeeper 운영 구조"
 ```
 
-**도메인 전용 스킬**: exdigm-deploy처럼 레포에 없는 로컬 전용 스킬은 해당 도메인 서버에서만 실폴더로 존재합니다. 새 서버에 필요하면 운영 중인 서버에서 복사합니다.
+이 서버들은 SSH 프록시로 중앙 GBrain(`49.247.45.243`)을 사용합니다. 로컬 GBrain DB나 `gbrain-http.service`를 새로 만들지 않습니다.
 
-## 4. Configure GBrain
+## 5. 중앙 GBrain 서버만 추가 설정
 
-Postgres/pgvector가 이미 있으면 새 DB를 만들지 말고 기존 컨테이너와 DB를 먼저 확인합니다.
+이 단계는 `49.247.45.243`에서만 실행합니다. 일반 애플리케이션 서버에서는 건너뜁니다.
+
+GBrain CLI가 없을 때만 Bun을 설치합니다.
+
+```bash
+command -v unzip || { sudo apt-get update && sudo apt-get install -y unzip; }
+command -v bun || curl -fsSL https://bun.sh/install | bash
+```
+
+기존 PostgreSQL·pgvector와 GBrain 설정을 먼저 확인합니다. 새 DB를 임의로 만들지 않습니다.
 
 ```bash
 docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}'
 ~/.gbrain/bin/gbrain_with_google_env.sh doctor --fast
 ~/.gbrain/bin/gbrain_with_google_env.sh stats
-~/.gbrain/bin/gbrain_with_google_env.sh embed --stale --dry-run
-```
-
-설치 직후 기본 소스를 명시 고정합니다 — 소스 등록 상태에 따라 bare CLI가 다른 소스로 라우팅되는 함정(sole_non_default tier)을 차단합니다:
-
-```bash
 ~/.gbrain/bin/gbrain_with_google_env.sh sources default default
 ```
 
-임베딩은 `google:gemini-embedding-001`, 768 dimensions를 기준으로 합니다. Distillation 모델은 기본값으로 OpenRouter의 Gemini 모델을 사용하지만 `GBRAIN_DREAM_MODEL`로 바꿀 수 있습니다.
-
-## 5. Enable Services
+서비스를 활성화합니다.
 
 ```bash
 systemctl --user daemon-reload
@@ -85,13 +102,80 @@ systemctl --user status gbrain-http.service --no-pager
 systemctl --user list-timers gbrain-memory-distill.timer --no-pager
 ```
 
-## 6. Agent Startup Check
-
-새 세션 시작 시 에이전트는 다음을 수행합니다.
+## 6. 전체 설치 검증
 
 ```bash
-python3 ~/.gbrain/bin/memory_distill.py check-pending
-~/.gbrain/bin/gbrain_with_google_env.sh query "agent operating protocol current project work rules" --no-expand
+cd ~/kmh-agent-kit
+python3 scripts/check-skill-deps.py
+./install.sh --help
+git status --short
 ```
 
-미확인 리포트가 있고 오늘 아직 보고하지 않았다면 사용자에게 리뷰 여부를 묻습니다.
+정상 결과:
+
+- 스킬 구조 검사가 `통과`로 끝납니다.
+- 도움말에 전역·GBrain·프로젝트 설치 명령이 표시됩니다.
+- 설치만 했다면 저장소 작업트리는 깨끗합니다.
+- `~/.gbrain-agent.md`가 현재 서버에 맞는 카드 원본을 가리킵니다.
+
+## Windows 설치
+
+Gram17:
+
+```powershell
+git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
+cd $env:USERPROFILE\kmh-agent-kit
+.\install.ps1
+.\install.ps1 -Gbrain gram17
+```
+
+Venture:
+
+```powershell
+git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
+cd $env:USERPROFILE\kmh-agent-kit
+.\install.ps1
+.\install.ps1 -Gbrain venture
+```
+
+Windows는 junction과 하드링크를 사용하므로 관리자 권한이나 개발자 모드가 필요 없습니다. Linux 전용 GBrain 프록시와 systemd 서비스는 설치하지 않습니다.
+
+## 기존 서버 업데이트
+
+```bash
+cd ~/kmh-agent-kit
+git pull --ff-only
+```
+
+새 스킬 추가·삭제 또는 `gbrain/` 실행 파일·서비스 변경이 포함된 업데이트만 다음 명령을 한 번 더 실행합니다.
+
+```bash
+./install.sh
+```
+
+Windows는 pull 뒤에 해당 기기의 두 설치 명령을 다시 실행합니다.
+
+Gram17:
+
+```powershell
+cd $env:USERPROFILE\kmh-agent-kit
+git pull --ff-only
+.\install.ps1
+.\install.ps1 -Gbrain gram17
+```
+
+Venture:
+
+```powershell
+cd $env:USERPROFILE\kmh-agent-kit
+git pull --ff-only
+.\install.ps1
+.\install.ps1 -Gbrain venture
+```
+
+## 주의
+
+- `./install.sh --rndlog`는 유효한 명령이 아닙니다. `./install.sh --gbrain rndlog`를 사용합니다.
+- 한 계정에는 GBrain 카드 하나만 연결합니다.
+- Exdigm 운영 서버(`115.68.224.161`)는 현재 이 저장소의 설치 대상이 아닙니다.
+- API 키, DB 비밀번호, OAuth 토큰은 이 저장소에 넣지 않습니다.
