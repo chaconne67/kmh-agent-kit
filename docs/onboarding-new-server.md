@@ -11,6 +11,8 @@
 
 GBrain 등록 이름은 영문 소문자·숫자·중간 하이픈으로 된 1~32자입니다. 밑줄은 허용되지 않으므로 `abc_project`는 `abc-project`로 등록합니다.
 
+최초 설치 뒤에는 모든 서버에서 `kitpull`, `kitpush`만 사용합니다. 최초 설치가 저장한 등록 이름으로 공용 자산과 매칭 도메인을 자동 선택합니다.
+
 ## 퀵 설치 방법
 
 ### 처음 등록하는 `abc_project` 서버
@@ -32,6 +34,8 @@ git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-a
 ```bash
 git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh --new abc-project
 ```
+
+새 셸을 열거나 `source ~/.bashrc`를 실행하면 `kitpull`, `kitpush`를 사용할 수 있습니다.
 
 ### 기존 역할을 새 장비에 설치
 
@@ -84,15 +88,19 @@ ssh -o BatchMode=yes -o ConnectTimeout=10 chaconne@49.247.45.243 true
 
 ### 기존 서버 업데이트
 
-서버별 정확한 이름을 포함해 다시 실행합니다.
+모든 Linux·WSL 서버에서 같은 명령을 실행합니다.
 
-| 서버 | 업데이트 명령 |
-|---|---|
-| 중앙 DB·GBrain | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh main` |
-| FundKeeper | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh fundkeeper` |
-| Rndlog | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh rndlog` |
-| Ceoloan | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh ceoloan` |
-| Judy WSL | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh judy` |
+```bash
+kitpull
+```
+
+공용 또는 현재 서버의 매칭 도메인 변경을 올릴 때:
+
+```bash
+kitpush
+```
+
+최초 설치가 등록 이름을 Git 로컬 설정에 저장하므로 이름을 다시 입력하지 않습니다. 다른 도메인의 변경이 있으면 `kitpush`가 해당 경로를 표시하고 중단합니다. 원격 변경이 먼저 있어도 커밋 전에 중단하고 `kitpull`을 안내합니다.
 
 ### 설치 결과 확인
 

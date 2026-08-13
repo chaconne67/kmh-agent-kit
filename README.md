@@ -20,6 +20,13 @@ KMH Agent Kit은 여러 서버와 프로젝트의 Codex·Claude Code에 공용 �
 
 GBrain 등록 이름은 영문 소문자·숫자·중간 하이픈으로 된 1~32자입니다. 밑줄은 허용되지 않으므로 `abc_project`의 등록 이름은 `abc-project`입니다.
 
+최초 설치가 끝난 뒤에는 서버 이름을 다시 입력하지 않습니다.
+
+```bash
+kitpull
+kitpush
+```
+
 ## 퀵 설치 방법
 
 ### 새로운 `abc_project` 역할을 처음 등록
@@ -51,6 +58,12 @@ git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
 - GitHub에서 이 저장소를 clone할 수 있어야 합니다.
 - `chaconne@49.247.45.243`에 비밀번호 없이 SSH 접속할 수 있어야 합니다.
 
+최초 설치 직후 현재 셸에서도 일상 명령을 사용하려면 한 번 실행합니다.
+
+```bash
+source ~/.bashrc
+```
+
 ### 이미 등록된 역할을 설치
 
 저장소가 이미 있으면 해당 행의 명령 하나만 실행합니다.
@@ -79,6 +92,8 @@ git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
 
 | 명령 | 용도 |
 |---|---|
+| `kitpull` | 저장소를 받은 뒤 이 서버의 공용 자산과 매칭 도메인 재설치 |
+| `kitpush` | 이 서버의 공용·매칭 도메인 변경 검증, 커밋, push |
 | `./install.sh main` | 중앙 DB·GBrain 역할 설치 |
 | `./install.sh fundkeeper` | FundKeeper 역할 설치 |
 | `./install.sh rndlog` | Rndlog 역할 설치 |
@@ -91,6 +106,17 @@ git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
 | `./install.sh --help` | 설치 명령 표시 |
 
 이전 `--gbrain` 형식은 기존 자동화의 호환을 위해서만 유지합니다. 새 설치에는 위 표의 공식 명령을 사용합니다.
+
+### 서버 자동 인식
+
+최초 `./install.sh <등록 이름>`이 등록 이름을 해당 저장소의 Git 로컬 설정에 저장합니다. 이 값은 커밋되지 않으므로 서버마다 독립적으로 유지됩니다.
+
+기존 설치는 첫 `kitpull` 또는 `kitpush`에서 현재 GBrain 카드를 읽어 등록 이름을 한 번 복구합니다. 이후에는 저장된 이름이 기준입니다.
+
+- `kitpull`: Git 저장소 전체를 받은 뒤 공용 자산과 현재 등록 이름에 매칭되는 프로젝트 프로필만 실제 환경에 연결합니다.
+- `kitpush`: 공용 파일, 현재 등록 이름의 카드, 매칭 도메인만 커밋·push합니다.
+- 다른 도메인의 변경이 함께 있으면 `kitpush`는 변경 경로를 표시하고 중단합니다.
+- 원격 변경이 먼저 있으면 `kitpush`는 커밋 전에 중단하고 `kitpull`을 안내합니다.
 
 ### 신규 등록 작동 원리
 
@@ -131,13 +157,18 @@ Linux에서는 저장소 원본을 실제 사용 위치에 심볼릭 링크합�
 
 ### 업데이트
 
-| 역할 | 업데이트·재설치 명령 |
-|---|---|
-| 중앙 DB·GBrain | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh main` |
-| FundKeeper | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh fundkeeper` |
-| Rndlog | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh rndlog` |
-| Ceoloan | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh ceoloan` |
-| Judy WSL | `git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh judy` |
+모든 Linux·WSL 서버에서 같은 명령을 사용합니다.
+
+```bash
+kitpull
+```
+
+수정한 공용·도메인 자산을 올릴 때도 서버 이름 없이 실행합니다. 커밋 메시지는 생략할 수 있습니다.
+
+```bash
+kitpush
+kitpush "설명할 커밋 메시지"
+```
 
 ### 설치 확인
 

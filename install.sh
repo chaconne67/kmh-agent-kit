@@ -36,6 +36,10 @@ KMH Agent Kit
   ./install.sh ceoloan
   ./install.sh judy
 
+최초 설치 후 모든 서버에서 동일:
+  kitpull
+  kitpush
+
 그 외:
   ./install.sh                         공용 스킬·전역 지침만 설치
   ./install.sh --project ~/exdigm exdigm
@@ -206,13 +210,17 @@ install_agent() {
   validate_agent_name "$agent_name"
   [ -f "$repo_dir/gbrain-cards/$agent_name.md" ] ||
     die "등록되지 않은 에이전트입니다. 신규 추가: ./install.sh --new $agent_name"
+  git -C "$repo_dir" rev-parse --git-dir >/dev/null 2>&1 ||
+    die "kmh-agent-kit Git 저장소에서 실행해야 합니다: $repo_dir"
 
   install_global
   install_gbrain_card "$agent_name"
   install_known_project "$agent_name"
   verify_agent_install "$agent_name"
+  git -C "$repo_dir" config --local kmh-agent-kit.agent "$agent_name"
 
   echo "설치 완료: $agent_name"
+  echo "서버 등록 이름 저장: $agent_name (이후 kitpull·kitpush가 자동 사용)"
   if [ -d "$backup_root" ]; then
     echo "기존 파일 백업: $backup_root"
   fi
