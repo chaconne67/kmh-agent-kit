@@ -1,133 +1,149 @@
 # New Server Onboarding
 
-새 서버에서는 **공용 설치 → 서버 카드 설치 → 필요한 프로젝트 프로필 설치 → 검증** 순서로 진행합니다. 중앙 GBrain 서버와 일반 애플리케이션 서버의 설정은 다르므로 섞지 않습니다.
+## 개요
 
-## 1. 기존 파일 확인
+새 Linux 서버의 공식 설치 경로는 `install.sh` 한 번입니다. 서버 이름을 주면 공용 자산, GBrain 카드, SSH 프록시, 알려진 프로젝트 프로필, 연결 검증까지 이어서 실행합니다.
 
-설치기는 기존 일반 파일을 백업하지만, 먼저 현재 상태를 확인합니다. 비밀값은 출력하지 않습니다.
+```bash
+~/kmh-agent-kit/install.sh rndlog
+```
+
+신규 에이전트는 `--new`로 중앙 GBrain 공간과 정책, 카드까지 함께 만듭니다.
+
+```bash
+~/kmh-agent-kit/install.sh --new analytics
+```
+
+## 퀵 설치 방법
+
+### 중앙 DB·GBrain `49.247.45.243`
+
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh main
+```
+
+### FundKeeper `49.247.38.186`
+
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh fundkeeper
+```
+
+### Rndlog `49.247.207.147`
+
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh rndlog
+```
+
+### Ceoloan `49.247.205.170`
+
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh ceoloan
+```
+
+### Judy WSL
+
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh judy
+```
+
+### 신규 에이전트
+
+`analytics`라는 이름으로 먼저 확인:
+
+```bash
+~/kmh-agent-kit/install.sh --new analytics --dry-run
+```
+
+확인 후 생성·설치:
+
+```bash
+~/kmh-agent-kit/install.sh --new analytics
+```
+
+## 그 외
+
+### 설치 전 조건
+
+- 실행 계정은 `chaconne`을 기준으로 합니다.
+- 원격 서버는 `chaconne@49.247.45.243`로 비밀번호 없이 SSH 접속할 수 있어야 합니다.
+- GitHub 저장소를 clone할 SSH 키가 준비되어 있어야 합니다.
+- 기존 `~/.claude`, `~/.codex`, `~/.gbrain` 일반 파일은 설치기가 백업합니다.
+
+현재 상태 확인:
 
 ```bash
 ls -ld ~/.claude ~/.codex ~/.gbrain ~/kmh-agent-kit 2>/dev/null || true
+ssh -o BatchMode=yes -o ConnectTimeout=10 chaconne@49.247.45.243 true
 ```
 
-## 2. 저장소 설치
+### 신규 생성 범위
 
-Linux와 WSL에서 공통으로 실행합니다.
+`--new analytics`는 다음 항목만 새로 만듭니다.
+
+- 중앙 GBrain 소스 `analytics`
+- 중앙 정책의 `[sources.analytics]`, `[agents.analytics]`
+- 전용 쓰기 경로 `agents/analytics/private`
+- 저장소 카드 `gbrain-cards/analytics.md`
+- 현재 서버의 `~/.gbrain-agent.md`, `~/.local/bin/gbrain-analytics`
+
+기존 공간·정책·카드는 덮어쓰지 않습니다. 정책 충돌이 있으면 중단합니다. 정책 변경 전 백업은 `agent-policy.toml.backup-날짜-시각`으로 남깁니다.
+
+### 중앙 GBrain 보호 검증
+
+새 공간을 추가한 뒤 설치기가 자동으로 확인합니다.
+
+- 중앙 기본 소스: `default`
+- 해석 단계: `brain_default`
+- 공용 운영 프로토콜 조회
+- 새 에이전트 정책 조회
+
+이 검증 중 하나라도 실패하면 설치 성공으로 보고하지 않습니다.
+
+### 기존 서버 업데이트
+
+서버 이름까지 포함해 다시 실행합니다.
 
 ```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
-cd ~/kmh-agent-kit
-./install.sh
+git -C ~/kmh-agent-kit pull --ff-only && ~/kmh-agent-kit/install.sh rndlog
 ```
 
-기존 파일은 `~/.kmh-agent-kit-backup-날짜-시각/`에 보존됩니다. 공용 스킬과 지침은 저장소에 심볼릭 링크되므로 이후에는 `git pull`로 갱신됩니다.
+### 설치 결과 확인
 
-## 3. 이 서버에 맞는 명령 실행
-
-아래 표에서 현재 서버 한 줄만 실행합니다.
-
-| 서버 | 실행할 명령 |
-|---|---|
-| 중앙 DB·GBrain `49.247.45.243` | `./install.sh --gbrain main` |
-| FundKeeper `49.247.38.186` | `./install.sh --gbrain fundkeeper` |
-| Rndlog `49.247.207.147` | `./install.sh --gbrain rndlog` |
-| Ceoloan `49.247.205.170` | `./install.sh --gbrain ceoloan` |
-| Judy WSL | `./install.sh --gbrain judy` |
-
-프로젝트 프로필이 있는 서버만 이어서 실행합니다.
-
-| 서버·프로젝트 | 실행할 명령 |
-|---|---|
-| 중앙 서버의 Exdigm | `./install.sh --project ~/exdigm exdigm` |
-| FundKeeper 서버 | `./install.sh --project ~/fundkeeper fundkeeper` |
-| Testbed가 `~/testbed`에 있는 서버 | `./install.sh --project ~/testbed testbed` |
-
-Rndlog와 Ceoloan에는 현재 별도 프로젝트 프로필이 없으므로 GBrain 카드까지만 설치합니다.
-
-## 4. 일반 서버의 GBrain 연결 확인
+```bash
+python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
+readlink -f ~/.gbrain-agent.md
+```
 
 Rndlog:
 
 ```bash
-readlink -f ~/.gbrain-agent.md
-readlink -f ~/.local/bin/gbrain-rndlog
+gbrain-rndlog policy
 gbrain-rndlog get agents/rndlog/private/project-overview
-
-# 쓰기 경로도 확인한다. 같은 health 페이지를 갱신하므로 반복 실행해도 페이지가 늘지 않는다.
-gbrain-rndlog note connection-health "rndlog note path is healthy"
-gbrain-rndlog get agents/rndlog/private/connection-health
-health_file="$(mktemp)"
-printf '%s\n' 'rndlog put path is healthy' > "$health_file"
-gbrain-rndlog put agents/rndlog/private/connection-health "$health_file" note
-rm -f "$health_file"
-gbrain-rndlog get agents/rndlog/private/connection-health
 ```
 
 Ceoloan:
 
 ```bash
-readlink -f ~/.gbrain-agent.md
-readlink -f ~/.local/bin/gbrain-ceoloan
-gbrain-ceoloan query "ceoloan 운영 구조"
+gbrain-ceoloan policy
 ```
 
 FundKeeper:
 
 ```bash
-readlink -f ~/.gbrain-agent.md
-readlink -f ~/.local/bin/gbrain-fundkeeper
-gbrain-fundkeeper query "fundkeeper 운영 구조"
+gbrain-fundkeeper policy
 ```
 
-이 서버들은 SSH 프록시로 중앙 GBrain(`49.247.45.243`)을 사용합니다. 로컬 GBrain DB나 `gbrain-http.service`를 새로 만들지 않습니다.
+### 중앙 GBrain 서버만 확인할 항목
 
-## 5. 중앙 GBrain 서버만 추가 설정
-
-이 단계는 `49.247.45.243`에서만 실행합니다. 일반 애플리케이션 서버에서는 건너뜁니다.
-
-GBrain CLI가 없을 때만 Bun을 설치합니다.
+일반 애플리케이션 서버에서는 로컬 GBrain DB나 `gbrain-http.service`를 만들지 않습니다. 아래 명령은 `49.247.45.243`에서만 실행합니다.
 
 ```bash
-command -v unzip || { sudo apt-get update && sudo apt-get install -y unzip; }
-command -v bun || curl -fsSL https://bun.sh/install | bash
-```
-
-기존 PostgreSQL·pgvector와 GBrain 설정을 먼저 확인합니다. 새 DB를 임의로 만들지 않습니다.
-
-```bash
-docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}'
 ~/.gbrain/bin/gbrain_with_google_env.sh doctor --fast
-~/.gbrain/bin/gbrain_with_google_env.sh stats
-~/.gbrain/bin/gbrain_with_google_env.sh sources default default
-```
-
-서비스를 활성화합니다.
-
-```bash
-systemctl --user daemon-reload
-systemctl --user enable --now gbrain-http.service
-systemctl --user enable --now gbrain-memory-distill.timer
+~/.gbrain/bin/gbrain_with_google_env.sh sources current
 systemctl --user status gbrain-http.service --no-pager
-systemctl --user list-timers gbrain-memory-distill.timer --no-pager
 ```
 
-## 6. 전체 설치 검증
-
-```bash
-cd ~/kmh-agent-kit
-python3 scripts/check-skill-deps.py
-./install.sh --help
-git status --short
-```
-
-정상 결과:
-
-- 스킬 구조 검사가 `통과`로 끝납니다.
-- 도움말에 전역·GBrain·프로젝트 설치 명령이 표시됩니다.
-- 설치만 했다면 저장소 작업트리는 깨끗합니다.
-- `~/.gbrain-agent.md`가 현재 서버에 맞는 카드 원본을 가리킵니다.
-
-## Windows 설치
+### Windows
 
 Gram17:
 
@@ -147,44 +163,11 @@ cd $env:USERPROFILE\kmh-agent-kit
 .\install.ps1 -Gbrain venture
 ```
 
-Windows는 junction과 하드링크를 사용하므로 관리자 권한이나 개발자 모드가 필요 없습니다. Linux 전용 GBrain 프록시와 systemd 서비스는 설치하지 않습니다.
+Windows는 junction과 하드링크를 사용하며 Linux 전용 GBrain 프록시·systemd 서비스는 설치하지 않습니다.
 
-## 기존 서버 업데이트
+### 주의
 
-```bash
-cd ~/kmh-agent-kit
-git pull --ff-only
-```
-
-새 스킬 추가·삭제 또는 `gbrain/` 실행 파일·서비스 변경이 포함된 업데이트만 다음 명령을 한 번 더 실행합니다.
-
-```bash
-./install.sh
-```
-
-Windows는 pull 뒤에 해당 기기의 두 설치 명령을 다시 실행합니다.
-
-Gram17:
-
-```powershell
-cd $env:USERPROFILE\kmh-agent-kit
-git pull --ff-only
-.\install.ps1
-.\install.ps1 -Gbrain gram17
-```
-
-Venture:
-
-```powershell
-cd $env:USERPROFILE\kmh-agent-kit
-git pull --ff-only
-.\install.ps1
-.\install.ps1 -Gbrain venture
-```
-
-## 주의
-
-- `./install.sh --rndlog`는 유효한 명령이 아닙니다. `./install.sh --gbrain rndlog`를 사용합니다.
-- 한 계정에는 GBrain 카드 하나만 연결합니다.
-- Exdigm 운영 서버(`115.68.224.161`)는 현재 이 저장소의 설치 대상이 아닙니다.
-- API 키, DB 비밀번호, OAuth 토큰은 이 저장소에 넣지 않습니다.
+- 기존 서버에는 `--new`를 쓰지 않고 `./install.sh rndlog`처럼 이름만 사용합니다.
+- 신규 카드 파일은 자동 commit·push하지 않습니다. 내용을 검토한 뒤 저장소에 반영합니다.
+- Exdigm 운영 서버 `115.68.224.161`은 현재 이 저장소의 설치 대상이 아닙니다.
+- API 키, DB 비밀번호, OAuth 토큰은 저장소와 GBrain 카드에 넣지 않습니다.

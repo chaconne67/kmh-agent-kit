@@ -112,7 +112,8 @@ cd $env:USERPROFILE\kmh-agent-kit
 GBrain 사용 규칙은 서버가 아니라 **에이전트 단위**로 다르다(같은 서버에 Codex·Hermes 프로필 등 여러 에이전트가 있을 수 있다). 그래서 공유 지침(CLAUDE.md·AGENTS.md)의 GBrain 섹션은 내용 대신 카드 참조만 갖는다:
 
 - 카드 원본: `gbrain-cards/<에이전트>.md` (git 관리)
-- 연결: `./install.sh --gbrain <에이전트>` → `~/.gbrain-agent.md` 심링크
+- 공식 설치: `./install.sh rndlog`처럼 에이전트 이름 하나를 사용한다. 전역 자산·카드·원격 프록시·프로젝트 프로필·연결 검증이 한 번에 실행된다.
+- 이전 `./install.sh --gbrain rndlog` 명령은 호환을 위해 유지하지만 공식 경로와 같은 전체 설치를 실행한다.
 - 카드가 없는 서버: 에이전트가 GBrain 규칙 전체를 건너뛴다 (임포트 실패해도 세션은 정상 — 2026-07-21 실측)
 
 공간(사적 메모리) 구조 — GBrain 본체 서버(coconut-db) 기준:
@@ -121,12 +122,19 @@ GBrain 사용 규칙은 서버가 아니라 **에이전트 단위**로 다르다
 - 래퍼는 단일 스크립트 `gbrain-agent`(kit `gbrain/bin/`)뿐이다. `gbrain-<이름>` 심링크는 install.sh가 정책 파일에서 자동 생성하며, 호출된 이름으로 에이전트를 감지한다. 에이전트별 사본 스크립트를 만들지 않는다.
 - 공용(default) 직접 쓰기는 없다. 공용 반영은 사적 공간 기록 후 주인님 승격 단일 경로다 (pending-shared 제안 흐름은 2026-07-21 폐지).
 
-새 공간 에이전트 추가 절차:
+새 공간 에이전트 추가는 설치기의 단일 경로를 사용한다:
 
-1. 본체 서버 정책 파일에 `[sources.<이름>]`·`[agents.<이름>]` 추가 (`private_source` 필수). GBrain 소스 등록·설정 변경 후에는 반드시 bare CLI로 공용 페이지 1건을 `get`해 기본 소스 라우팅이 유지되는지 재검증한다 (incident/gbrain-cli-source-resolution 교훈).
-2. `./install.sh` 재실행 → `gbrain-<이름>` 링크 자동 생성.
-3. `gbrain-cards/<이름>.md` 카드 작성·커밋.
-4. 에이전트가 있는 기기에서 `./install.sh --gbrain <이름>`. 본체가 아닌 기기에서는 이 명령이 카드 연결과 함께 SSH 프록시 링크(`~/.local/bin/gbrain-<이름>` → kit `gbrain/bin/gbrain-remote-proxy`)까지 만든다. 전제: 그 기기의 SSH 키가 본체 서버에 등록되어 있어야 한다.
+```bash
+./install.sh --new analytics
+```
+
+설치기는 카드 생성, 중앙 GBrain 소스 생성, 기본 소스 `default` 즉시 복구·검증, 정책 등록, 중앙 래퍼 생성, 현재 서버 설치와 정책 조회 검증을 순서대로 수행한다. 원격 서버에서는 SSH로 중앙 설치기의 내부 등록 옵션을 호출한다.
+
+```bash
+./install.sh --new analytics --dry-run
+```
+
+dry-run은 생성할 소스·프리픽스·카드와 카드 본문을 출력하고 아무것도 변경하지 않는다. 실제 생성은 기존 카드·공간·정책을 덮어쓰지 않으며, 정책이 예상 구조와 다르면 중단한다. 생성된 카드는 자동 commit하지 않으므로 검토 후 저장소에 반영한다.
 
 ## 검증
 
