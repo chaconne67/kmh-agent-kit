@@ -41,7 +41,7 @@ gbrain-$agent — policy-safe GBrain wrapper (space: source '$PRIVATE_SOURCE'${P
 Usage:
   gbrain-$agent policy
   gbrain-$agent sources
-  gbrain-$agent put <slug> <file.md> [type]
+  gbrain-$agent put <slug> <file.md|-> [type]
   gbrain-$agent note <slug-suffix> <markdown text...>
   gbrain-$agent query <query...>          # default + 자기 공간
   gbrain-$agent query-private <query...>
@@ -87,6 +87,9 @@ case "$cmd" in
     slug="${1:-}"; file="${2:-}"; type="${3:-reference}"
     [[ -n "$slug" && -n "$file" ]] || { usage; exit 64; }
     require_prefix "$slug"
+    if [[ "$file" == "-" ]]; then
+      exec "$GBRAIN_BIN" capture --source "$PRIVATE_SOURCE" --slug "$slug" --type "$type" --stdin --json
+    fi
     require_file "$file"
     exec "$GBRAIN_BIN" capture --source "$PRIVATE_SOURCE" --slug "$slug" --type "$type" --file "$file" --json
     ;;

@@ -15,4 +15,12 @@ else
   agent="${base#gbrain-}"
 fi
 
+# put의 파일은 호출한 서버에 있으므로 SSH 표준입력으로 본체 래퍼에 전달한다.
+if [[ "${1:-}" == "put" ]]; then
+  file="${3:-}"
+  [[ -n "$file" && -f "$file" ]] || { echo "ERROR: file not found: $file" >&2; exit 66; }
+  set -- "$1" "${2:-}" - "${4:-reference}"
+  exec ssh "$GBRAIN_HOST" "/home/chaconne/.local/bin/gbrain-$(printf '%q' "$agent") $(printf '%q ' "$@")" < "$file"
+fi
+
 exec ssh "$GBRAIN_HOST" "/home/chaconne/.local/bin/gbrain-$(printf '%q' "$agent") $(printf '%q ' "$@")"

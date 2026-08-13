@@ -52,6 +52,15 @@ Rndlog:
 readlink -f ~/.gbrain-agent.md
 readlink -f ~/.local/bin/gbrain-rndlog
 gbrain-rndlog get agents/rndlog/private/project-overview
+
+# 쓰기 경로도 확인한다. 같은 health 페이지를 갱신하므로 반복 실행해도 페이지가 늘지 않는다.
+gbrain-rndlog note connection-health "rndlog note path is healthy"
+gbrain-rndlog get agents/rndlog/private/connection-health
+health_file="$(mktemp)"
+printf '%s\n' 'rndlog put path is healthy' > "$health_file"
+gbrain-rndlog put agents/rndlog/private/connection-health "$health_file" note
+rm -f "$health_file"
+gbrain-rndlog get agents/rndlog/private/connection-health
 ```
 
 Ceoloan:
