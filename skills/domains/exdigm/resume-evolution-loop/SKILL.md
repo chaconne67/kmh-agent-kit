@@ -73,8 +73,8 @@ If any answer is no, redesign smaller before editing.
 
 Run Exdigm C-group scripts with the project Python environment.
 
-- Work from `/home/chaconne/exdigm` unless the user gives another workspace.
-- Use `/home/chaconne/exdigm/.venv/bin/python` or `uv run python`.
+- Work through SSH in `/home/chaconne/exdigm-debug` unless the user explicitly requests an operational run.
+- Use `/home/chaconne/exdigm-debug/.venv/bin/python` or `uv run python` in that remote worktree.
 - Do not use system `python3` for C-group generation scripts.
 - If `ModuleNotFoundError: No module named 'django'` appears immediately, treat it as an execution-environment failure, not a resume-generation failure.
 - Rerun the same command with the project Python before recording the sample result.

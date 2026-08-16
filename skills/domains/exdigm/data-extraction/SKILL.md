@@ -48,10 +48,10 @@ Drive 파일 확인
 ## Execution Boundary
 
 - 웹 요청은 현재 배포된 `Exdigm_exdigm_app` 서비스가 처리한다.
-- host cron과 운영자 수동 데이터 작업은 `/home/chaconne/exdigm` 로컬 코드를 기준으로 실행한다.
-- `/home/chaconne/exdigm-deploy/exdigm/src`는 웹 컨테이너 빌드용 복사본이며 cron·운영자 수동 작업 기준으로 쓰지 않는다.
-- 개발 서버와 운영 서버는 단일 운영 PostgreSQL DB를 공유한다. 대량 저장·백필·repair는 운영 데이터 변경으로 취급하고 사용자 승인 후 실행한다.
-- 원격 worker는 대량 파일 산출물 생성기다. 운영 DB 읽기·쓰기·후보자 매칭·현재 프로필 갱신은 로컬/운영 서버 책임이다.
+- 중앙 에이전트는 SSH로 `/home/chaconne/exdigm-debug`를 수정·검증한다. `/home/chaconne/exdigm`은 배포와 운영 작업자의 clean 실행 원본이다.
+- 운영 DB 진단은 `scripts/debug_workspace.sh shell-readonly`, 쓰기 검증은 `scripts/debug_workspace.sh create`로 만든 일회성 DB를 사용한다.
+- 대량 저장·백필·repair는 운영 데이터 변경이다. 주인님의 명시적 승인 후 운영 체크아웃의 검증된 커밋에서만 실행한다.
+- 원격 worker는 대량 파일 산출물 생성기다. 운영 DB 읽기·쓰기·후보자 매칭·현재 프로필 갱신은 활성 운영 서버 책임이다.
 - Gemini Batch는 외부 비동기 LLM 작업이지 원격 worker 처리가 아니다.
 
 ## DB Source Of Truth
