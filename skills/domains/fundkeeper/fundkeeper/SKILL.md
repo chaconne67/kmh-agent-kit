@@ -1,170 +1,75 @@
 ---
 name: fundkeeper
-description: FundKeeper 퀀트 동적 자산배분·리밸런싱 운영 시스템. Use when working on FundKeeper/coconut.im, including 수동계좌 잔고를 스크린샷에서 추출·검증해 ClientAccount, ClientCash, ClientTicker에 반영할 때.
+description: Use when developing, diagnosing, or operating the FundKeeper/Coconut portfolio, account, rebalancing, trading, reporting, or in-product Codex features.
 ---
 
-# FundKeeper Skill - 퀀트 동적 자산배분 & 리밸런싱 운영 시스템
+# FundKeeper
 
-## 프로젝트 개요
+FundKeeper는 모멘텀에셋의 자산배분·리밸런싱 서비스이고, 사용자 서비스명은 Coconut이다. 운영 도메인은 `coconut.ai.kr`이다.
 
-**FundKeeper (coconut.im)** - 모멘텀에셋이 운영하는 로보어드바이저 플랫폼.
-코스콤 로보어드바이저 테스트베드 2차에서 검증 중인 퀀트 동적 자산배분 웹 + 리밸런싱 운영 시스템.
-
-**관련 스킬**: `testbed-base` (테스트베드 계좌/전략/서류), `fundkeeper-deploy` (배포/운영)
-
-## 작업별 워크플로우
+## 작업 라우팅
 
 - 수동계좌 잔고 입력: [workflows/client-balance.md](workflows/client-balance.md)를 끝까지 읽고 따른다.
+- UI·UX·템플릿·Tailwind 작업: `fundkeeper-design-system`을 함께 사용한다.
+- 배포·운영 상태·복구 작업: `fundkeeper-deploy`를 함께 사용한다.
+- 코스콤 RA 테스트베드 작업: `testbed-base`를 함께 사용한다.
 
-## 접속 정보
+## 실행 환경
 
 | 항목 | 값 |
 |---|---|
-| 앱 서버 | 49.247.38.186 (SSH root) - Django + Docker + Nginx |
-| DB 서버 | 49.247.45.243 - MySQL 3306 (user: chaconne) |
-| 프로젝트 경로 | `/home/work/fundkeeper` |
-| Docker 경로 | `/home/docker/fundkeeper` |
-| 도메인 | coconut.im |
-| 개발 포트 | 8800 |
-| 프로덕션 포트 | 443 (SSL) → 8000 (gunicorn) |
-| DB 1 | `fundkeeper` - Django ORM (사용자, 포트폴리오, 주문 등) |
-| DB 2 | `price` - OHLCV 시장 가격 데이터 (SQLAlchemy/pymysql) |
+| SSH | `chaconne@49.247.38.186` |
+| 저장소 | `/home/chaconne/fundkeeper` |
+| 호환 경로 | `/home/work/fundkeeper` |
+| GitHub | `reneesoft/fundkeeper` |
+| 기준 브랜치 | `master` |
+| Python | `.venv/bin/python` (프로젝트 요구사항 3.12 이상) |
+| 운영 | Docker Swarm `Coconut`, Nginx, Gunicorn |
+| 도메인 | `https://coconut.ai.kr` |
+| DB | MySQL `fundkeeper`(Django ORM), `price`(시장 가격) |
 
-## 기술 스택
+중앙에는 코드 복제본을 만들지 않는다. 검색·수정·검증·Git 작업은 SSH를 통해 이 저장소에서 수행한다.
 
-| 영역 | 기술 |
-|---|---|
-| Backend | Django 4.1.13, DRF, Python 3.11+ |
-| DB | MySQL (utf8mb4) - `fundkeeper`(ORM) + `price`(OHLCV) 2개 DB |
-| Frontend | Django templates + Tailwind CSS + HTMX + ApexCharts |
-| 패키지매니저 | uv (uv.lock) |
-| 배포 | Docker Swarm, gunicorn → Nginx(SSL) |
-| Settings | `fundkeeper/settings/` - base.py, local.py(dev), deploy.py(prod) |
-| AI/ML | Anthropic, OpenAI, Gemini, TensorFlow, scikit-learn, LightGBM, XGBoost, Optuna |
-| 트레이딩 | KIS API (한국투자증권), WebSocket 실시간, pykrx |
+## 핵심 도메인
 
-## Django 앱 구조 (20개)
+- `Fkuser`: 사용자와 인증의 중심이다.
+- `MyPortfolios`: 사용자가 선택한 전략 포트폴리오다.
+- `MyPortfolioManager`: Mix 포트폴리오와 하위 전략·비중을 연결한다.
+- `Backtest`와 관련 모델: 전략의 종목 구성과 성과·비중 결과를 보관한다.
+- `MyAccount`: KIS API와 연결되는 증권계좌다. 인증정보·현금흐름·거래·가치 이력·자동매매 실행과 연결된다.
+- `ClientAccount`: 외부 자료로 관리하는 수동계좌다. `ClientCash`, `ClientTicker`와 함께 전체 잔고를 이룬다.
+- `RebalancingSchedule`: 리밸런싱 기준일과 거래일을 정한다. `OrderAccounts`, `OrderList`, 테스트베드 잔고와 연결된다.
+- `Asset`: 티커·ISIN·시장·자산군·위험도·연금 구분의 종목 정본이다.
 
-### 핵심 포트폴리오 앱
-| 앱 | 설명 | 핵심 파일 |
-|---|---|---|
-| `simulation` | 백테스팅 엔진, `Simulation` 베이스 클래스 (833줄) | simulation.py, tools.py(567줄), calc.py, charts.py, fetch_price.py |
-| `myportfolio` | 포트폴리오 CRUD, `MyPortfolioHandler`→`Simulation` 상속 | myportfolio.py, models.py |
-| `portfolio_awt` | AWT(Aggressive Weight Timing) 전략 | views.py |
-| `portfolio_baa` | BAA(Bold Asset Allocation) 전략 | views.py |
-| `portfolio_mix` | Mixed 전략 (서브 포트폴리오 조합) | views.py |
-| `rebalancing_info` | 리밸런싱 스케줄 및 실행 (855줄) | rebalancing.py |
+AWT, BAA, Mix는 각각 별도 전략 앱이지만 공통 시뮬레이션과 포트폴리오 모델을 사용한다. Mix 변경은 하위 전략 비중과 리밸런싱 날짜 전파를 함께 확인한다.
 
-### 사용자/계좌 앱
-| 앱 | 설명 |
-|---|---|
-| `fkuser` | 인증 (카카오 OAuth), 사용자 관리, 결제 상태 |
-| `myaccount` | 증권 계좌 연동 (KIS API), 자동매매 실행 기록, 오토봇 주문 라이프사이클 |
-| `order` | 리밸런싱 주문 관리 (OrderList, OrderAccounts, RebalancingSchedule) |
-| `userprofile` | 사용자 프로필 |
-| `myfriends` | 친구/어드바이저 기능 |
+## 코드 탐색 기준
 
-### 유틸리티 앱
-| 앱 | 설명 |
-|---|---|
-| `etfs` | ETF 종목 데이터 |
-| `krx_filter` | KRX 종목 스크리닝 |
-| `recipe` | ETF 배분 레시피 |
-| `monthly_report` | 월간 포트폴리오 리포트 |
-| `pay` | 카카오페이 결제 |
-| `config` | 전역 설정, .env 로드 (`config/info.py`) |
-| `custom_tags` | Django 템플릿 태그/필터 |
-| `retire` | 은퇴 설계 |
-| `support` | 고객 지원 |
+- 설치 앱의 정본은 `fundkeeper/settings/base.py`의 `INSTALLED_APPS`다. 현재 `client_manager`를 포함한다.
+- Django 설정은 `fundkeeper/settings/local.py`와 `deploy.py`로 나뉜다. 둘 다 실제 운영 DB나 외부 서비스 설정을 읽을 수 있으므로 실행 명령의 부작용을 먼저 확인한다.
+- 예약 작업은 `xmodules/sh/`를 직접 호출할 수 있다. 파일 하나를 고칠 때도 cron·실행 사용자·작업 디렉터리를 먼저 찾는다.
+- 증권 주문, 결제, 계좌 동기화, 테스트베드 잔고 저장은 데이터나 외부 시스템을 바꾸므로 명시 승인 없이 실행하지 않는다.
+- 파일 목록·줄 수·모델 필드는 이 문서의 오래된 목록보다 현재 코드를 기준으로 찾는다.
 
-## 클래스 상속 구조
+## 앱 내 Codex 실행 계약
 
-```
-Tools (simulation/tools.py) - 데이터 페칭, 시장 유틸리티
-  └── Simulation (simulation/simulation.py) - 백테스팅 엔진
-       └── MyPortfolioHandler (myportfolio/myportfolio.py) - 포트폴리오 CRUD
-            └── 각 포트폴리오 뷰 (portfolio_awt, portfolio_baa, portfolio_mix)
-```
+`support/views.py`의 상담원과 `xmodules/system/description_convertor.py`의 자산명 변환기가 Codex CLI를 호출한다.
 
-## 핵심 모델 관계도
+- 컨테이너는 호스트 `/home/chaconne/.codex`를 `/root/.codex:ro`로 마운트한다.
+- 각 호출은 임시 `CODEX_HOME`을 만들고 `auth.json`, `config.toml`, `installation_id`가 있으면 복사한다.
+- 호출은 `/home/work/fundkeeper`에서 read-only sandbox, ephemeral 모드로 실행된다.
+- 모델은 `CODEX_MODEL`로 정하며 현재 이미지 기본값은 `gpt-5.5`다.
+- 상담원 역할·RAG·사용자 데이터 규칙은 애플리케이션 프롬프트가 정본이다.
 
-```
-Fkuser (사용자)
-  ├── MyAccount (증권계좌) ──── MyAccountAuth (API 키: appkey, appsecret, access_token)
-  │     ├── CashFlow (입출금)
-  │     ├── TradeHistory (매매내역)
-  │     ├── ValueHistory (계좌수익률)
-  │     ├── AutoBotRun (자동매매 실행)
-  │     │     ├── AutoBotOrderLifecycle (주문 라이프사이클: pending→accepted→filled)
-  │     │     ├── AutoBotSignalEvent (신호 이벤트)
-  │     │     └── AutoBotPositionDaily (일별 포지션)
-  │     └── OrderAccounts / OrderList (리밸런싱 주문)
-  ├── MyPortfolios (포트폴리오)
-  │     ├── Backtest → BacktestTicker, BacktestCMS(CAGR/MDD/Sharpe), BacktestMonthWt
-  │     ├── PortfolioCMS (포트폴리오 성과지표)
-  │     ├── MasterDataFrame (JSON 캐시)
-  │     ├── MyPortfolioManager (믹스 포트폴리오 하위 관계)
-  │     └── Recipe (배분 레시피)
-  ├── ClientAccount (수동 계좌)
-  └── MyPortfolioLink (포트폴리오 공유)
+따라서 원격 호스트의 Codex 설정을 순정 상태로 유지한다. 프로젝트 지침·스킬·GBrain을 원격에 설치하면 제품 런타임 프롬프트와 컨텍스트가 오염될 수 있다.
 
-Asset (ETF/종목: ticker, asset_class, currency, market, pension, svr)
-  └── AssetCMS (종목별 성과지표 + mmt_score)
+## 구현과 검증
 
-RebalancingSchedule (rday, tday, market, code)
-  └── OrderAccounts / OrderList / TestBedBalance
-```
+1. `git status --short --branch`로 기존 변경을 확인한다.
+2. 현재 호출 경로와 모델·설정·템플릿을 읽는다.
+3. 요청 범위만 수정한다.
+4. `.venv/bin/python manage.py check --settings=fundkeeper.settings.deploy`를 기본 검사로 실행한다.
+5. 관련 테스트는 운영 DB·외부 API·파일을 바꾸지 않는지 확인한 뒤 대상만 실행한다.
+6. 변경 파일의 diff와 원격 상태를 다시 확인한다.
 
-## xmodules/ (비-Django 고급 모듈)
-
-### autobot/kosdaqpi_v3/ - 실시간 변동성 돌파 트레이딩봇
-| 파일 | 줄수 | 설명 |
-|---|---|---|
-| realtime_trader.py | 1,014 | WebSocket 기반 실시간 트레이더 |
-| trading_bot_v2.py | 1,574 | 주문 실행 엔진 |
-| strategy.py | 622 | 돌파 시그널, 손절, 필터 |
-| backtest_final.py | - | 통합 백테스팅 |
-| optimizer_ultimate.py | - | Optuna 하이퍼파라미터 튜닝 |
-| settings.py | - | 봇 설정 |
-
-### 기타 xmodules
-| 모듈 | 설명 |
-|---|---|
-| `machine/` | ML 모델 (LSTM, 앙상블, 리스크 감지, 마켓 레짐) |
-| `system/` | 시스템 유지보수 (가격DB 업데이트, 캐시 갱신) |
-| `analysis/` | 리밸런싱 갭 분석 |
-| `research/` | 백테스트/KRX 리서치 도구 |
-| `order/` | 포트폴리오 주문 관리 |
-| `sh/` | 배포/운영 셸 스크립트 (시스템 업데이트, Docker 정리, certbot 갱신) |
-| `test_bed/` | 테스트베드 자료 생성/운용 (`testbed-base` 참조) |
-
-## URL 라우팅
-
-| Prefix | App | 설명 |
-|---|---|---|
-| `/` | home | 메인 |
-| `/myportfolio/` | myportfolio | 포트폴리오 관리 |
-| `/awt/` | portfolio_awt | AWT 전략 |
-| `/baa/` | portfolio_baa | BAA 전략 |
-| `/mix/` | portfolio_mix | Mixed 전략 |
-| `/simulation/` | simulation | 백테스트 |
-| `/rebalancing_info/` | rebalancing_info | 리밸런싱 |
-| `/order/` | order | 주문 |
-| `/etf/` | etfs | ETF 데이터 |
-| `/fkuser/` | fkuser | 인증 |
-| `/myaccount/` | myaccount | 계좌 |
-| `/review/` | monthly_report | 월간 리포트 |
-| `/krx_filter/` | krx_filter | KRX 필터 |
-| `/recipe/` | recipe | 레시피 |
-| `/pay/` | pay | 결제 |
-| `/userprofile/` | userprofile | 프로필 |
-| `/myfriends/` | myfriends | 친구 |
-| `/retire/` | retire | 은퇴 |
-| `/support/` | support | 고객지원 |
-
-## 코딩 컨벤션
-- 코드 최소화 원칙 - 불필요한 주석, 예외처리, 디버깅 코드 금지
-- 기존 파일 수정 우선, 새 파일 생성 최소화
-- 기존 코드 대규모 변경 시 확인 필요
-- UI 텍스트, 주석, git 커밋 메시지: 한국어
-- 월간 리포트 HTML: `docs/report_design_guide.md` 디자인 가이드 준수
+운영 헬스체크는 `https://coconut.ai.kr/health/`이며 정상 본문은 `ok`다. 배포는 이 스킬에서 실행하지 않고 `fundkeeper-deploy`를 따른다.

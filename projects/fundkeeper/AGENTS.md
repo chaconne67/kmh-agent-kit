@@ -1,40 +1,66 @@
-# FundKeeper 중앙 제어 프로젝트
+# FundKeeper 중앙 조정실
 
-## 목적
+## 역할
 
-- 이 폴더는 FundKeeper의 프로젝트 지식과 에이전트 작업 문맥만 관리합니다.
-- 애플리케이션 소스·Git 저장소·가상환경·운영 데이터는 원격 서버에만 둡니다.
-- 원격 Codex와 Claude에는 프로젝트 지침·스킬·GBrain을 설치하지 않습니다.
+- 이 폴더는 FundKeeper의 지침·스킬·장기 기억만 관리합니다.
+- 애플리케이션 소스와 Git 저장소는 운영 서버에만 둡니다.
+- 중앙 에이전트가 SSH로 원격 저장소를 직접 수정·검증·Git 관리합니다.
+- 원격 Codex·Claude에는 개발 지침·스킬·GBrain을 설치하지 않습니다.
 
-## 원격 정본
+## 정본
 
 | 항목 | 값 |
 |---|---|
 | SSH | `chaconne@49.247.38.186` |
 | 실제 저장소 | `/home/chaconne/fundkeeper` |
-| 운영 호환 경로 | `/home/work/fundkeeper` → 실제 저장소 심볼릭 링크 |
-| 원격 Codex | `/home/chaconne/.npm-global/bin/codex` |
-| 원격 Claude | `/usr/bin/claude` |
+| 호환 경로 | `/home/work/fundkeeper` → 실제 저장소 |
+| GitHub | `git@github.com:reneesoft/fundkeeper.git` |
+| 기준 브랜치 | `master` |
+| Python | `/home/chaconne/fundkeeper/.venv/bin/python` (3.12) |
 | Docker 작업 경로 | `/home/docker` |
-| 운영 도메인 | `coconut.im` |
+| 배포 진입점 | `sudo /home/docker/deploy.sh` |
+| 운영 도메인 | `https://coconut.ai.kr` |
+| 헬스체크 | `https://coconut.ai.kr/health/` → `ok` |
 
-## 작업 경로
+현재 코드와 이 문서가 다르면 원격 코드를 확인한 뒤 코드에 맞춰 이 문서와 GBrain을 갱신합니다.
 
-1. 작업 전 원격 저장소의 브랜치와 변경 상태를 확인합니다.
-2. 사용자 변경·미추적 파일은 보존하고 요청 범위의 파일만 수정합니다.
-3. 코드 검색·수정·Git·테스트·배포 명령은 SSH를 통해 원격 서버에서 실행합니다.
-4. 이 중앙 폴더에는 애플리케이션 코드를 복제하거나 실행 환경을 만들지 않습니다.
-5. 배포와 데이터 변경은 주인님의 명시적 요청이 있을 때만 실행합니다.
+## 공식 작업 경로
+
+1. GBrain의 `project/fundkeeper-operating-context`를 확인합니다.
+2. SSH로 원격 저장소의 브랜치·변경·미추적 파일을 확인합니다.
+3. 요청 범위와 관련된 실제 코드·설정·호출 경로를 읽습니다.
+4. 기존 사용자 변경을 보존하고 요청 파일만 최소 수정합니다.
+5. 원격 가상환경에서 영향 범위에 맞는 비파괴 검증을 실행합니다.
+6. Git diff와 검증 결과를 확인한 뒤 요청 범위만 커밋합니다.
+7. 배포는 주인님이 명시적으로 요청한 경우에만 `fundkeeper-deploy` 스킬로 실행합니다.
+
+## 작업별 스킬
+
+- 일반 구조·도메인·원격 개발: `fundkeeper`
+- UI·UX·템플릿·Tailwind: `fundkeeper-design-system`
+- 운영 배포·복구 확인: `fundkeeper-deploy`
+- 코스콤 RA 테스트베드 공통 작업: `testbed-base`
+- 수동계좌 잔고 반영: `fundkeeper`의 `workflows/client-balance.md`
+
+## 검증 기준
+
+- 기본 Django 검사: `cd /home/chaconne/fundkeeper && .venv/bin/python manage.py check --settings=fundkeeper.settings.deploy`
+- 관련 테스트는 테스트 코드가 운영 DB·외부 주문·파일을 바꾸지 않는지 먼저 확인한 뒤 대상만 실행합니다.
+- UI 변경은 Tailwind 빌드와 실제 화면 확인이 모두 필요합니다.
+- 운영 확인은 HTTPS 헬스체크와 `docker stack services Coconut`의 두 서비스 `1/1`을 사용합니다.
+- 검증하지 못한 항목을 통과했다고 보고하지 않습니다.
 
 ## 안전 경계
 
-- `.env`, `.venv`, `data/`, 운영 DB, Docker Swarm, 예약 작업은 요청 없이 변경하지 않습니다.
-- `xmodules/sh/`는 운영 예약 작업에서 직접 호출되므로 수정 전 실행 주체와 호출 경로를 확인합니다.
-- 원격 저장소의 에이전트 지침 파일과 원격 사용자 영역의 에이전트 스킬을 다시 만들지 않습니다.
-- 프로젝트 판단 전 GBrain의 `project/fundkeeper-operating-context`를 확인합니다.
+- `.env`, `.venv`, `data/`, 운영 DB, Docker Swarm, 결제, 증권 주문, 예약 작업은 요청 없이 변경하지 않습니다.
+- `xmodules/sh/`는 운영 예약 작업에서 직접 호출되므로 수정 전에 실행 주체와 호출 경로를 확인합니다.
+- 테스트 명령도 운영 DB와 외부 API에 영향을 줄 수 있으므로 이름만 보고 실행하지 않습니다.
+- 원격 저장소의 사용자 변경과 미추적 파일을 보존합니다.
+- 원격 에이전트 지침·사용자 스킬·GBrain 설정을 다시 만들지 않습니다.
+- 제품 컨테이너가 호스트 `/home/chaconne/.codex`를 읽고 임시 `CODEX_HOME`으로 상담원·자산명 변환 Codex를 실행하므로, 원격 Codex 설정의 순정 상태는 제품 런타임 계약입니다.
 
-## 프로젝트 지식
+## GitHub 경계
 
-- 일반 구조와 개발 지식은 중앙 `fundkeeper` 스킬을 사용합니다.
-- 운영·배포 절차는 중앙 `fundkeeper-deploy` 스킬을 사용합니다.
-- 현재 코드가 기록된 지식과 다르면 원격 코드를 기준으로 검증합니다.
+- 원격 Git과 SSH 인증이 저장소 작업의 정본입니다.
+- 브랜치를 `main`으로 추정하지 않습니다. 이 저장소의 기준 브랜치는 `master`입니다.
+- GitHub 앱이 비공개 저장소를 보지 못하면 로컬 Git 결과로 작업하고, 앱 권한이 필요한 PR·이슈 작업만 권한 부족으로 보고합니다.

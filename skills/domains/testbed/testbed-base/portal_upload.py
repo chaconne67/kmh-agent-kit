@@ -2,7 +2,7 @@
 """RA Testbed 포털 문서 업로드 자동화 스크립트
 
 사용법:
-  python portal_upload.py \
+  uv run --with playwright portal_upload.py \
     --url "https://www.ratestbed.kr:7443/cop/bbs/forUpdate.do?nttId=XXX&algrthSn=YYY" \
     --file "/path/to/file.pdf" \
     --title "새 제목_20260313" \
@@ -269,7 +269,7 @@ def main():
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False)
+            browser = p.chromium.launch(channel="chrome", headless=True)
             context = browser.new_context(
                 user_agent=(
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -294,10 +294,13 @@ def main():
                 output_error(f"수정 페이지 이동 실패: {e}", "navigate", page)
 
             # Steps 3-4: Delete existing file
-            try:
-                step_delete_existing_file(page)
-            except Exception as e:
-                output_error(f"파일 삭제 실패: {e}", "delete", page)
+            if args.dry_run:
+                log("[Step 3-4] dry-run — 기존 파일 삭제 건너뜀")
+            else:
+                try:
+                    step_delete_existing_file(page)
+                except Exception as e:
+                    output_error(f"파일 삭제 실패: {e}", "delete", page)
 
             # Step 5: Upload new file
             try:

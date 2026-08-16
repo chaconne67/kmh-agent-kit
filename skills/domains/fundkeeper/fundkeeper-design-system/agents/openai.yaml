@@ -1,0 +1,4 @@
+interface:
+  display_name: "FundKeeper 디자인 시스템"
+  short_description: "FundKeeper UI·UX 규칙과 실제 화면 검증"
+  default_prompt: "Use $fundkeeper-design-system to implement this FundKeeper UI change consistently."
