@@ -59,14 +59,17 @@ GBrain은 중앙 서버에서 사용합니다. `~/.gbrain-agent.md`를 먼저 �
 ## 고유 스킬
 
 - 고객사 R&D 증빙 조사·HTML 작성·PDF 생성: `rndlog`
+- RNDLOG 제품 UI·템플릿·Tailwind·HTMX·반응형·접근성: `rndlog-design-system`
 
-이 스킬은 RNDLOG 조정실에서만 노출합니다. 일반 코딩이나 배포라는 이유만으로 발동하지 않습니다.
+두 스킬은 RNDLOG 조정실에서만 노출합니다. 고객사 PDF 서식과 제품 UI 디자인 시스템을 서로
+섞지 않으며, 일반 코딩이나 배포라는 이유만으로 발동하지 않습니다.
 
 ## 검증 기준
 
 - Django 검사: `cd /home/chaconne/rndlog && /home/chaconne/.local/bin/uv run python manage.py check --settings=main.settings.local`
 - 관련 테스트: `/home/chaconne/rndlog/.venv/bin/pytest <대상>`
 - 템플릿 변경은 Tailwind 빌드와 `collectstatic` 후 실제 화면을 확인합니다.
+- 제품 화면은 `rndlog-design-system` 스킬에 따라 모바일·데스크톱과 상호작용 상태를 확인합니다.
 - 고객사 PDF는 `rndlog` 스킬의 WeasyPrint 경로로 생성하고 누락 파일이 없는지 확인합니다.
 - 운영 확인은 `https://rndlog.kr` 응답과 `Rndnote_app`, `Rndnote_nginx`의 `1/1` 상태를 사용합니다.
 - 검증하지 못한 항목을 통과했다고 보고하지 않습니다.

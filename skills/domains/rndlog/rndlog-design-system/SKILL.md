@@ -1,0 +1,149 @@
+---
+name: rndlog-design-system
+description: Use when creating, modifying, reviewing, or validating RNDLOG product UI, Django templates, shared components, Tailwind CSS, HTMX interactions, responsive layouts, forms, dashboards, or accessibility.
+---
+
+# RNDLOG 디자인 시스템
+
+RNDLOG 제품 화면의 기존 시각 언어와 사용자 업무 흐름을 보존하면서 UI를 변경한다. 실제 코드가
+정본이며, 이 스킬에 토큰표나 화면별 값을 복제하지 않는다.
+
+## 적용 경계
+
+- 제품 UI: 이 스킬을 사용한다.
+- 고객사 R&D 증빙 HTML·PDF: `rndlog` 스킬과 `clients/_templates/style.css`를 사용한다.
+- 제품 UI의 WDS를 고객사 문서에 적용하거나 고객사 PDF 서식을 제품 화면에 적용하지 않는다.
+- 일반 백엔드·배포 작업에는 UI 변경이 포함된 경우에만 이 스킬을 사용한다.
+
+## 실행 위치
+
+1. 중앙 조정실 `/home/chaconne/projects/rndlog`에서 지침과 스킬을 읽는다.
+2. `chaconne@49.247.207.147`에 SSH로 접속한다.
+3. 실제 저장소 `/home/chaconne/rndlog`의 Git 상태를 확인한다.
+4. 기존 변경과 미추적 파일을 보존하고 요청 범위만 수정한다.
+
+중앙 서버의 `/home/chaconne/rndlog` 복제본은 참고용이며 공식 수정·검증 경로가 아니다.
+
+## 정본과 우선순위
+
+다음 순서로 실제 파일을 읽고 결정한다.
+
+1. 변경 대상 템플릿과 가장 가까운 기존 화면·partial
+2. `wds-tokens.json` — WDS 색·타이포·간격·그림자의 원천
+3. `tailwind.config.js` — WDS와 제품 고유 토큰의 Tailwind 매핑
+4. `static/css/input.css` — 공용 컴포넌트·focus·reduced-motion 규칙
+5. `templates/common/base.html`과 `templates/common/` — 앱 셸과 HTMX·Alpine 공통 동작
+6. 변경 화면의 view·form·service·관련 테스트 — 데이터와 상태 전이 계약
+
+문서·예전 계획과 코드가 다르면 실행 코드를 따른다. 공통 디자인 계약을 바꾸면 코드 원천 한
+곳에 병합하고, 같은 책임의 별도 CSS 체계를 만들지 않는다.
+
+## 작업 게이트
+
+### 1. 사용자 결과 고정
+
+- 사용자가 화면에서 완료할 업무를 한 문장으로 정한다.
+- 정적 시각 변경인지, 클릭·제출·HTMX 교체로 상태가 바뀌는 변경인지 구분한다.
+- 바뀔 DOM 범위와 보존할 입력·URL·스크롤·열린 상태를 정한다.
+- 앱 셸에 제목이 있으면 본문에서 같은 제목과 설명을 반복하지 않는다.
+
+### 2. 재사용 위치 선택
+
+다음 순서에서 해결되는 첫 항목을 사용한다.
+
+1. 같은 역할의 기존 템플릿·partial
+2. `static/css/input.css`의 공용 컴포넌트 클래스
+3. `wds-tokens.json`과 `tailwind.config.js`에 이미 매핑된 토큰
+4. Tailwind 기본 유틸리티
+5. 이미 설치된 HTMX·Alpine.js 기능
+6. 앞 단계로 해결되지 않을 때 기존 디자인 원천에 추가하는 최소 규칙
+
+페이지 전용 `<style>`, 임의 hex, 같은 역할의 새 클래스, 새 UI 의존성을 먼저 만들지 않는다.
+`static/css/output.css`는 빌드 산출물이므로 직접 수정하지 않는다.
+
+### 3. 화면 계약 적용
+
+#### 정보 구조
+
+- 기능 나열이 아니라 사용자가 판단하고 행동하는 순서로 배치한다.
+- 입력, 생성된 결과, 상태, 다음 행동을 서로 구분한다.
+- 같은 위계의 선택지만 함께 두고 위험 행동은 일반 행동과 시각적으로 분리한다.
+- 반복 정보는 무조건 카드로 감싸지 않고 간격·구분선·타이포 위계를 먼저 사용한다.
+- 활성 버튼은 실제 화면 변화·저장·이동 중 하나로 끝나야 한다. 미구현 행동은 활성 CTA로
+  보이지 않게 한다.
+
+#### 시각 언어
+
+- 전역 글꼴은 공용 셸의 Pretendard Variable 스택을 유지한다.
+- 업무 앱은 WDS semantic token을 우선한다.
+- 랜딩과 공용 셸의 `paper`, `ink`, `accent`, `line`은 현재 코드가 그 계열을 쓰는 화면에서
+  유지한다.
+- 상태색은 성공·주의·오류처럼 의미가 있을 때만 사용한다.
+- 색·폰트 크기·간격·그림자는 실제 토큰 이름을 확인하고 사용한다.
+- 장식용 gradient, 중첩 박스, 의미 없는 배지, 토큰 밖 색을 추가하지 않는다.
+
+#### 레이아웃과 반응형
+
+- 기존 모바일 우선 구조와 데스크톱 앱 셸을 유지한다.
+- 모바일에서 정보를 삭제하지 말고 배치·중첩·여백을 단순화한다.
+- 표나 조밀한 데이터는 가로 스크롤이나 기존 모바일 대체 패턴을 사용한다.
+- 고정 header·sidebar·하단 action이 내용과 겹치지 않는지 확인한다.
+- 페이지 전체와 내부 패널에 불필요한 이중 세로 스크롤을 만들지 않는다.
+
+#### 컴포넌트와 접근성
+
+- 버튼은 기존 `.btn`, `.btn-quiet`, `.btn-danger` 또는 같은 역할의 기존 패턴을 사용한다.
+- 클릭 동작은 `button` 또는 `a`에 둔다.
+- 입력에는 연결된 label을, 아이콘 버튼에는 접근 가능한 이름을 제공한다.
+- 색만으로 선택·상태·오류를 구분하지 않는다.
+- 기본·hover·focus-visible·disabled 상태를 확인한다.
+- 로딩·오류·빈 상태에는 현재 상황과 다음 행동을 보인다.
+- `prefers-reduced-motion` 계약을 깨는 필수 animation을 만들지 않는다.
+
+### 4. 동적 화면 계약
+
+사용자 행동이 데이터나 화면을 바꾸면 구현 전에 다음을 고정한다.
+
+- 보이는 control과 기대 업무 결과
+- 입력의 단일 진실 원천과 요청 method·URL
+- 처리 view/service와 저장되는 값
+- `ready → in-flight → succeeded` 및 `ready → in-flight → failed` 상태
+- response partial, `hx-target`, `hx-swap`, 허용할 OOB 범위
+- 보존할 입력·URL·스크롤·열린 상태
+- 실패 문구·위치·재시도 방법
+
+반복 행의 동작은 가능한 한 그 행이나 가장 작은 업무 단위만 교체한다. 전체 page·form을
+교체해 입력과 작업 위치를 잃게 하지 않는다. HTMX 교체 후 Alpine과 공통 포맷 초기화 경로를
+보존한다.
+
+## 검증
+
+1. 원격 저장소에서 Tailwind를 빌드한다.
+
+   ```bash
+   npx tailwindcss -i static/css/input.css -o static/css/output.css --minify
+   ```
+
+2. Django 검사를 실행한다.
+
+   ```bash
+   /home/chaconne/.local/bin/uv run python manage.py check --settings=main.settings.local
+   ```
+
+3. 동작을 바꿨으면 관련 테스트를 원격 가상환경에서 실행한다.
+4. 실제 화면에서 모바일 390px·480px와 데스크톱 1024px 이상을 확인한다.
+5. 동적 변경은 클릭 전·처리 중·성공·실패와 콘솔·네트워크를 확인한다.
+6. 운영 DB에 쓰는 동작은 화면 검증으로 실행하지 않는다. 쓰기 검증이 필요하면 격리된 테스트
+   DB와 계정을 사용한다.
+7. 배포가 요청 범위에 있으면 배포 후 운영 화면에서 같은 항목을 다시 확인한다.
+
+실제 화면을 열지 못했거나 특정 상태를 만들지 못했으면 그 항목을 검증했다고 보고하지 않는다.
+
+## 완료 조건
+
+- 기존 업무 흐름과 데이터·HTMX 계약이 유지된다.
+- 실제 디자인 원천의 토큰과 공용 컴포넌트를 재사용했다.
+- 모바일과 데스크톱에서 정보와 주요 행동이 사라지지 않는다.
+- 키보드 focus, label, 접근 가능한 이름, 로딩·오류·빈 상태를 확인했다.
+- 중복 컴포넌트·페이지 전용 임시 스타일·직접 수정한 빌드 산출물이 없다.
+- 실제 화면 검증 결과와 남은 미확인 범위를 구분해 보고한다.

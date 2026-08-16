@@ -1,0 +1,4 @@
+interface:
+  display_name: "RNDLOG 디자인 시스템"
+  short_description: "RNDLOG 제품 UI·UX 규칙과 실제 화면 검증"
+  default_prompt: "Use $rndlog-design-system to implement this RNDLOG product UI change consistently."
