@@ -29,7 +29,7 @@ CODEX_HOME = HOME / ".codex"
 GBRAIN_HOME = HOME / ".gbrain"
 GBRAIN_CLI = HOME / ".bun/bin/gbrain"
 GBRAIN_WRAPPER = GBRAIN_HOME / "bin" / "gbrain_with_google_env.sh"
-EXDIGM_ENV_PATH = HOME / "exdigm" / ".env"
+PROVIDER_ENV_PATH = GBRAIN_HOME / "provider.env"
 REPORTS_DIR = GBRAIN_HOME / "reports"
 LEDGER_PATH = REPORTS_DIR / "index.json"
 TRANSCRIPT_DIR = GBRAIN_HOME / "transcripts" / "codex"
@@ -69,11 +69,13 @@ def now_iso() -> str:
     return dt.datetime.now(KST).isoformat(timespec="seconds")
 
 
-def load_exdigm_env_value(target_key: str) -> str:
-    if not EXDIGM_ENV_PATH.exists():
+def load_provider_env_value(target_key: str) -> str:
+    if not PROVIDER_ENV_PATH.exists():
         return ""
     try:
-        lines = EXDIGM_ENV_PATH.read_text(encoding="utf-8", errors="replace").splitlines()
+        lines = PROVIDER_ENV_PATH.read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines()
     except OSError:
         return ""
     for line in lines:
@@ -88,8 +90,8 @@ def load_exdigm_env_value(target_key: str) -> str:
 
 def run_env() -> dict[str, str]:
     env = dict(os.environ)
-    gemini_key = load_exdigm_env_value("GEMINI_API_KEY") or env.get("GEMINI_API_KEY", "")
-    openrouter_key = load_exdigm_env_value("OPENROUTER_API_KEY") or env.get("OPENROUTER_API_KEY", "")
+    gemini_key = load_provider_env_value("GEMINI_API_KEY") or env.get("GEMINI_API_KEY", "")
+    openrouter_key = load_provider_env_value("OPENROUTER_API_KEY") or env.get("OPENROUTER_API_KEY", "")
     if gemini_key and not env.get("GOOGLE_GENERATIVE_AI_API_KEY"):
         env["GOOGLE_GENERATIVE_AI_API_KEY"] = gemini_key
     if openrouter_key:
@@ -314,7 +316,7 @@ Limit store candidates to the highest-value 12 items."""
 
 
 def openrouter_chat(messages: list[dict[str, str]], model: str, timeout: int = 900) -> str:
-    api_key = load_exdigm_env_value("OPENROUTER_API_KEY") or os.environ.get("OPENROUTER_API_KEY", "")
+    api_key = load_provider_env_value("OPENROUTER_API_KEY") or os.environ.get("OPENROUTER_API_KEY", "")
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY is not available")
     payload = {

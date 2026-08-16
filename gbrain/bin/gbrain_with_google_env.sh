@@ -2,7 +2,7 @@
 set -euo pipefail
 
 home_dir="${HOME:?HOME is required}"
-env_file="${KMH_AGENT_ENV_FILE:-$home_dir/exdigm/.env}"
+env_file="${KMH_AGENT_ENV_FILE:-$home_dir/.gbrain/provider.env}"
 gbrain_cli="${GBRAIN_CLI:-$home_dir/.bun/bin/gbrain}"
 bun_bin="${BUN_BIN:-$home_dir/.bun/bin}"
 
