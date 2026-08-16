@@ -1,0 +1,6 @@
+interface:
+  display_name: "Exdigm Deploy"
+  short_description: "Exdigm 원격 운영 배포 정책 적용"
+  default_prompt: "Use $exdigm-deploy to deploy a verified detached debug-worktree commit through the single production path."
+policy:
+  allow_implicit_invocation: true
