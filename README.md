@@ -141,7 +141,8 @@ source ~/.bashrc
 | `fundkeeper` | `~/fundkeeper`의 `fundkeeper` 프로필 |
 | 그 외 | 같은 이름의 프로젝트 폴더와 프로필이 모두 있을 때 연결 |
 
-Rndlog와 Ceoloan은 현재 별도 프로젝트 프로필이 없으므로 공용 자산과 GBrain 카드까지만 설치합니다.
+Rndlog는 `rndlog` 프로젝트 프로필을 연결합니다. Ceoloan은 현재 별도 프로젝트 프로필이 없어
+공용 자산과 GBrain 카드까지만 설치합니다.
 
 ### 설치 파일 연결 방식
 
