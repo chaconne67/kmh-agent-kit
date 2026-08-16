@@ -9,7 +9,7 @@ FundKeeper는 모멘텀에셋의 자산배분·리밸런싱 서비스이고, 사
 
 ## 작업 라우팅
 
-- 수동계좌 잔고 입력: [workflows/client-balance.md](workflows/client-balance.md)를 끝까지 읽고 따른다.
+- 수동계좌 잔고 반영: `fundkeeper-client-balance`를 함께 사용한다.
 - UI·UX·템플릿·Tailwind 작업: `fundkeeper-design-system`을 함께 사용한다.
 - 배포·운영 상태·복구 작업: `fundkeeper-deploy`를 함께 사용한다.
 - 코스콤 RA 테스트베드 작업: `testbed-base`를 함께 사용한다.

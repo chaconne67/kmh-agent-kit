@@ -1,0 +1,4 @@
+interface:
+  display_name: "FundKeeper 수동계좌 잔고"
+  short_description: "스크린샷 기반 수동계좌 잔고를 안전하게 비교·반영"
+  default_prompt: "Use $fundkeeper-client-balance to compare the provided manual-account screenshots with the current FundKeeper balance and prepare an approval-gated update."

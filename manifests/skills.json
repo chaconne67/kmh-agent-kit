@@ -3,6 +3,7 @@
   "depends_on": {
     "code-review-loop": ["code-review"],
     "full-review": ["code-review"],
+    "fundkeeper-client-balance": ["fundkeeper"],
     "grill-agent": ["grill-with-docs"],
     "grill-with-docs": ["grilling", "domain-modeling"],
     "microplan-batch": ["microplan-implement", "microplan-verify", "code-review-loop"],

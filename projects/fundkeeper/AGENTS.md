@@ -40,7 +40,7 @@
 - UI·UX·템플릿·Tailwind: `fundkeeper-design-system`
 - 운영 배포·복구 확인: `fundkeeper-deploy`
 - 코스콤 RA 테스트베드 공통 작업: `testbed-base`
-- 수동계좌 잔고 반영: `fundkeeper`의 `workflows/client-balance.md`
+- 수동계좌 잔고 반영: `fundkeeper-client-balance`
 
 ## 검증 기준
 
