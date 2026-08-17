@@ -65,8 +65,11 @@ Keep the YAML `description` minimal and trigger-focused. Include only enough wor
 Run:
 
 ```bash
-python3 /home/chaconne/.codex/skills/.system/skill-creator/scripts/quick_validate.py /path/to/skill
+python3 "<CODEX_SKILL_CREATOR_DIR>/scripts/quick_validate.py" /path/to/skill
 ```
+
+Resolve `<CODEX_SKILL_CREATOR_DIR>` from the active Codex system skill location. If that native
+validator is unavailable, report it and perform the remaining structural checks without inventing a path.
 
 Also check the edited text for:
 

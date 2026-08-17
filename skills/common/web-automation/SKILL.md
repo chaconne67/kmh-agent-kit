@@ -121,4 +121,5 @@ Stop and report evidence instead of continuing when:
 - an authentication challenge has no approved handling path;
 - the requested postcondition cannot be verified.
 
-For service-style wrappers and reusable CLI architecture, read [service-wrapper-pattern.md](/home/chaconne/.codex/skills/web-automation/references/service-wrapper-pattern.md).
+For service-style wrappers and reusable CLI architecture, read
+[service-wrapper-pattern.md](references/service-wrapper-pattern.md).

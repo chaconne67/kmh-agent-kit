@@ -98,7 +98,7 @@ PowerPoint COM (`win32com.client`) 사용. 함정:
 - `ppt.Quit()`는 PowerPoint가 이미 열려있으면 AttributeError → try/except 필요
 - PDF 저장 위치: `{레시피명}/pdf/` — 기존 PDF 삭제 후 새 PDF 저장 (옛 날짜 파일이 남지 않도록)
 
-## 포털 업로드 (SubAgent 위임)
+## 포털 업로드
 
 ### 사전 준비 (메인 에이전트)
 - PDF 파일 경로 확정 (pptx → PDF 변환 완료 후)
@@ -107,19 +107,22 @@ PowerPoint COM (`win32com.client`) 사용. 함정:
 - 새 제목 (파일명 `_YYYYMMDD` → 당일 날짜로)
 - 이력 내용 (예: "2026-03-13 위험도 산출 테이블 업데이트")
 
-### SubAgent 파견
+### 실행
+
+`<TESTBED_BASE_SKILL_DIR>`은 `testbed-base`의 `SKILL.md`가 있는 실제 절대경로다.
+
 ```
-Task("알고리즘설명서 포털 업로드"):
-  python ~/.claude/skills/testbed-base/portal_upload.py \
-    --url "{forUpdate_URL}" \
-    --file "{pdf_path}" \
-    --title "{title_YYYYMMDD}" \
-    --content-append "{history_line}"
-  JSON 결과 보고.
+python "<TESTBED_BASE_SKILL_DIR>/portal_upload.py" \
+  --url "{forUpdate_URL}" \
+  --file "{pdf_path}" \
+  --title "{title_YYYYMMDD}" \
+  --content-append "{history_line}"
 ```
 
+JSON 결과를 보고한다.
+
 ### 복수 레시피 병렬 업로드
-3개 레시피(국내/글로벌/퇴직연금) 업로드 시 SubAgent 3개 동시 파견 가능.
+독립 작업자가 허용된 환경에서는 국내·글로벌·퇴직연금 업로드를 동시에 실행할 수 있다.
 
 ### 빠뜨리기 쉬운 것
 - **파일명 날짜**: pptx/pdf 파일명 `_YYYYMMDD`를 당일 날짜로 변경 후 변환/업로드

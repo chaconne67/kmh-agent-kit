@@ -147,9 +147,9 @@ RNDLOG와 CEO Loan 프로젝트 프로필은 중앙 조정실에만 연결합니
 
 | 설치 대상 | 저장소 원본 | 실제 사용 위치 |
 |---|---|---|
-| 공용 스킬 | `skills/common/` | `~/.claude/skills/`, `~/.codex/skills/` |
+| 공용 스킬 | `skills/common/` | `~/.claude/skills/`, `~/.agents/skills/` |
 | 전역 지침 | `claude/CLAUDE.md`, `codex/AGENTS.md` | 각 도구의 전역 지침 위치 |
-| 프로젝트 스킬 | `projects/` | 프로젝트의 `.claude/skills/`, `.codex/skills/` |
+| 프로젝트 스킬 | `projects/` | 프로젝트의 `.claude/skills/`, `.agents/skills/` |
 | GBrain 카드 | `gbrain-cards/` | `~/.gbrain-agent.md` |
 | 원격 GBrain 프록시 | `gbrain/bin/gbrain-remote-proxy` | `~/.local/bin/gbrain-abc-project` 같은 이름 |
 

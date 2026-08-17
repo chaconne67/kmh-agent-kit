@@ -2,7 +2,7 @@
 
 ## 역할
 
-- 이 폴더는 CEO Loan의 에이전트 지침과 장기 기억만 관리합니다.
+- 이 폴더는 CEO Loan의 에이전트 지침·고유 스킬·장기 기억만 관리합니다.
 - 애플리케이션 코드와 운영 파일은 운영 서버의 저장소에서 관리합니다.
 - 중앙 에이전트가 SSH로 원격 저장소를 수정·검증하고 Git을 관리합니다.
 - 중앙의 기존 `/home/chaconne/ceoloan` 복제본은 공식 작업 경로로 사용하지 않습니다.
@@ -62,12 +62,20 @@ GBrain은 과거 맥락이고 현재 코드와 서버가 최종 기준입니다.
 원격 저장소에 요청과 무관한 변경이 있으면 함께 커밋하거나 숨기지 않습니다. 분리할 수 없는 변경은
 주인님께 범위를 보고하고 멈춥니다.
 
+## 고유 스킬
+
+- CEO Loan 제품 UI·템플릿·Tailwind·HTMX·Alpine·반응형·접근성: `ceoloan-design-system`
+
+이 스킬은 CEO Loan 조정실에서만 노출합니다. 웹 제품 화면과 MMS 카드 이미지의 디자인 규칙을
+서로 섞지 않으며, 일반 백엔드나 배포 작업이라는 이유만으로 발동하지 않습니다.
+
 ## 검증 기준
 
 - Django 검사: `cd /home/chaconne/ceoloan/repo && uv run python manage.py check --settings=main.settings.local`
 - 관련 테스트: `cd /home/chaconne/ceoloan/repo && uv run pytest -q <대상>`
 - 정적 파일이 필요한 화면 테스트는 Tailwind 빌드와 `collectstatic`을 먼저 실행합니다.
-- 템플릿 변경은 모바일·데스크톱 실제 화면과 HTMX 교체 후 상호작용을 확인합니다.
+- 제품 화면은 `ceoloan-design-system`에 따라 모바일·데스크톱 실제 화면과 HTMX 교체 후
+  상호작용을 확인합니다.
 - 운영 확인은 `https://rogeon.kr`의 HTTP 200과 `ceoloan-web`의 healthy 상태를 사용합니다.
 - 검증하지 못한 항목을 통과했다고 보고하지 않습니다.
 

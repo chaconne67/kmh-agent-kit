@@ -101,4 +101,5 @@ Before reporting a UI task complete, verify each item and fix misses in the same
 
 ## Source Basis
 
-Sources: "The UX Psychology Behind Apps People Can't Stop Using", Laws of UX, the Hook Model, accessibility rules, and ethical AI/product UX guardrails. A Claude Code copy of this skill lives at `~/.claude/skills/smart-ux/`.
+Sources: "The UX Psychology Behind Apps People Can't Stop Using", Laws of UX, the Hook Model,
+accessibility rules, and ethical AI/product UX guardrails.

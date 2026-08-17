@@ -27,6 +27,7 @@ $repoDir    = $PSScriptRoot
 $homeDir    = $env:USERPROFILE
 $claudeHome = if ($env:CLAUDE_HOME) { $env:CLAUDE_HOME } else { Join-Path $homeDir '.claude' }
 $codexHome  = if ($env:CODEX_HOME)  { $env:CODEX_HOME }  else { Join-Path $homeDir '.codex' }
+$agentsHome = Join-Path $homeDir '.agents'
 $stamp      = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backupRoot = Join-Path $homeDir ".kmh-agent-kit-backup-$stamp"
 
@@ -111,6 +112,20 @@ function Link-Profile {
     }
 }
 
+function Remove-KitSkillLinks {
+    param([string]$Live)
+
+    if (-not (Test-Path -LiteralPath $Live)) { return }
+    $skillsRoot = (Join-Path $repoDir 'skills').TrimEnd('\')
+    foreach ($entry in Get-ChildItem -LiteralPath $Live -Force) {
+        if ($entry.LinkType -ne 'Junction' -or -not $entry.Target) { continue }
+        if (($entry.Target[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')) {
+            [System.IO.Directory]::Delete($entry.FullName)
+            Write-Host "  remove legacy Codex user skill: $($entry.FullName)"
+        }
+    }
+}
+
 # python3.exe가 Microsoft Store 리디렉션 stub이면 실행 시 스토어가 열리므로 제외한다.
 function Get-Python {
     foreach ($name in 'python', 'python3', 'py') {
@@ -138,9 +153,10 @@ if ($Project) {
     if (-not (Test-Path -LiteralPath $profileDir)) { throw "[error] 프로젝트 프로필 없음: $profileDir" }
     if (-not (Test-Path -LiteralPath $Project))    { throw "[error] 프로젝트 경로 없음: $Project" }
 
+    Remove-KitSkillLinks -Live "$Project\.codex\skills"
     if (Test-Path -LiteralPath "$profileDir\skills") {
         Link-Profile -Profile "$profileDir\skills" -Live "$Project\.claude\skills"
-        Link-Profile -Profile "$profileDir\skills" -Live "$Project\.codex\skills"
+        Link-Profile -Profile "$profileDir\skills" -Live "$Project\.agents\skills"
     }
     foreach ($f in 'CLAUDE.md', 'AGENTS.md') {
         if (Test-Path -LiteralPath "$profileDir\$f") { Link-Entry -Target "$profileDir\$f" -Link "$Project\$f" }
@@ -151,10 +167,11 @@ if ($Project) {
 }
 
 # ── 전역 설치: 스킬 프로필 + 전역 지침 ──────────────────────────────────
+Remove-KitSkillLinks -Live "$codexHome\skills"
 Write-Host "[claude] $claudeHome\skills"
 Link-Profile -Profile "$repoDir\claude\skills" -Live "$claudeHome\skills"
-Write-Host "[codex] $codexHome\skills"
-Link-Profile -Profile "$repoDir\codex\skills" -Live "$codexHome\skills"
+Write-Host "[codex] $agentsHome\skills"
+Link-Profile -Profile "$repoDir\codex\skills" -Live "$agentsHome\skills"
 
 Write-Host "[instructions]"
 Link-Entry -Target "$repoDir\claude\CLAUDE.md" -Link "$claudeHome\CLAUDE.md"

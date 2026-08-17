@@ -1,6 +1,17 @@
 # Skill Management
 
-이 저장소의 `skills/`가 모든 커스텀 스킬의 단일 원본이다. live 위치(`~/.claude/skills`, `~/.codex/skills`, `<프로젝트>/.claude/skills`, `<프로젝트>/.codex/skills`)에는 프로필 심링크만 있다. 외부에서 가져온 스킬 원본은 포함하지 않는다.
+이 저장소의 `skills/`가 직접 만든 독립 스킬과 외부에서 가져온 독립 스킬의 단일 원본이다.
+live 위치(`~/.claude/skills`, `~/.agents/skills`, `<프로젝트>/.claude/skills`,
+`<프로젝트>/.agents/skills`)에는 프로필 심링크만 있다. 도구가 관리하는 네이티브·플러그인
+스킬은 이 저장소로 복제하지 않는다.
+
+| 범위 | Codex | Claude Code |
+|---|---|---|
+| 사용자 전역 | `~/.agents/skills` | `~/.claude/skills` |
+| 프로젝트 | `<프로젝트>/.agents/skills` | `<프로젝트>/.claude/skills` |
+
+Codex의 `~/.codex/skills/.system`과 플러그인 캐시, Claude Code의 내장 기능은 각 도구가
+관리한다. 설치기는 이 영역을 수정하지 않는다.
 
 ## 공용 / 도메인 구분
 
@@ -11,7 +22,8 @@
 | 공용 스킬 | `skills/common/<이름>` | O — **claude·codex 양쪽 모두** | 보통 불필요 |
 | 도메인 스킬 | `skills/domains/<도메인>/<이름>` | **금지** | O (그 프로젝트에서만 발동) |
 
-판정 기준은 "이 스킬이 특정 제품·업무 맥락을 알아야만 쓸모가 있는가"다. 그렇다면 도메인 스킬이다. 현재 도메인은 `exdigm`, `fundkeeper`, `testbed` 세 개다.
+판정 기준은 "이 스킬이 특정 제품·업무 맥락을 알아야만 쓸모가 있는가"다. 그렇다면 도메인
+스킬이다. 현재 도메인은 `ceoloan`, `exdigm`, `fundkeeper`, `rndlog`, `testbed`다.
 
 공용 스킬은 **한쪽 전역 프로필에만 걸지 않는다.** 한쪽에만 걸면 같은 작업이 Claude냐 Codex냐에 따라 다른 규칙으로 처리되고, 그 차이가 프로필을 열어보기 전에는 드러나지 않는다. 도구 기본 기능과 이름이 겹치는 스킬(`code-review` 등)도 마찬가지로 양쪽에 연결한다 — 겹친다는 이유로 빼면 도구마다 다른 리뷰 기준을 쓰게 된다. 이름이 같으면 키트 원본이 그 이름의 정본이다.
 
@@ -22,10 +34,14 @@
 ## 배치 규칙
 
 - **배치의 정본은 프로필 심링크다.** 어떤 스킬이 어느 도구·프로젝트에서 발동하는지는 `claude/skills/`, `codex/skills/`, `projects/<프로젝트>/skills/`의 링크 존재 여부가 결정한다.
-- `manifests/skills.json`은 심링크로 표현할 수 없는 **스킬 간 의존관계만** 담는다. 배치 정보를 여기 중복 기록하지 않는다.
-- **키트 소유 기준은 "여러 기기·프로젝트가 공유하는가"다.** 한 서버·한 프로젝트에서만 쓰는 스킬·지침·문서는 키트에 넣지 않고 그 프로젝트 폴더 안에 로컬 실파일로 두며, 프로젝트 레포가 gitignore한다. 여러 기기에서 쓰는 도메인 스킬은 키트가 소유하되 `skills/domains/` 아래에 둔다.
-  - 예: exdigm은 두 갈래로 나뉜다. 서버 화면·배포에 묶인 스킬 4개(auto-posting, extraction-pipeline-verify, exdigm-design, exdigm-hermes-agent)와 지식 문서는 `~/exdigm/.claude/skills/`·`~/exdigm/.claude/agent-docs/`에 로컬로 두고, 여러 기기에서 쓰는 판단 규칙(data-extraction, resume-evolution-loop)만 키트가 `skills/domains/exdigm/`으로 소유한다. `.codex/skills/`는 `.claude/skills/`를 가리키는 로컬 심링크로 두 도구가 같은 원본을 쓴다.
-  - 예: exdigm-deploy 스킬은 해당 서버의 `~/.codex/skills/`에 실폴더로만 있다.
+- `manifests/skills.json`은 심링크로 표현할 수 없는 스킬 간 의존관계와 외부 독립 스킬의
+  출처만 담는다. 배치 정보를 여기 중복 기록하지 않는다.
+- **사용자 스킬 원본은 키트 한 곳에만 둔다.** 공용은 `skills/common/`, 프로젝트 전용은
+  `skills/domains/<도메인>/`에 둔다. `projects/<프로젝트>/skills/`와 live 경로에는 링크만 둔다.
+- **제작 주체는 폴더를 늘리지 않고 manifest로 구분한다.** 외부에서 직접 가져온 독립 스킬만
+  `manifests/skills.json`의 `external_sources`에 원본 URL과 revision을 기록한다. 직접 만든 스킬은
+  기록하지 않는다.
+- **플러그인은 도구가 관리한다.** 플러그인 스킬을 독립 스킬로 다시 복사하거나 링크하지 않는다.
 
 ## 일상 수정 (git만 사용)
 
@@ -69,7 +85,7 @@ pull만으로 live에 즉시 반영된다(같은 파일이므로). `install.sh` 
 새 프로젝트에 키트를 적용할 때 에이전트가 수행하는 절차:
 
 1. **필요 스킬 파악**: 프로젝트의 성격(도메인, 사용하는 도구, 반복 작업)을 분석해 필요한 스킬을 고른다. 그 프로젝트의 도메인 스킬(`skills/domains/<도메인>/`)은 전부, 공용 스킬은 전역에 없는 것만 고르면 된다. 각 SKILL.md의 description이 판단 기준이다.
-2. **의존성 폐포 계산**: 고른 스킬마다 `manifests/skills.json`의 `depends_on`을 재귀로 따라가 필요한 스킬을 전부 포함시킨다. 의존 스킬이 이미 전역 프로필(claude/skills, codex/skills)에 있으면 프로젝트 프로필에 중복으로 넣지 않아도 된다.
+2. **의존성 폐포 계산**: 고른 스킬마다 `manifests/skills.json`의 `depends_on`을 재귀로 따라가 필요한 스킬을 전부 포함시킨다. 의존 스킬이 이미 전역 프로필(`claude/skills`, `codex/skills`)에 있으면 프로젝트 프로필에 중복으로 넣지 않아도 된다.
 3. **프로필 생성·커밋**:
    ```bash
    python scripts/link-skill.py add <이름> --project <프로젝트>   # 선별된 스킬마다
@@ -99,7 +115,7 @@ cd $env:USERPROFILE\kmh-agent-kit
 
 동작이 Linux와 다른 지점은 세 곳뿐이다:
 
-- **live 연결** — 심링크 대신 junction(디렉토리)·하드링크(파일). 권한이 필요 없고, live에서 편집하면 레포 작업트리가 바뀌는 동작은 같다.
+- **live 연결** — 심링크 대신 junction(디렉토리)·하드링크(파일). 권한이 필요 없고, live에서 편집하면 레포 작업트리가 바뀌는 동작은 같다. Codex는 `.agents/skills`, Claude Code는 `.claude/skills`를 사용한다.
 - **프로필 항목** — 개발자 모드가 꺼진 Windows는 git이 `core.symlinks=false`로 clone하므로 `claude/skills/<이름>`이 링크가 아니라 대상 경로만 담긴 일반 파일이 된다. `install.ps1`과 `check-skill-deps.py`가 이 표현도 링크로 인정한다.
 - **GBrain 런타임** — bash 래퍼·systemd 유닛은 건너뛴다. 규칙 카드(`-Gbrain`)는 연결된다.
 

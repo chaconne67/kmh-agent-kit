@@ -199,7 +199,8 @@ import json, sys
 print(json.load(open(sys.argv[1])).get("batch_id") or "microplan-batch")
 PY
 )"
-python3 "$HOME/.codex/skills/microplan-batch/scripts/check_and_respawn.py" \
+SKILL_DIR="<absolute directory containing this SKILL.md>"
+python3 "$SKILL_DIR/scripts/check_and_respawn.py" \
   --plan-dir /path/to/repo/$PLAN_DIR \
   --repo-dir /path/to/repo \
   --cron-tag "$BATCH_ID"
@@ -233,11 +234,13 @@ Use the bundled Python checker. It performs exactly one check and exits.
 
 ```bash
 PLAN_DIR="{plan_dir}"
+SKILL_DIR="<absolute directory containing this SKILL.md>"
 (crontab -l 2>/dev/null | grep -v "{batch_id}"; \
-  echo "*/5 * * * * cd /path/to/repo && flock -n /tmp/{batch_id}.lock python3 $HOME/.codex/skills/microplan-batch/scripts/check_and_respawn.py --plan-dir /path/to/repo/$PLAN_DIR --repo-dir /path/to/repo --cron-tag {batch_id} >> /path/to/repo/$PLAN_DIR/logs/cron.log 2>&1 # {batch_id}") | crontab -
+  echo "*/5 * * * * cd /path/to/repo && flock -n /tmp/{batch_id}.lock python3 $SKILL_DIR/scripts/check_and_respawn.py --plan-dir /path/to/repo/$PLAN_DIR --repo-dir /path/to/repo --cron-tag {batch_id} >> /path/to/repo/$PLAN_DIR/logs/cron.log 2>&1 # {batch_id}") | crontab -
 ```
 
-`$HOME` and `$PLAN_DIR` expand when the crontab entry is written, so the installed entry holds resolved paths. Never write the skill path as a literal user home directory.
+`$SKILL_DIR` and `$PLAN_DIR` expand when the crontab entry is written, so the installed entry holds
+resolved paths. Resolve the active skill path instead of assuming a Codex- or Claude-specific directory.
 
 Rules:
 

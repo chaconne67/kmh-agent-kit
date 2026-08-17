@@ -10,14 +10,14 @@ description: "테스트베드 리밸런싱 발생내역 엑셀(21번 서류) 작
 **서류 디렉토리**: `C:\Users\chaconne\Google Drive 스트리밍\내 드라이브\MOA\테스트베드2차\준비서류\`
 
 ## 스크립트 위치
-`SKILL_DIR = ~/.claude/skills/testbed-rebal-report/`
+`<SKILL_DIR>`은 이 `SKILL.md`가 있는 실제 절대경로다. 활성 스킬 경로에서 확인한다.
 - `fetch_rebalancing_data.py` — 서버 데이터 수집 → JSON
 - `update_rebalancing_report.py` — JSON → 엑셀 업데이트
 - `rebalancing_report_config.json` — 레시피명 설정 (`name`만 기입, `dir`/`file_prefix`는 코드에서 자동 생성)
 
-⚠ 실행 시 반드시 `SKILL_DIR`에서 실행하거나 전체 경로 지정:
+실행 시 `<SKILL_DIR>`를 실제 경로로 바꾸거나 그 디렉토리에서 실행한다.
 ```
-python ~/.claude/skills/testbed-rebal-report/fetch_rebalancing_data.py ...
+python "<SKILL_DIR>/fetch_rebalancing_data.py" ...
 ```
 
 ## 작업 흐름 (⚠ 순서 엄수)
@@ -32,19 +32,19 @@ python fetch_rebalancing_data.py list-schedules --recipe {kr|svr|us}
 - **스케줄(회차)**: 어떤 schedule_id를 업데이트할지
 - 리밸런싱 사유는 항상 **정기리밸런싱** (별도 확인 불필요)
 
-### 2-3단계: 데이터 생성 + 엑셀 업데이트 (SubAgent 위임 가능)
+### 2-3단계: 데이터 생성 + 엑셀 업데이트
 
-**SubAgent 프롬프트 (레시피당 1개)**:
+레시피마다 다음 두 명령을 순서대로 실행한다.
 ```
-Task("리밸런싱 엑셀 생성"):
-  1. python ~/.claude/skills/testbed-rebal-report/fetch_rebalancing_data.py \
-       fetch --recipe {recipe} --schedule-id {ID}
-  2. python ~/.claude/skills/testbed-rebal-report/update_rebalancing_report.py \
-       --recipe {recipe} --schedule-id {ID}
-  성공 시 엑셀 파일 경로 보고. 실패 시 에러 출력 전체 보고.
+python "<SKILL_DIR>/fetch_rebalancing_data.py" \
+  fetch --recipe {recipe} --schedule-id {ID}
+python "<SKILL_DIR>/update_rebalancing_report.py" \
+  --recipe {recipe} --schedule-id {ID}
 ```
 
-※ 복수 레시피(kr, svr, us) 동시 처리 시 레시피별 SubAgent **병렬 파견** 가능
+성공 시 엑셀 파일 경로를 보고하고 실패 시 에러 출력 전체를 보고한다.
+
+독립 작업자가 허용된 환경에서는 복수 레시피를 레시피별로 나눠 동시에 처리할 수 있다.
 
 #### 2단계 세부: 데이터 생성 (서버 → JSON)
 ```
@@ -74,20 +74,20 @@ python update_rebalancing_report.py --recipe {kr|svr|us} --schedule-id {ID}
    - **포트변경내역** — rday 행 삭제 → 재작성 (대부분 수식)
    - **잔고변경현황 ×3** — rday 블록+합계행 삭제 → 재작성 (값+수식 혼합)
 
-### 4단계: 포털 업로드 (SubAgent 위임)
+### 4단계: 포털 업로드
 
-**SubAgent 프롬프트**:
+`<TESTBED_BASE_SKILL_DIR>`은 `testbed-base`의 `SKILL.md`가 있는 실제 절대경로다.
 ```
-Task("리밸런싱 보고서 포털 업로드"):
-  python ~/.claude/skills/testbed-base/portal_upload.py \
-    --url "{forUpdate_URL}" \
-    --file "{xlsx_path}" \
-    --title "{title_YYYYMMDD}" \
-    --content-append "{history_line}"
-  JSON 결과 보고.
+python "<TESTBED_BASE_SKILL_DIR>/portal_upload.py" \
+  --url "{forUpdate_URL}" \
+  --file "{xlsx_path}" \
+  --title "{title_YYYYMMDD}" \
+  --content-append "{history_line}"
 ```
 
-※ 복수 레시피 업로드 시 SubAgent 병렬 파견 가능
+JSON 결과를 보고한다.
+
+독립 작업자가 허용된 환경에서는 복수 레시피 업로드를 동시에 실행할 수 있다.
 
 ## 엑셀 편집 핵심 원칙 (하드코딩 금지)
 

@@ -1,5 +1,6 @@
 {
-  "_readme": "스킬 배치의 정본은 이 파일이 아니라 프로필 심링크(claude/skills, codex/skills, projects/*/skills)다. 공용/도메인 분류의 정본도 이 파일이 아니라 원본 위치(skills/common/, skills/domains/<도메인>/)다. 이 manifest는 둘 중 어느 것으로도 표현할 수 없는 스킬 간 의존관계만 담는다. 새 프로젝트에 스킬을 설치할 때는 선택한 스킬의 depends_on을 재귀로 따라 필요한 스킬을 모두 프로필에 포함시킨다.",
+  "_readme": "스킬 배치의 정본은 프로필 심링크(claude/skills, codex/skills, projects/*/skills)이고 공용/도메인 분류의 정본은 원본 위치(skills/common/, skills/domains/<도메인>/)다. depends_on은 스킬 간 의존관계, external_sources는 외부에서 직접 가져온 독립 스킬의 원본 URL과 revision만 기록한다. 도구가 관리하는 플러그인은 기록하지 않는다.",
+  "external_sources": {},
   "depends_on": {
     "code-review-loop": ["code-review"],
     "full-review": ["code-review"],

@@ -1,7 +1,6 @@
 ---
 name: grill-with-docs
-description: A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go.
-disable-model-invocation: true
+description: Use only when the user explicitly requests grill-with-docs to sharpen a plan or design while creating ADR and glossary documents.
 ---
 
-Run a `/grilling` session, using the `/domain-modeling` skill.
+Run the `grilling` workflow and use the `domain-modeling` skill to record agreed decisions and terms.

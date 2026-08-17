@@ -9,6 +9,7 @@ repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 home_dir="${HOME:?HOME is required}"
 claude_home="${CLAUDE_HOME:-$home_dir/.claude}"
 codex_home="${CODEX_HOME:-$home_dir/.codex}"
+agents_home="$home_dir/.agents"
 gbrain_home="${GBRAIN_HOME:-$home_dir/.gbrain}"
 policy_file="${GBRAIN_POLICY_FILE:-$gbrain_home/memory/agent-policy.toml}"
 gbrain_cli="${GBRAIN_CLI_WRAPPER:-$gbrain_home/bin/gbrain_with_google_env.sh}"
@@ -87,6 +88,23 @@ link_profile() {
   done
 }
 
+remove_kit_skill_links() {
+  local live="$1"
+  [ -d "$live" ] || return 0
+  local entry target resolved
+  for entry in "$live"/*; do
+    [ -L "$entry" ] || continue
+    target="$(readlink "$entry")"
+    resolved="$(readlink -f "$entry" 2>/dev/null || true)"
+    case "$target:$resolved" in
+      "$repo_dir/codex/skills/"*:*|"$repo_dir/claude/skills/"*:*|*:"$repo_dir/skills/"*)
+        unlink "$entry"
+        echo "이전 Codex 사용자 스킬 링크 제거: $entry"
+        ;;
+    esac
+  done
+}
+
 backup_if_exists() {
   local path="$1"
   if [ -e "$path" ] && [ ! -L "$path" ]; then
@@ -103,8 +121,9 @@ install_file() {
 }
 
 install_global() {
+  remove_kit_skill_links "$codex_home/skills"
   link_profile "$repo_dir/claude/skills" "$claude_home/skills"
-  link_profile "$repo_dir/codex/skills" "$codex_home/skills"
+  link_profile "$repo_dir/codex/skills" "$agents_home/skills"
   link_entry "$repo_dir/claude/CLAUDE.md" "$claude_home/CLAUDE.md"
   link_entry "$repo_dir/codex/AGENTS.md" "$codex_home/AGENTS.md"
 
@@ -150,8 +169,9 @@ install_project_profile() {
   local profile="$repo_dir/projects/$profile_name"
   [ -d "$profile" ] || die "프로젝트 프로필이 없습니다: $profile"
   [ -d "$project_path" ] || die "프로젝트 폴더가 없습니다: $project_path"
+  remove_kit_skill_links "$project_path/.codex/skills"
   [ -d "$profile/skills" ] && link_profile "$profile/skills" "$project_path/.claude/skills"
-  [ -d "$profile/skills" ] && link_profile "$profile/skills" "$project_path/.codex/skills"
+  [ -d "$profile/skills" ] && link_profile "$profile/skills" "$project_path/.agents/skills"
   [ -f "$profile/CLAUDE.md" ] && link_entry "$profile/CLAUDE.md" "$project_path/CLAUDE.md"
   [ -f "$profile/AGENTS.md" ] && link_entry "$profile/AGENTS.md" "$project_path/AGENTS.md"
   echo "프로젝트 프로필 연결: $profile_name → $project_path"

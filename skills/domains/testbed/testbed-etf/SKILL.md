@@ -10,13 +10,13 @@ description: "투자유니버스 ETF 정보 조회 & 채우기. 투자유니버�
 투자유니버스 시트의 신규 종목 정보를 조회·채우는 스킬. 국내 ETF는 funetf.co.kr(Playwright), 글로벌 종목은 웹검색으로 조회.
 
 ## 스크립트 위치
-`SKILL_DIR = ~/.claude/skills/testbed-etf/`
+`<SKILL_DIR>`은 이 `SKILL.md`가 있는 실제 절대경로다. 활성 스킬 경로에서 확인한다.
 - `lookup_isin.py` — 글로벌 ISIN 조회 (stockanalysis.com + Google + OpenFIGI 검증)
   - `validate_isin(isin)` — Luhn 체크디짓 검증
   - `make_isin(ticker)` — 국내 티커 → ISIN 조립
   - `verify_isin_openfigi(isins_dict)` — OpenFIGI 역검증
 
-⚠ 실행 시 반드시 `SKILL_DIR`에서 실행하거나 전체 경로 지정
+실행 시 `<SKILL_DIR>`를 실제 경로로 바꾸거나 그 디렉토리에서 실행한다.
 
 ## 1. 파일 찾기
 
@@ -48,21 +48,22 @@ description: "투자유니버스 ETF 정보 조회 & 채우기. 투자유니버�
 
 ## 3. 국내 ETF 조회 — lookup_funetf.py
 
-**스크립트**: `~/.claude/skills/testbed-etf/lookup_funetf.py`
+**스크립트**: `<SKILL_DIR>/lookup_funetf.py`
 
 ### 단건 조회
 ```
-python ~/.claude/skills/testbed-etf/lookup_funetf.py --isin KR7069500007
-python ~/.claude/skills/testbed-etf/lookup_funetf.py --ticker 069500
+python "<SKILL_DIR>/lookup_funetf.py" --isin KR7069500007
+python "<SKILL_DIR>/lookup_funetf.py" --ticker 069500
 ```
 
-### 대량 조회 (SubAgent 위임)
+### 대량 조회
 ```
-Task("국내 ETF 정보 조회"):
-  python ~/.claude/skills/testbed-etf/lookup_funetf.py \
-    --batch KR7069500007 KR7379800004 ...
-  결과 JSON의 results 배열 보고.
+python "<SKILL_DIR>/lookup_funetf.py" \
+  --batch KR7069500007 KR7379800004 ...
 ```
+
+결과 JSON의 `results` 배열을 보고한다. 독립 작업자가 허용된 환경에서는 국내·글로벌 조회를
+나눠 실행할 수 있다.
 
 ### 출력 JSON
 ```json
@@ -79,19 +80,20 @@ Task("국내 ETF 정보 조회"):
 - URL: `https://www.funetf.co.kr/product/etf/view/{ISIN코드}` — 타사 ETF(SOL, ACE, RISE 등)도 지원
 - `headless=False`로 실행 — 화면에 브라우저 창이 열림
 
-## 4. 글로벌 종목 조회 — lookup_isin.py (SubAgent 위임 가능)
+## 4. 글로벌 종목 조회 — lookup_isin.py
 
-**스크립트**: `~/.claude/skills/testbed-etf/lookup_isin.py`
+**스크립트**: `<SKILL_DIR>/lookup_isin.py`
 
-### 대량 조회 (SubAgent 위임)
+### 대량 조회
 ```
-Task("글로벌 ISIN 조회"):
-  python ~/.claude/skills/testbed-etf/lookup_isin.py {tickers} --etf {etf_tickers}
-  결과 JSON 보고.
+python "<SKILL_DIR>/lookup_isin.py" {tickers} --etf {etf_tickers}
 ```
+
+결과 JSON을 보고한다.
 
 ### 글로벌 + 국내 병렬 조회
-국내(lookup_funetf.py)와 글로벌(lookup_isin.py)을 각각 별도 SubAgent로 동시 파견 가능.
+독립 작업자가 허용된 환경에서는 국내(`lookup_funetf.py`)와 글로벌(`lookup_isin.py`) 조회를
+동시에 실행할 수 있다.
 
 ⚠ headless=False로 실행 — 화면에 브라우저 창이 열림. 백그라운드 실행 불가.
 
@@ -138,8 +140,8 @@ Task("글로벌 ISIN 조회"):
 
 ## 6. 스크립트 실행 규칙
 
-- **국내 ETF**: `lookup_funetf.py` 사용 (CLI 또는 SubAgent 위임)
-- **글로벌 ISIN**: `lookup_isin.py` 사용 (CLI 또는 SubAgent 위임)
+- **국내 ETF**: `lookup_funetf.py` 사용
+- **글로벌 ISIN**: `lookup_isin.py` 사용
 - **MCP Playwright 사용**: 위 스크립트로 해결 불가할 때만 (수동 탐색 등)
 - **실행 실패** → `taskkill /F /IM chrome.exe /T` 후 재시도. WebFetch 우회 금지
 - **headless=False 필수** — 두 스크립트 모두 visible 브라우저로 실행됨

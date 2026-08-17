@@ -27,8 +27,11 @@ If the task requires a new command, option, helper script, schema, prompt, or te
 
 Use the bundled helper for ordinary repo tasks:
 
+`<SKILL_DIR>` means the absolute directory containing this `SKILL.md`. Resolve it from the active
+skill path before running the command.
+
 ```bash
-python3 ~/.codex/skills/remote-execute/scripts/remote_execute.py \
+python3 "<SKILL_DIR>/scripts/remote_execute.py" \
   --command 'uv run --extra dev pytest tests/test_project_detail_layout.py -v'
 ```
 
