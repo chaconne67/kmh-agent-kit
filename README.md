@@ -72,8 +72,6 @@ source ~/.bashrc
 |---|---|---|
 | 중앙 DB·GBrain `49.247.45.243` | `main` | `~/kmh-agent-kit/install.sh main` |
 | FundKeeper `49.247.38.186` | `fundkeeper` | `~/kmh-agent-kit/install.sh fundkeeper` |
-| Rndlog `49.247.207.147` | `rndlog` | `~/kmh-agent-kit/install.sh rndlog` |
-| Ceoloan `49.247.205.170` | `ceoloan` | `~/kmh-agent-kit/install.sh ceoloan` |
 | Judy WSL | `judy` | `~/kmh-agent-kit/install.sh judy` |
 
 저장소도 없는 장비에서는 역할에 맞는 한 줄을 그대로 실행합니다.
@@ -82,9 +80,10 @@ source ~/.bashrc
 |---|---|
 | 중앙 DB·GBrain | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh main` |
 | FundKeeper | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh fundkeeper` |
-| Rndlog | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh rndlog` |
-| Ceoloan | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh ceoloan` |
 | Judy WSL | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh judy` |
+
+RNDLOG와 CEO Loan은 운영 서버 설치 대상이 아닙니다. 두 프로젝트의 지침·스킬·GBrain은 중앙
+조정실에만 두고, 중앙 에이전트가 SSH로 운영 저장소를 관리합니다.
 
 ## 그 외
 
@@ -96,13 +95,13 @@ source ~/.bashrc
 | `kitpush` | 이 서버의 공용·매칭 도메인 변경 검증, 커밋, push |
 | `./install.sh main` | 중앙 DB·GBrain 역할 설치 |
 | `./install.sh fundkeeper` | FundKeeper 역할 설치 |
-| `./install.sh rndlog` | Rndlog 역할 설치 |
-| `./install.sh ceoloan` | Ceoloan 역할 설치 |
 | `./install.sh judy` | Judy WSL 역할 설치 |
 | `./install.sh --new abc-project` | 신규 등록 이름의 공간·정책·카드 생성 후 설치 |
 | `./install.sh --new abc-project --dry-run` | 신규 생성 내용을 변경 없이 미리 확인 |
 | `./install.sh` | GBrain 카드 없이 공용 스킬·전역 지침만 설치 |
 | `./install.sh --project ~/exdigm exdigm` | 프로젝트 프로필만 별도로 연결 |
+| `./install.sh --project ~/projects/rndlog rndlog` | 중앙 RNDLOG 조정실 연결 |
+| `./install.sh --project ~/projects/ceoloan ceoloan` | 중앙 CEO Loan 조정실 연결 |
 | `./install.sh --help` | 설치 명령 표시 |
 
 이전 `--gbrain` 형식은 기존 자동화의 호환을 위해서만 유지합니다. 새 설치에는 위 표의 공식 명령을 사용합니다.
@@ -141,8 +140,8 @@ source ~/.bashrc
 | `fundkeeper` | `~/fundkeeper`의 `fundkeeper` 프로필 |
 | 그 외 | 같은 이름의 프로젝트 폴더와 프로필이 모두 있을 때 연결 |
 
-Rndlog는 `rndlog` 프로젝트 프로필을 연결합니다. Ceoloan은 현재 별도 프로젝트 프로필이 없어
-공용 자산과 GBrain 카드까지만 설치합니다.
+RNDLOG와 CEO Loan 프로젝트 프로필은 중앙 조정실에만 연결합니다. 운영 서버에는 프로젝트
+프로필·공용 지침·GBrain 카드를 설치하지 않습니다.
 
 ### 설치 파일 연결 방식
 

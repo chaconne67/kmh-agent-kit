@@ -32,9 +32,11 @@ KMH Agent Kit
 이미 등록된 역할을 설치 — 해당 등록 이름 하나만 사용:
   ./install.sh main
   ./install.sh fundkeeper
-  ./install.sh rndlog
-  ./install.sh ceoloan
   ./install.sh judy
+
+중앙 조정실 프로젝트 프로필만 연결:
+  ./install.sh --project ~/projects/rndlog rndlog
+  ./install.sh --project ~/projects/ceoloan ceoloan
 
 최초 설치 후 모든 서버에서 동일:
   kitpull
