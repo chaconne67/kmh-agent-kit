@@ -1,22 +1,33 @@
 ---
 name: smart-ux
-description: "Use when creating or modifying UI/UX code, screens, components, flows, landing pages, forms, dashboards, onboarding, notifications, navigation, CTAs, loading/error/empty states, or when asked to improve UX, conversion, retention, accessibility, behavioral design, or dark-pattern safety. UI/UX 생성·수정 직전과 직후에 Hook model, UX laws, accessibility checks, and ethical persuasion guardrails를 적용한다."
+description: "Use when creating, modifying, or reviewing user interfaces and flows, including screens, components, forms, dashboards, navigation, CTAs, and loading, error, or empty states; or when asked to improve UX, initial loading performance, human task flow, conversion, retention, accessibility, behavioral design, or dark-pattern safety."
 ---
 
 # Smart UX
 
-Use this skill to turn UI work into behavior-aware product design, not only visual styling. The central rule is: good UX changes behavior by lowering friction, clarifying choices, creating honest motivation, and protecting user agency.
+Use this skill to turn UI work into behavior-aware product design, not only visual styling. The central rule is: good UX gets people to useful work quickly by loading only what the current task needs, arranging the interface in the order people read and work, lowering friction, clarifying choices, creating honest motivation, and protecting user agency.
 
 ## Workflow
 
 Run this sequence before changing UI code and repeat the checklist after changing it.
 
-1. Define one target behavior for the screen.
-2. Map that behavior to the Hook loop: trigger, action, variable reward, investment.
-3. Apply the UX laws that reduce friction and cognitive load.
-4. Satisfy the accessibility requirements.
-5. Reject dark patterns and keep persuasion honest.
-6. Verify the final UI with the completion checklist.
+1. Define one target behavior and the first useful state for the screen.
+2. Identify the minimum UI and data needed for that state; defer everything else until the user needs it.
+3. Arrange the UI to match the human flow defined below.
+4. Map the target behavior to the Hook loop: trigger, action, variable reward, investment.
+5. Apply the UX laws that reduce friction and cognitive load.
+6. Satisfy the accessibility requirements.
+7. Reject dark patterns and keep persuasion honest.
+8. Render and visually inspect every affected viewport and interaction state, then verify the completion checklist.
+
+## Loading and Human Flow
+
+- Treat the first useful state as the earliest rendered state that lets the user understand or begin the target behavior. Optimize first for the time to reach that state. Request and render only the elements and data it requires. Defer optional work until the user reaches or requests it; a loading indicator does not justify avoidable initial work.
+- Define human flow as the combined reading order, task sequence, and sequence in which data prerequisites are entered, confirmed, or locked. In a left-to-right interface, arrange reading order from top to bottom, then left to right. Follow the interface language's direction when it differs.
+- Make the visual sequence match the human flow. Put prerequisites before dependent actions. Place confirmation or locking controls after the values they commit, and place actions that require confirmed or locked data after those controls. Do not arrange controls around implementation convenience.
+- Keep DOM order and keyboard focus order aligned with visual order. Do not use CSS reordering to create a conflicting sequence.
+- When a positional UX heuristic conflicts with the human flow, preserve the human flow and emphasize the element within its correct step.
+- Judge layout from the rendered result. Inspect the affected viewport sizes and changed interaction states in a browser or screenshots. Source inspection and automated tests do not establish visual correctness by themselves.
 
 ## Hook Loop
 
@@ -34,7 +45,7 @@ Use variable reward only when it reflects real value. Do not use it to create co
 ## Decision Load
 
 - Hick's Law: Reduce simultaneous choices. Group options and use progressive disclosure.
-- Miller's Law: Keep navigation, tabs, or dense lists in 5-7 meaningful chunks when possible.
+- Miller's Law: Group navigation, tabs, or dense lists into a small number of meaningful chunks that users can scan. Do not force a fixed item limit when the task requires more.
 - Tesler's Law: Decide whether the system or the user carries unavoidable complexity. Prefer defaults, inference, and automation when they are accurate.
 - Occam / Pragnanz: Remove decorative or duplicate elements that do not help recognition or action.
 - Pareto: Put the small set of high-value actions in the strongest locations.
@@ -42,7 +53,7 @@ Use variable reward only when it reflects real value. Do not use it to create co
 ## Interaction
 
 - Fitts's Law: Make frequent or important targets large, close, and easy to reach. Keep touch targets at least 44 by 44 px.
-- Doherty Threshold: Preserve perceived responsiveness. For slower work, show immediate loading, skeleton, progress, or optimistic feedback.
+- Doherty Threshold: Remove avoidable initial work first. For latency that remains necessary, show immediate loading, skeleton, progress, or optimistic feedback.
 - Goal Gradient / Zeigarnik: Use steps, progress, completion percentage, or visible unfinished state when completion matters.
 - Serial Position Effect: Place the most important list or nav items where users remember them: first or last.
 - Von Restorff: Make one primary action stand out. Avoid multiple competing CTAs.
@@ -87,6 +98,8 @@ Use good friction when it protects the user: destructive-action confirmation, pa
 
 Before reporting a UI task complete, verify each item and fix misses in the same final path.
 
+- The initial load requests and renders only the elements and data required for the first useful state; deferred work has a clear user or workflow trigger.
+- Visual, DOM, and keyboard order all match the human flow.
 - The screen has one dominant target behavior and one clearly prioritized primary CTA.
 - Choices are chunked or progressively disclosed.
 - Main actions are large, close, reachable, and at least 44 by 44 px on touch.
@@ -96,10 +109,6 @@ Before reporting a UI task complete, verify each item and fix misses in the same
 - Familiar conventions are preserved unless the product value requires a different pattern.
 - Related elements are grouped with clear spacing, alignment, and hierarchy.
 - Errors and empty states explain the next action without blaming the user.
+- The rendered UI was visually inspected at every affected viewport and changed interaction state; source inspection or automated tests were not used as a substitute.
 - Accessibility requirements above are satisfied.
 - No dark pattern is present.
-
-## Source Basis
-
-Sources: "The UX Psychology Behind Apps People Can't Stop Using", Laws of UX, the Hook Model,
-accessibility rules, and ethical AI/product UX guardrails.
