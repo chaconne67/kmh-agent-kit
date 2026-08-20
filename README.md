@@ -99,7 +99,7 @@ RNDLOG와 CEO Loan은 운영 서버 설치 대상이 아닙니다. 두 프로젝
 | `./install.sh --new abc-project` | 신규 등록 이름의 공간·정책·카드 생성 후 설치 |
 | `./install.sh --new abc-project --dry-run` | 신규 생성 내용을 변경 없이 미리 확인 |
 | `./install.sh` | GBrain 카드 없이 공용 스킬·전역 지침만 설치 |
-| `./install.sh --project ~/exdigm exdigm` | 프로젝트 프로필만 별도로 연결 |
+| `./install.sh --project ~/projects/exdigm exdigm` | 프로젝트 프로필만 별도로 연결 |
 | `./install.sh --project ~/projects/rndlog rndlog` | 중앙 RNDLOG 조정실 연결 |
 | `./install.sh --project ~/projects/ceoloan ceoloan` | 중앙 CEO Loan 조정실 연결 |
 | `./install.sh --help` | 설치 명령 표시 |
@@ -136,7 +136,7 @@ RNDLOG와 CEO Loan은 운영 서버 설치 대상이 아닙니다. 두 프로젝
 
 | 등록 이름 | 자동 연결되는 프로젝트 프로필 |
 |---|---|
-| `main` | `~/exdigm`의 `exdigm` 프로필 |
+| `main` | `~/projects/exdigm`의 `exdigm` 프로필 |
 | `fundkeeper` | `~/fundkeeper`의 `fundkeeper` 프로필 |
 | 그 외 | 같은 이름의 프로젝트 폴더와 프로필이 모두 있을 때 연결 |
 

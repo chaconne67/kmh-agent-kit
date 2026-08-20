@@ -45,7 +45,7 @@ KMH Agent Kit
 
 그 외:
   ./install.sh                         공용 스킬·전역 지침만 설치
-  ./install.sh --project ~/exdigm exdigm
+  ./install.sh --project ~/projects/exdigm exdigm
   ./install.sh --help
 EOF
 }
@@ -194,8 +194,8 @@ install_known_project() {
   local agent_name="$1"
   case "$agent_name" in
     main)
-      if [ -d "$home_dir/exdigm" ]; then
-        install_project_profile "$home_dir/exdigm" exdigm
+      if [ -d "$home_dir/projects/exdigm" ]; then
+        install_project_profile "$home_dir/projects/exdigm" exdigm
       fi
       ;;
     fundkeeper)
@@ -485,7 +485,7 @@ case "${1:-}" in
     show_usage
     ;;
   --project)
-    [ "$#" -eq 3 ] || die "사용법: ./install.sh --project ~/exdigm exdigm"
+    [ "$#" -eq 3 ] || die "사용법: ./install.sh --project ~/projects/exdigm exdigm"
     install_project_profile "$2" "$3"
     ;;
   --gbrain)
