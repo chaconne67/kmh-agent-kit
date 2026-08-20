@@ -12,13 +12,15 @@
 | 항목 | 값 |
 |---|---|
 | SSH | `chaconne@49.247.202.197` |
-| 호스트명 | `exdigm2` |
+| 호스트명 | `exdigm` |
 | 운영 체크아웃 | `/home/chaconne/exdigm` |
 | 디버깅 worktree | `/home/chaconne/exdigm-debug` |
 | GitHub | `git@github.com:chaconne67/exdigm.git` |
 | 배포 브랜치 | `main` |
 | 디버깅 Python | `/home/chaconne/exdigm-debug/.venv/bin/python` |
 | 디버깅 진입점 | `scripts/debug_workspace.sh` |
+| 디버깅 실행 | 원격 셸의 `goexdigm` |
+| 디버깅 도메인 | `https://dev.exdigm.com` |
 | 운영 배포 | `scripts/deploy/deploy.sh prod` |
 | 운영 DB 인프라 배포 | `scripts/deploy/deploy.sh db-prod` |
 | 운영 도메인 | `https://office.exdigm.com` |
@@ -31,7 +33,7 @@ GBrain은 중앙 서버에서만 사용합니다. `~/.gbrain-agent.md`를 먼저
 
 - `project/exdigm-operating-context`
 - `project/exdigm-deploy-workflow`
-- `project/exdigm-remote-debug-workflow`
+- `project/exdigm-local-runserver-workflow`
 - 작업 기능명·화면명·모델명으로 찾은 관련 페이지
 
 ## 공식 작업 경로
@@ -41,7 +43,7 @@ GBrain은 중앙 서버에서만 사용합니다. `~/.gbrain-agent.md`를 먼저
 3. 디버깅 worktree의 기존 변경을 확인하고 보존합니다.
 4. 디버깅 worktree가 clean일 때만 `origin/main`의 detached HEAD로 갱신합니다.
 5. SSH를 통해 디버깅 worktree의 코드만 수정합니다.
-6. `scripts/debug_workspace.sh`로 격리된 검증을 실행합니다.
+6. `scripts/debug_workspace.sh`로 격리된 검증을 실행하고, 필요할 때 `goexdigm`으로 같은 코드를 브라우저에서 확인합니다.
 7. 변경을 커밋한 뒤 `scripts/deploy/deploy.sh prod`로 `origin/main`과 운영 체크아웃에 같은 커밋을 반영합니다.
 8. HTTPS·Swarm 서비스·운영 작업자 상태를 확인합니다.
 
@@ -52,18 +54,21 @@ GBrain은 중앙 서버에서만 사용합니다. `~/.gbrain-agent.md`를 먼저
 | 작업 | 공식 명령 | 데이터 경계 |
 |---|---|---|
 | 운영 데이터 조회 | `scripts/debug_workspace.sh shell-readonly` | `exdigm_debug_ro`의 SELECT만 허용 |
-| 쓰기·로그인·마이그레이션 검증 준비 | `scripts/debug_workspace.sh create` | 빈 `exdigm_debug`, `exdigm_debug_test` 생성 |
-| Django 검사 | `scripts/debug_workspace.sh check` | 일회성 DB |
-| 화면 확인 | `scripts/debug_workspace.sh run` | `127.0.0.1:8443`, SSH 포워딩 전용 |
-| 테스트 | `scripts/debug_workspace.sh test [대상]` | 일회성 테스트 DB |
+| 개발 사본 갱신 | `scripts/debug_workspace.sh refresh` | 운영 프로젝트 연결 후보자를 우선 포함한 정확히 1,000명과 연결 데이터·미디어만 복사 |
+| Django 검사 | `scripts/debug_workspace.sh check` | 개발 사본 DB |
+| 화면 확인 | 원격 셸에서 `goexdigm` | Docker 앱 없이 foreground `runserver`; `https://dev.exdigm.com`으로 접속 |
+| 테스트 | `scripts/debug_workspace.sh test [대상]` | 개발 전용 테스트 DB; 외부 연동 인증은 읽지 않음 |
 | Tailwind 빌드 | `scripts/debug_workspace.sh css` | 디버깅 worktree의 추적 CSS 갱신 |
-| 쓰기 검증 정리 | `scripts/debug_workspace.sh destroy` | 일회성 DB·계정·파일만 삭제 |
 
 - 운영 DB의 `exdigm` 슈퍼유저 계정으로 디버깅하지 않습니다.
 - 운영 데이터가 필요한 진단은 조회 전용 경로에서 최소 결과만 확인합니다.
-- 쓰기 검증은 합성한 최소 데이터로 수행합니다.
-- 디버깅 환경에는 운영 API 키·Telegram·Drive 비밀값·운영 미디어 경로를 연결하지 않습니다.
-- `runserver`는 공개 인터페이스에 바인딩하지 않습니다.
+- 개발 사본에는 사용자·권한·고객사·프로젝트 기준 데이터를 복사합니다.
+- 후보자·이력서·추출 산출물·미디어는 선택된 1,000명과 실제 DB 참조 범위만 복사합니다.
+- 운영 배치 이력·뉴스 캐시·세션·큐·외부 사이트 인증은 복사하지 않습니다.
+- DB와 미디어는 한 번의 `refresh`에서 함께 갱신하며, 완료 표식이 없으면 `goexdigm` 실행을 막습니다.
+- 개발 Google Drive는 주인님의 개인 계정 내 개발 전용 폴더만 사용합니다.
+- 운영 Drive 폴더·운영 Telegram 봇·운영 사이트 인증은 개발 환경에 넣지 않습니다.
+- 외부 공개는 기존 Nginx의 HTTPS와 브라우저 암호가 맡고, `runserver`는 Docker bridge 주소에만 바인딩합니다.
 
 ## Git 경계
 
@@ -76,9 +81,9 @@ GBrain은 중앙 서버에서만 사용합니다. `~/.gbrain-agent.md`를 먼저
 ## 코드 탐색과 완료 기준
 
 - 코드 탐색은 원격 디버깅 worktree에서 `uv run --locked python -m tools.code_knowledge code_query`로 시작합니다.
-- 테스트는 `scripts/debug_workspace.sh test`를 사용해 공용 잠금과 일회성 테스트 DB를 함께 적용합니다.
+- 테스트는 `scripts/debug_workspace.sh test`를 사용해 공용 잠금과 개발 전용 테스트 DB를 함께 적용합니다.
 - 코드 변경 후 `uv run --locked python -m tools.code_knowledge catalog_update`를 원격 worktree에서 실행합니다.
-- UI 변경은 SSH 포워딩으로 같은 `runserver` 화면을 직접 확인합니다.
+- UI 변경은 `goexdigm`으로 띄운 같은 `runserver`를 `https://dev.exdigm.com`에서 직접 확인합니다.
 - 실행 동작·데이터·권한·배포 경로가 바뀌는 변경은 `code-review-loop`를 통과합니다.
 
 ## 회사 확장 경계
