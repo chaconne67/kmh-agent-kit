@@ -1,4 +1,4 @@
 interface:
   display_name: "Smart UX"
-  short_description: "빠른 로딩·사람 중심 흐름·접근성 UI 검증 원칙"
-  default_prompt: "Use $smart-ux to design or review this UI for fast loading, human task order, visual quality, accessibility, and ethical interaction."
+  short_description: "빠른 로딩·논리적 배치·Tailwind UI 검증 원칙"
+  default_prompt: "Use $smart-ux to design, implement, or review this UI for the fastest useful state, logical and visually aligned layout, consistent Tailwind components, accessibility, and ethical interaction."

@@ -1,122 +1,99 @@
 ---
 name: smart-ux
-description: "Use when creating, modifying, or reviewing user interfaces and flows, including screens, components, forms, dashboards, navigation, CTAs, and loading, error, or empty states; or when asked to improve UX, initial loading performance, human task flow, conversion, retention, accessibility, behavioral design, or dark-pattern safety."
+description: "Use when designing, implementing, or reviewing user interfaces, user flows, interaction states, loading performance, accessibility, or ethical UX."
 ---
 
 # Smart UX
 
-Use this skill to turn UI work into behavior-aware product design, not only visual styling. The central rule is: good UX gets people to useful work quickly by loading only what the current task needs, arranging the interface in the order people read and work, lowering friction, clarifying choices, creating honest motivation, and protecting user agency.
+Build UI so people reach useful work quickly, understand the screen in the order they read and act, and see a visual system whose emphasis matches function. Protect loading speed, accessibility, and user agency as product requirements rather than finishing touches.
 
 ## Workflow
 
-Use this sequence while designing, implementing, or reviewing UI, then run the completion checklist after each change.
+Use this single path for UI design, implementation, and review.
 
-1. Define one target behavior and the first useful state for the screen.
-2. Identify the minimum UI and data needed for that state; defer everything else until the user needs it.
-3. Arrange the UI to match the human flow defined below.
-4. Implement or review styling against these Tailwind CSS rules:
-   - If implementation is requested and the project does not provide Tailwind CSS, stop before UI implementation and report the missing dependency instead of silently using another styling path.
-   - Prefer native, non-arbitrary utilities from the installed Tailwind version whenever they can express the required result; do not replace them with custom classes or inline styles.
-   - Add a project-specific design token only for a recurring brand or domain meaning; do not create one as an alias for a native Tailwind value or a one-off design choice.
-   - Express layout widths as parent-relative Tailwind proportions such as `w-full`, fractional `w-*/*`, flex basis, or grid shares. Use fixed widths, raw CSS percentages, or arbitrary width values only when a concrete requirement cannot be represented proportionally.
-5. Map the target behavior to the Hook loop: trigger, action, variable reward, investment.
-6. Apply the UX laws that reduce friction and cognitive load.
-7. Satisfy the accessibility requirements.
-8. Reject dark patterns and keep persuasion honest.
-9. Render and visually inspect every affected viewport and interaction state, then verify the completion checklist.
+1. Define the screen's target outcome and whether it is an action, reading, or monitoring screen.
+2. Define the first useful state and the minimum critical UI, data, and assets required to reach it.
+3. Inspect the existing component, theme, spacing, typography, and interaction sources before choosing visual rules.
+4. Arrange information, prerequisites, controls, and results in the human and data flow defined below.
+5. Implement or review styling through the Tailwind path defined below.
+6. Apply the interaction, accessibility, and ethical rules.
+7. Render and inspect every affected viewport and interaction state, inspect the initial request path, then run the completion gate.
 
-## Loading and Human Flow
+## First Useful State and Loading
 
-- Treat the first useful state as the earliest rendered state that lets the user understand or begin the target behavior. Optimize first for the time to reach that state. Request and render only the elements and data it requires. Defer optional work until the user reaches or requests it; a loading indicator does not justify avoidable initial work.
-- Define human flow as the combined reading order, task sequence, and sequence in which data prerequisites are entered, confirmed, or locked. In a left-to-right interface, arrange reading order from top to bottom, then left to right. Follow the interface language's direction when it differs.
-- Make the visual sequence match the human flow. Put prerequisites before dependent actions. Place confirmation or locking controls after the values they commit, and place actions that require confirmed or locked data after those controls. Do not arrange controls around implementation convenience.
-- Keep DOM order and keyboard focus order aligned with visual order. Do not use CSS reordering to create a conflicting sequence.
-- When a positional UX heuristic conflicts with the human flow, preserve the human flow and emphasize the element within its correct step.
-- Judge layout from the rendered result. Inspect the affected viewport sizes and changed interaction states in a browser or screenshots. Source inspection and automated tests do not establish visual correctness by themselves.
+- Make time to the first useful state the first implementation priority. This state is the earliest rendered UI that lets the user understand or begin the target outcome.
+- Request and render only the critical UI, data, and assets for that state. Start independent critical requests in parallel, but request dependent data only after its prerequisites are known.
+- Lazy-load every non-critical data set, client module, and media asset from a clear viewport, interaction, or workflow trigger. Load critical above-the-fold and LCP resources early; do not delay them behind lazy loading.
+- Do not render empty result cards or decorative placeholders before they carry meaning. For unavoidable latency, reserve stable space and show immediate loading or progress feedback.
+- A spinner or skeleton does not justify avoidable initial work. Verify the real request and render path instead of assuming source-level deferral improved loading.
 
-## Hook Loop
+## Layout and Human Flow
 
-Design core screens so one useful loop can complete.
+- Human flow combines reading order, task order, and data dependency order. Arrange it from top to bottom and then in the interface language's reading direction.
+- Keep visual, DOM, and keyboard focus order aligned. Do not use CSS reordering to create a conflicting sequence.
+- Align headings, descriptions, fields, content, and actions to shared edges. Reuse the existing spacing scale so gaps express hierarchy instead of one-off decoration.
+- Make the page purpose, current state, required input, main content, and next outcome distinguishable through typography, spacing, and placement.
+- Put prerequisite inputs before the values or actions that depend on them. Place review or confirmation after the values it commits, and expose dependent actions only when their prerequisites are valid.
+- Group related content with proximity, whitespace, alignment, or dividers first. Use a card or box only when it communicates a real structural, state, or interaction boundary; avoid nested containers that add no meaning.
+- Make visual emphasis follow functional importance, status, and action availability. Preserve this logical progression across responsive layouts without dropping context or moving focus order away from visual order.
 
-| Step | Meaning | UI obligation |
-| --- | --- | --- |
-| Trigger | Signal that starts the action | Provide one clear CTA, empty-state next step, or notification entry point. |
-| Action | Smallest useful action | Reduce clicks and fields. Use defaults and autocomplete when they reflect real user intent. |
-| Variable reward | Positive feedback with some freshness | Show completion feedback, progress, new value, or light celebration without manipulating the user. |
-| Investment | User effort that increases future value | Make saved settings, profiles, lists, follows, drafts, or preferences visibly accumulate. |
+## Visual System and Components
 
-Use variable reward only when it reflects real value. Do not use it to create compulsion, hide costs, or make escape harder.
+- Reuse existing components and their established visual contracts before inventing a new treatment. Do not replace a project source of truth with a generic palette, size, radius, or shadow.
+- When no suitable source exists, define the smallest consistent component family with Tailwind utilities. Comparable controls should share typography, spacing, sizing, shape, border, state, and focus treatment.
+- Choose button treatment from action meaning and readability within the existing visual system: primary, secondary, low-priority, or destructive. Use labels, hierarchy, placement, and shape as well as color to communicate meaning.
+- Show one primary CTA only when the current step has one primary action. Reading and monitoring screens do not need a CTA; keep destructive actions visually distinct and separate from routine actions.
+- Keep forms consistent in label, input, help, validation, and error order. Connect each message to its field and explain how to recover.
+- Give modals a clear title, purpose, impact, and action order. Provide a clear close or cancel path, keep focus within the open modal, and return focus to the invoker when closed.
 
-## Decision Load
+## Tailwind Implementation
 
-- Hick's Law: Reduce simultaneous choices. Group options and use progressive disclosure.
-- Miller's Law: Group navigation, tabs, or dense lists into a small number of meaningful chunks that users can scan. Do not force a fixed item limit when the task requires more.
-- Tesler's Law: Decide whether the system or the user carries unavoidable complexity. Prefer defaults, inference, and automation when they are accurate.
-- Occam / Pragnanz: Remove decorative or duplicate elements that do not help recognition or action.
-- Pareto: Put the small set of high-value actions in the strongest locations.
+- If implementation is requested and the project does not provide Tailwind CSS, stop before UI implementation and report the missing dependency instead of silently using another styling path.
+- Reuse existing Tailwind components and theme values whose contracts match the task. Preserve component behavior while replacing avoidable custom visual CSS with native utilities in the affected path.
+- Prefer native, non-arbitrary utilities from the installed Tailwind version whenever they express the required result. Do not replace them with inline styles or page-specific classes.
+- Add a project-specific design token only for a recurring brand or domain meaning. Do not create a token as an alias for a native Tailwind value or a one-off design choice.
+- Express layout allocation with parent-relative Tailwind utilities such as `w-full`, fractional widths, flex basis, or grid shares. Use Tailwind max-width or fixed-size utilities only for intrinsic controls, readable line length, accessibility, or an explicit external constraint.
+- Use arbitrary values or custom CSS only when existing components, theme values, and native utilities cannot express a concrete requirement. State that requirement before adding the exception.
 
-## Interaction
+## Interaction and Feedback
 
-- Fitts's Law: Make frequent or important targets large, close, and easy to reach. Keep touch targets at least 44 by 44 px.
-- Doherty Threshold: Remove avoidable initial work first. For latency that remains necessary, show immediate loading, skeleton, progress, or optimistic feedback.
-- Goal Gradient / Zeigarnik: Use steps, progress, completion percentage, or visible unfinished state when completion matters.
-- Serial Position Effect: Place the most important list or nav items where users remember them: first or last.
-- Von Restorff: Make one primary action stand out. Avoid multiple competing CTAs.
-- Peak-End Rule: Design success, error, and exit moments carefully because they shape the remembered experience.
-
-## Familiarity
-
-- Jakob's Law: Prefer conventions users already know, such as expected navigation, cart, search, save, and home patterns.
-- Gestalt grouping: Put related elements near each other, inside a shared region, or under a shared label.
-- Similarity: Use consistent shape, color, and placement for the same action or state.
-- Postel's Law: Accept flexible input formats when safe. Give strict, clear output and avoid blaming the user for errors.
+- Reduce simultaneous choices, group related options, and progressively disclose secondary work. Prefer familiar patterns unless a product requirement justifies a different interaction.
+- Provide immediate visible feedback for latency. Use optimistic state only when failure is reversible and the UI reconciles with authoritative server state; otherwise show pending progress until confirmation.
+- Show progress for meaningful multi-step work. Make success, error, empty, and exit states explain the current result and the next available action without blaming the user.
+- Apply the Hook loop only to a repeatable behavior that creates real user value: a clear trigger, the smallest useful action, an honest result or reward, and an investment that improves future value. Skip reward or investment for one-off, reading, monitoring, destructive, compliance, and administrative flows.
 
 ## Accessibility
 
-Treat these as completion requirements.
+Treat the applicable product accessibility contract as a completion requirement and meet WCAG 2.2 AA at minimum.
 
-- Use semantic HTML: `button`, `nav`, `main`, headings, labels, and native controls where possible.
-- Ensure keyboard access: Tab order, Enter/Space activation, and no keyboard traps.
-- Keep visible `:focus-visible` styles.
-- Give every input and icon button an accessible name.
-- Meet contrast: 4.5:1 for body text and 3:1 for large text.
-- Keep touch targets at least 44 by 44 px with usable spacing.
-- Respect `prefers-reduced-motion`; avoid unavoidable autoplay or excessive motion.
-- Use ARIA only when native semantics are insufficient.
-- Announce loading, error, and empty states when screen-reader users need the state change.
+- Use semantic HTML and native controls. Use ARIA only when native semantics are insufficient.
+- Give inputs, controls, and icon buttons accessible names; associate labels, instructions, and errors programmatically.
+- Support keyboard operation with logical focus order, visible `:focus-visible` treatment, no keyboard traps, and no author-created content that fully obscures the focused control.
+- Meet text contrast of 4.5:1 for normal text and 3:1 for large text. Give required control boundaries, states, focus indicators, and meaningful graphics at least 3:1 contrast against adjacent colors.
+- For WCAG 2.2 AA, make pointer targets at least 24 by 24 CSS px or satisfy an applicable WCAG exception. Prefer 44 by 44 for frequent or touch-first controls; require it when the product contract targets that size or WCAG AAA.
+- Respect `prefers-reduced-motion`, provide control over non-essential autoplay or motion, and announce loading, error, success, and empty-state changes when assistive technology needs them.
 
 ## Ethical Guardrails
 
-Never implement these patterns. Offer a transparent alternative when requested.
+Reject these patterns and offer a transparent alternative.
 
-- Hiding or complicating cancellation, deletion, opt-out, unsubscribe, or account closure.
-- Charging after a trial without clear prior consent and visible cancellation.
-- Guilt-based copy such as manipulative refusal labels.
-- Fake urgency, fake scarcity, fake countdowns, or fake social proof.
-- Pre-checked consent or extra-charge boxes.
-- Misleading button color, placement, or wording that induces mistaken clicks.
-- Infinite scroll, autoplay, or reward loops without escape, pause, or control.
+- Hidden or obstructed cancellation, deletion, opt-out, unsubscribe, or account closure.
+- Charges, renewals, or trials without clear prior consent, visible terms, and an accessible cancellation path.
+- Guilt-based copy, fake urgency, fake scarcity, fake countdowns, or fake social proof.
+- Pre-checked consent or extra-charge choices and misleading labels, colors, placement, or button hierarchy.
+- Infinite scroll, autoplay, or reward loops without an obvious escape, pause, or control.
 
-Use good friction when it protects the user: destructive-action confirmation, payment summary, undo windows, and review steps for irreversible changes.
+Use good friction only when it protects the user, such as destructive-action confirmation, payment review, undo windows, and review steps for irreversible changes.
 
-## Completion Checklist
+## Completion Gate
 
-Before reporting a UI task complete, verify each item and fix misses in the same final path.
+Before reporting a UI task complete, verify and fix every miss in the same final path.
 
-- The initial load requests and renders only the elements and data required for the first useful state; deferred work has a clear user or workflow trigger.
-- Visual, DOM, and keyboard order all match the human flow.
-- The screen has one dominant target behavior and one clearly prioritized primary CTA.
-- Choices are chunked or progressively disclosed.
-- Main actions are large, close, reachable, and at least 44 by 44 px on touch.
-- Loading or latency receives immediate visible feedback.
-- Progress, completion, or unfinished state is visible when it motivates completion.
-- Success moments provide honest feedback or next value.
-- Familiar conventions are preserved unless the product value requires a different pattern.
-- Related elements are grouped with clear spacing, alignment, and hierarchy.
-- Styling uses Tailwind CSS, and native non-arbitrary utilities replace custom classes and inline styles wherever they can express the same result.
-- Project-specific design tokens exist only for recurring brand or domain meanings that native Tailwind values cannot represent; no token merely aliases a native value or a one-off choice.
-- Layout widths use parent-relative Tailwind proportions; every fixed, raw CSS percentage, or arbitrary width has a concrete requirement that proportional utilities cannot satisfy.
-- Errors and empty states explain the next action without blaming the user.
-- The rendered UI was visually inspected at every affected viewport and changed interaction state; source inspection or automated tests were not used as a substitute.
-- Accessibility requirements above are satisfied.
-- No dark pattern is present.
+- The first useful state loads only its critical UI, data, and assets; every deferred request has a clear trigger, and critical resources are not incorrectly lazy-loaded.
+- Layout edges, spacing, typography, boxes, and responsive placement form a readable hierarchy rather than visual clutter.
+- Visual, DOM, focus, task, and data dependency order agree from prerequisites through results.
+- Existing visual sources were reused, comparable components are consistent, and button treatment matches action meaning without relying on color alone.
+- Tailwind styling follows the native-utility, minimal-token, and proportional-layout rules above.
+- CTA, Hook, progress, and optimistic feedback appear only when appropriate to the screen and action risk.
+- Accessibility and ethical guardrails above are satisfied.
+- The rendered UI was inspected at every affected viewport and for each changed state: default, hover, focus, disabled, loading, error, empty, success, modal, and responsive. Source inspection and automated tests do not substitute for visual verification.
