@@ -13,25 +13,25 @@ Use this single path for UI design, implementation, and review.
 
 1. Define the screen's target outcome and whether it is an action, reading, or monitoring screen.
 2. Define the first useful state and the minimum critical UI, data, and assets required to reach it.
-3. Trace each required datum from its UI consumer to its authoritative producer, then classify it as initial or deferred. For a server-rendered template, trace its handler, query or service, and template context; in Django, inspect the function-based or class-based view. For fetched data, trace the endpoint or partial response.
+3. Trace each required datum from its UI consumer through the project's actual delivery path to its authoritative producer, then classify it as initial or deferred. Inspect only the layers that exist in the chosen architecture, such as request or render handlers, data-access or service calls, render context or serialized responses, and client state.
 4. Inspect the existing component, theme, spacing, typography, and interaction sources before choosing visual rules.
 5. Arrange information, prerequisites, controls, and results in the human and data flow defined below.
 6. Implement or review styling through the Tailwind path defined below.
 7. Apply the interaction, accessibility, and ethical rules.
-8. Render and inspect every affected viewport and interaction state, inspect the real data request path, then run the completion gate.
+8. Render and inspect every affected viewport and interaction state, inspect the real data-delivery path, then run the completion gate.
 
 ## First Useful State, Data Delivery, and Loading
 
 - Make time to the first useful state the first implementation priority. This state is the earliest rendered UI that lets the user understand or begin the target outcome.
 - Request and render only the critical UI, data, and assets for that state. Start independent critical requests in parallel, but request dependent data only after its prerequisites are known.
-- Keep the initial backend response to the permission-checked fields, rows, ranges, and relationships required for that state. Do not load a complete history or related collection when the initial UI uses only a summary or selection.
+- Keep the initial data delivery to the access-checked fields, rows, ranges, and relationships required for that state. Do not load a complete history or related collection when the initial UI uses only a summary or selection.
 - Lazy-load every non-critical data set, client module, and media asset from a clear viewport, interaction, or workflow trigger. Load critical above-the-fold and LCP resources early; do not delay them behind lazy loading.
-- Reuse an existing view, endpoint, or partial when it can enforce the required delivery contract cleanly. Add a delivery path only when the existing path cannot separate initial and deferred work without weakening clarity, validation, or authorization.
-- Define each deferred request's trigger, prerequisites, parameters, response shape, authorization, validation, range or pagination, and loading, error, and empty states.
-- Give each data-affecting default one authoritative owner. When a default changes query scope, permissions, or domain meaning, let the backend own it and render it into the template or response; have the client consume that value instead of redefining it. Keep purely presentational defaults client-side.
-- Use an available backend or project skill alongside this skill when UI work changes a view, query, authorization rule, serializer, or response contract. Use Smart UX to define the first-useful-state and data-flow contract, and use the backend skill to verify implementation correctness.
+- Reuse the project's existing data-delivery path when it can enforce the required contract cleanly. Add a delivery path only when the existing path cannot separate initial and deferred work without weakening clarity, validation, or authorization.
+- Define each deferred delivery's trigger, prerequisites, inputs, output shape, authorization, validation, range or pagination, and loading, error, and empty states.
+- Give each data-affecting default one authoritative owner. When a default changes data scope, access, or domain meaning, let the domain or data producer own it and expose it to consumers; do not redefine it in the template or client. Keep purely presentational defaults in the presentation layer.
+- Use an available implementation or project skill alongside this skill when UI work changes a data producer, data-access operation, authorization rule, serialization step, or delivery contract. Use Smart UX to define the first-useful-state and data-flow contract, and use the companion skill to verify correctness in the project's framework and runtime.
 - Do not render empty result cards or decorative placeholders before they carry meaning. For unavoidable latency, reserve stable space and show immediate loading or progress feedback.
-- A spinner or skeleton does not justify avoidable initial work. Verify the real request and render path instead of assuming source-level deferral improved loading.
+- A spinner or skeleton does not justify avoidable initial work. Verify the real data and render path instead of assuming source-level deferral improved loading.
 
 ## Layout and Human Flow
 
@@ -64,7 +64,7 @@ Use this single path for UI design, implementation, and review.
 ## Interaction and Feedback
 
 - Reduce simultaneous choices, group related options, and progressively disclose secondary work. Prefer familiar patterns unless a product requirement justifies a different interaction.
-- Provide immediate visible feedback for latency. Use optimistic state only when failure is reversible and the UI reconciles with authoritative server state; otherwise show pending progress until confirmation.
+- Provide immediate visible feedback for latency. Use optimistic state only when failure is reversible and the UI reconciles with the authoritative data state; otherwise show pending progress until confirmation.
 - Show progress for meaningful multi-step work. Make success, error, empty, and exit states explain the current result and the next available action without blaming the user.
 - Apply the Hook loop only to a repeatable behavior that creates real user value: a clear trigger, the smallest useful action, an honest result or reward, and an investment that improves future value. Skip reward or investment for one-off, reading, monitoring, destructive, compliance, and administrative flows.
 
@@ -95,9 +95,9 @@ Use good friction only when it protects the user, such as destructive-action con
 
 Before reporting a UI task complete, verify and fix every miss in the same final path.
 
-- The first useful state loads only its critical UI, data, and assets; every deferred request has a clear trigger, and critical resources are not incorrectly lazy-loaded.
-- Every required datum is traced to its backend or client-side producer, each data-affecting default has one authoritative owner, and template or client code does not fork that value.
-- For an implemented data-delivery change, measure the real entry point's initial query count, response payload size, and request sequence; remove work that belongs after the first useful state. Confirm that every deferred request applies the required authorization and input validation.
+- The first useful state loads only its critical UI, data, and assets; every deferred delivery has a clear trigger, and critical resources are not incorrectly lazy-loaded.
+- Every required datum is traced to its authoritative producer, each data-affecting default has one owner, and downstream consumers do not fork that value.
+- For an implemented data-delivery change, measure applicable data-source work, including query count, transferred or rendered payload size, and request, render, or stream sequence; remove work that belongs after the first useful state. Confirm that every deferred delivery applies the required authorization and input validation at each protected boundary.
 - Layout edges, spacing, typography, boxes, and responsive placement form a readable hierarchy rather than visual clutter.
 - Visual, DOM, focus, task, and data dependency order agree from prerequisites through results.
 - Existing visual sources were reused, comparable components are consistent, and button treatment matches action meaning without relying on color alone.
