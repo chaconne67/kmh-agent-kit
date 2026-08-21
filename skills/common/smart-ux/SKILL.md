@@ -9,16 +9,21 @@ Use this skill to turn UI work into behavior-aware product design, not only visu
 
 ## Workflow
 
-Run this sequence before changing UI code and repeat the checklist after changing it.
+Use this sequence while designing, implementing, or reviewing UI, then run the completion checklist after each change.
 
 1. Define one target behavior and the first useful state for the screen.
 2. Identify the minimum UI and data needed for that state; defer everything else until the user needs it.
 3. Arrange the UI to match the human flow defined below.
-4. Map the target behavior to the Hook loop: trigger, action, variable reward, investment.
-5. Apply the UX laws that reduce friction and cognitive load.
-6. Satisfy the accessibility requirements.
-7. Reject dark patterns and keep persuasion honest.
-8. Render and visually inspect every affected viewport and interaction state, then verify the completion checklist.
+4. Implement or review styling against these Tailwind CSS rules:
+   - If implementation is requested and the project does not provide Tailwind CSS, stop before UI implementation and report the missing dependency instead of silently using another styling path.
+   - Prefer native, non-arbitrary utilities from the installed Tailwind version whenever they can express the required result; do not replace them with custom classes or inline styles.
+   - Add a project-specific design token only for a recurring brand or domain meaning; do not create one as an alias for a native Tailwind value or a one-off design choice.
+   - Express layout widths as parent-relative Tailwind proportions such as `w-full`, fractional `w-*/*`, flex basis, or grid shares. Use fixed widths, raw CSS percentages, or arbitrary width values only when a concrete requirement cannot be represented proportionally.
+5. Map the target behavior to the Hook loop: trigger, action, variable reward, investment.
+6. Apply the UX laws that reduce friction and cognitive load.
+7. Satisfy the accessibility requirements.
+8. Reject dark patterns and keep persuasion honest.
+9. Render and visually inspect every affected viewport and interaction state, then verify the completion checklist.
 
 ## Loading and Human Flow
 
@@ -108,6 +113,9 @@ Before reporting a UI task complete, verify each item and fix misses in the same
 - Success moments provide honest feedback or next value.
 - Familiar conventions are preserved unless the product value requires a different pattern.
 - Related elements are grouped with clear spacing, alignment, and hierarchy.
+- Styling uses Tailwind CSS, and native non-arbitrary utilities replace custom classes and inline styles wherever they can express the same result.
+- Project-specific design tokens exist only for recurring brand or domain meanings that native Tailwind values cannot represent; no token merely aliases a native value or a one-off choice.
+- Layout widths use parent-relative Tailwind proportions; every fixed, raw CSS percentage, or arbitrary width has a concrete requirement that proportional utilities cannot satisfy.
 - Errors and empty states explain the next action without blaming the user.
 - The rendered UI was visually inspected at every affected viewport and changed interaction state; source inspection or automated tests were not used as a substitute.
 - Accessibility requirements above are satisfied.
