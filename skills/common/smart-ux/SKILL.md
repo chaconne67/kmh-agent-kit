@@ -15,10 +15,11 @@ Use this single path for UI design, implementation, and review.
 2. Define the first useful state and the minimum critical UI, data, and assets required to reach it.
 3. Trace each required datum from its UI consumer through the project's actual delivery path to its authoritative producer, then classify it as initial or deferred. Inspect only the layers that exist in the chosen architecture, such as request or render handlers, data-access or service calls, render context or serialized responses, and client state.
 4. Inspect the existing component, theme, spacing, typography, and interaction sources before choosing visual rules.
-5. Arrange information, prerequisites, controls, and results in the human and data flow defined below.
-6. Implement or review styling through the Tailwind path defined below.
-7. Apply the interaction, accessibility, and ethical rules.
-8. Render and inspect every affected viewport and interaction state, inspect the real data-delivery path, then run the completion gate.
+5. For HTMX work, run and report the HTMX swap target gate below before editing code.
+6. Arrange information, prerequisites, controls, and results in the human and data flow defined below.
+7. Implement or review styling through the Tailwind path defined below.
+8. Apply the interaction, accessibility, and ethical rules.
+9. Render and inspect every affected viewport and interaction state, inspect the real data-delivery path, then run the completion gate.
 
 ## First Useful State, Data Delivery, and Loading
 
@@ -61,6 +62,17 @@ Use this single path for UI design, implementation, and review.
 - Express layout allocation with parent-relative Tailwind utilities such as `w-full`, fractional widths, flex basis, or grid shares. Use Tailwind max-width or fixed-size utilities only for intrinsic controls, readable line length, accessibility, or an explicit external constraint.
 - Use arbitrary values or custom CSS only when existing components, theme values, and native utilities cannot express a concrete requirement. State that requirement before adding the exception.
 
+## HTMX Swap Target Gate
+
+Before editing code for an HTMX interaction, trace the event through its request, response fragment, `hx-target`, and `hx-swap`, then report:
+
+- The user-visible state that must change.
+- The current target selector, swap mode, response-fragment root, and DOM regions replaced. For a new interaction, report the current scope as absent instead of inventing one.
+- The proposed smallest stable target selector, swap mode, response-fragment root, and DOM regions replaced.
+- The unaffected ancestors and siblings excluded from the proposed swap, and why the target cannot be smaller without leaving required state stale or breaking valid DOM structure, focus, or accessibility relationships.
+
+Do not implement the HTMX change until this report is complete. If the current swap scope is already minimal, report the evidence instead of widening or redesigning it. Return and replace only the smallest stable DOM boundary that contains every state that must change together; do not return or swap unaffected ancestors or siblings.
+
 ## Interaction and Feedback
 
 - Reduce simultaneous choices, group related options, and progressively disclose secondary work. Prefer familiar patterns unless a product requirement justifies a different interaction.
@@ -98,6 +110,7 @@ Before reporting a UI task complete, verify and fix every miss in the same final
 - The first useful state loads only its critical UI, data, and assets; every deferred delivery has a clear trigger, and critical resources are not incorrectly lazy-loaded.
 - Every required datum is traced to its authoritative producer, each data-affecting default has one owner, and downstream consumers do not fork that value.
 - For an implemented data-delivery change, measure applicable data-source work, including query count, transferred or rendered payload size, and request, render, or stream sequence; remove work that belongs after the first useful state. Confirm that every deferred delivery applies the required authorization and input validation at each protected boundary.
+- For every affected HTMX interaction, the pre-implementation report identifies the current and proposed swap scopes, and the actual response fragment and browser swap match the reported smallest stable target without replacing unaffected ancestors or siblings.
 - Layout edges, spacing, typography, boxes, and responsive placement form a readable hierarchy rather than visual clutter.
 - Visual, DOM, focus, task, and data dependency order agree from prerequisites through results.
 - Existing visual sources were reused, comparable components are consistent, and button treatment matches action meaning without relying on color alone.
