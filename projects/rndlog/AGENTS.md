@@ -36,7 +36,7 @@
 - 제품 맥락의 정본은 원격 저장소의 `CONTEXT.md`입니다.
 - R&D 증빙 고객사 작업 공간은 메인서버 `자료/<정식 회사명>/`입니다.
 - `inputs/`는 카카오톡으로 받은 원천자료, `research/`는 회사별 조사자료,
-  `reports/source/`는 DOCX 작업본, `reports/output/`은 검토 완료 DOCX 산출물입니다.
+  `reports/source/`는 기존 HTML과 신규 DOCX 작업본, `reports/output/`은 기존 PDF와 검토 완료 DOCX 산출물입니다.
 - 앱의 공식 DB는 `ceo_loan` 하나이며 RNDLOG 업무 테이블은 `rndlog` 스키마에 둡니다.
 
 ## 작업 전 GBrain
@@ -86,6 +86,8 @@ GBrain은 중앙 서버에서 사용합니다. `~/.gbrain-agent.md`를 먼저 �
 - 테스트와 관리 명령이 운영 DB·SOLAPI·Google·Telegram에 미치는 영향을 먼저 확인합니다.
 - 원격 저장소의 기존 변경과 미추적 파일을 삭제하거나 덮어쓰지 않습니다.
 - 고객사 자료, 리서치, 보고서 작업본과 산출물을 운영서버에 새로 저장하지 않습니다.
+- 기존 HTML/PDF 산출물을 임의로 다른 폴더로 옮기거나 숨기지 않습니다.
+- 연구소·연구원·연구개요·실제 활동자료가 부족하면 대체용 검토 보고서를 포함한 R&D 산출물을 만들지 않습니다.
 
 ## Git 경계
 
