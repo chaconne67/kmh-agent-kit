@@ -12,7 +12,8 @@
 | 항목 | 값 |
 |---|---|
 | 컨트롤타워 | 메인서버 `/home/chaconne/projects/rndlog` |
-| 고객사 작업공간 | `/home/chaconne/projects/rndlog/자료/<정식 회사명>/` |
+| 고객사 작업공간 | `/home/chaconne/projects/rndlog/companies/<정식 회사명>/` |
+| 공통 제작 자원 | `/home/chaconne/projects/rndlog/resources/` |
 | 스킬 정본 | `/home/chaconne/kmh-agent-kit/skills/domains/rndlog/` |
 | 운영서버 SSH | `chaconne@49.247.207.147` (`rndlog`) |
 | 운영 코드 | `/home/chaconne/rndlog` |
@@ -34,9 +35,10 @@
 - 공개 영역은 RNDLOG 랜딩, 상담 신청, KOITA 자가진단입니다.
 - 로그인 영역은 기업자금 TM·영업 업무를 제공합니다.
 - 제품 맥락의 정본은 원격 저장소의 `CONTEXT.md`입니다.
-- R&D 증빙 고객사 작업 공간은 메인서버 `자료/<정식 회사명>/`입니다.
-- `inputs/`는 카카오톡으로 받은 원천자료, `research/`는 회사별 조사자료,
-  `reports/source/`는 기존 HTML과 신규 DOCX 작업본, `reports/output/`은 기존 PDF와 검토 완료 DOCX 산출물입니다.
+- R&D 증빙 고객사 작업 공간은 메인서버 `companies/<정식 회사명>/`입니다.
+- `sources/original/`은 고객 원본, `sources/intake/`는 수신기록, `research/`는 회사별 조사자료,
+  `deliverables/drafts/`는 기존 HTML과 신규 DOCX 작업본, `deliverables/final/`은 기존 PDF와 검토 완료 DOCX 산출물입니다.
+- 공통 참고자료·샘플·양식·도구는 `resources/`에 두고 고객사 파일과 섞지 않습니다.
 - 앱의 공식 DB는 `ceo_loan` 하나이며 RNDLOG 업무 테이블은 `rndlog` 스키마에 둡니다.
 
 ## 작업 전 GBrain
@@ -49,9 +51,9 @@ GBrain은 중앙 서버에서 사용합니다. `~/.gbrain-agent.md`를 먼저 �
 ## 공식 작업 경로
 
 1. Windows PC에서 카카오톡 원천파일을 받고 사업자등록증의 정식 법인명을 확인합니다.
-2. 메인서버 `자료/<정식 회사명>/inputs/`에 원본 그대로 올립니다.
+2. 메인서버 `companies/<정식 회사명>/sources/original/`에 원본 그대로 올리고, 수신메모·링크·대화 캡처는 `sources/intake/`에 둡니다.
 3. `rndlog` 스킬을 읽고 회사 자료 취합, 리서치와 DOCX 보고서 작성을 순서대로 수행합니다.
-4. 조사 결과는 `research/`, DOCX 작업본은 `reports/source/`, 검토 완료 DOCX는 `reports/output/`에 저장합니다.
+4. 조사 결과는 `research/`, DOCX 작업본은 `deliverables/drafts/`, 검토 완료 DOCX는 `deliverables/final/`에 저장합니다.
 5. 회사 README에 자료 입수·리서치·산출 이력을 기록합니다.
 6. 웹서비스 코드 변경이 필요한 경우에만 별도로 운영서버 Git·테스트·배포 절차를 사용합니다.
 
@@ -72,14 +74,15 @@ GBrain은 중앙 서버에서 사용합니다. `~/.gbrain-agent.md`를 먼저 �
 - 관련 테스트: `/home/chaconne/rndlog/.venv/bin/pytest <대상>`
 - 템플릿 변경은 Tailwind 빌드와 `collectstatic` 후 실제 화면을 확인합니다.
 - 제품 화면은 `rndlog-design-system` 스킬에 따라 모바일·데스크톱과 상호작용 상태를 확인합니다.
-- 고객사 보고서는 `공통/양식/design-report-reference.docx`의 스타일만 참조해 DOCX로 생성합니다.
+- 고객사 보고서는 `resources/templates/design-report-reference.docx`의 스타일만 참조해 DOCX로 생성합니다.
 - DOCX의 본문·표·머리말·꼬리말·패키지 무결성과 샘플 placeholder 잔존 여부를 확인합니다.
 - 운영 확인은 `https://rndlog.kr` 응답과 `Rndnote_app`, `Rndnote_nginx`의 `1/1` 상태를 사용합니다.
 - 검증하지 못한 항목을 통과했다고 보고하지 않습니다.
 
 ## 안전 경계
 
-- `자료/*/inputs/`의 고객사 원본은 수정하지 않습니다.
+- `companies/*/sources/original/`의 고객사 원본은 수정하지 않습니다.
+- 고객사 원본을 `resources/`에 넣거나 공통 샘플을 고객사 `deliverables/`에 넣지 않습니다.
 - 확인되지 않은 회사 정보·연구원·수치·논문·기관명을 만들지 않습니다.
 - 고객사 자료, `.env`, `.credential`, 운영 DB, 문자 발송, 예약 작업, Docker Swarm은 요청 없이
   변경하지 않습니다.
