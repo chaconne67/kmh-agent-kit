@@ -65,9 +65,11 @@ GBrain은 과거 맥락이고 현재 코드와 서버가 최종 기준입니다.
 ## 고유 스킬
 
 - CEO Loan 제품 UI·템플릿·Tailwind·HTMX·Alpine·반응형·접근성: `ceoloan-design-system`
+- CRETOP 브라우저 상태 확인·기업 조회·배치 수집·결과 저장·오류 진단: `cretop-scraping`
 
-이 스킬은 CEO Loan 조정실에서만 노출합니다. 웹 제품 화면과 MMS 카드 이미지의 디자인 규칙을
-서로 섞지 않으며, 일반 백엔드나 배포 작업이라는 이유만으로 발동하지 않습니다.
+이 스킬들은 CEO Loan 조정실에서만 노출합니다. `ceoloan-design-system`은 웹 제품 화면과 MMS
+카드 이미지의 디자인 규칙을 서로 섞지 않습니다. `cretop-scraping`은 기존 RNDLOG 래퍼의 공식
+수집 경로를 사용하며, 일반 브라우저 자동화나 DB 변경이라는 이유만으로 발동하지 않습니다.
 
 ## 검증 기준
 
