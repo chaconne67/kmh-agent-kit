@@ -93,7 +93,7 @@ uv run python scripts/cretop_detail_collection.py \
 
 완전 로그아웃처럼 비밀번호 입력이 필요한 상태에서는 preflight를 시작하지 않는다. 사람이 기존 Chrome 프로필의 로그인을 복구한 뒤 새 `run-id`로 다시 조사한다.
 
-## 단일 기업 조회
+## 단일 기업 검색·상세 진입 확인
 
 사용자가 특정 기업의 화면 조회를 요청했을 때만 실행한다.
 
@@ -132,15 +132,56 @@ uv run python scripts/cretop_detail_collection.py \
 
 시작 명령은 비동기이므로 한 번 실행했다고 조회가 끝난 것이 아니다. 같은 `run-id`로 상태를 확인하고, `result_exists=true`이며 작업이 `Running`이 아닐 때만 회수한다. 결과 파일 없이 작업이 끝났으면 같은 시작 명령을 반복하지 말고 증거를 보고한다.
 
-원시 결과는 검색 결과와 상세 진입 증거일 뿐 검증된 기업 사실이나 중앙 DB 저장 성공이 아니다. 사용자가 사업자등록번호 하나의 회사 정보 전체를 요구했다면 다음처럼 판정한다.
+원시 결과는 검색 결과와 상세 진입 증거일 뿐 검증된 기업 사실이나 중앙 DB 저장 성공이 아니다.
 
-- 사용자가 중앙 DB가 고른 미처리 리드 묶음의 수집·저장을 승인한 경우에만 배치 경로를 사용한다.
-- 배치 시작 명령의 `--limit`은 특정 사업자등록번호를 지정하지 않고 중앙 DB의 미처리 리드를 순서대로 고른다. 지정 번호 하나를 조회하려고 배치를 시작하거나 그 번호가 선택됐다고 추정하지 않는다.
-- 임의 사업자등록번호 하나를 곧바로 8개 화면 전체 수집·검증·저장하는 공식 단일 명령은 현재 없다. 이 결과가 필요하면 기존 래퍼의 배치 수집 단계를 재사용하는 단일 대상 경로를 먼저 구현·검증해야 하며, 수동 payload·직접 agent 실행·수동 DB 입력으로 우회하지 않는다.
+## 단일 기업 전체 수집·검증·저장
+
+사용자가 사업자등록번호 한 건의 회사정보 전체를 요청하면 `remote-search-detail`이 아니라 기존 `collect-batch`에 검증된 한 회사 payload를 전달한다. Windows agent의 `collect_one_fast()`와 `_collect_detail_map_fast()`가 검색 후 8개 화면을 수집하므로 새 단일 수집 스크립트를 만들지 않는다.
+
+한 회사 payload는 다음 계약을 따른다.
+
+```json
+{
+  "run_id": "<run-id>",
+  "leads": [
+    {
+      "lead_id": "<verified-lead-id>",
+      "company_name": "<verified-company-name>",
+      "business_number": "<10-digit-business-number>"
+    }
+  ]
+}
+```
+
+- 사업자등록번호로 현재 `company.leads`의 대상 행을 확인하고, 기존 미처리 리드 선택 계약과 같은 `lead_id`·회사명·사업자등록번호를 사용한다.
+- 대상 행이 없거나 중복 행 중 어느 것을 사용할지 기존 선택 계약으로 확정할 수 없으면 값을 만들지 말고 멈춘다.
+- payload의 `run_id`와 명령의 `--run-id`는 같아야 하며 `leads`에는 승인된 한 회사만 있어야 한다.
+- payload는 해당 실행의 증거 디렉터리에 보존한다. 과거 payload를 복사해 회사 값만 바꾸거나 추정한 `lead_id`·회사명을 입력하지 않는다.
+- 이미 처리된 사업자등록번호를 다시 수집하려면 현재 재조회 상태와 승인 범위를 먼저 확인한다. 상태를 임의로 바꾸지 않는다.
+
+```bash
+uv run python scripts/cretop_detail_collection.py \
+  remote-agent-start \
+  --agent-command collect-batch \
+  --payload-file <verified-one-company-payload.json> \
+  --run-id <run-id>
+
+uv run python scripts/cretop_detail_collection.py \
+  remote-batch-status \
+  --run-id <run-id>
+
+uv run python scripts/cretop_detail_collection.py \
+  remote-batch-fetch \
+  --run-id <run-id>
+```
+
+`remote-agent-start`는 작업 시작만 수행한다. 결과 파일이 생기고 작업이 `Running`이 아닐 때 `remote-batch-fetch`를 실행하면 8개 화면 증거 회수, 품질검사와 중앙 저장을 수행한다. 사용자가 원시 결과 회수만 명시적으로 요청했으면 마지막 명령을 `remote-result-fetch`로 바꾸되, 이 결과를 중앙 품질검사나 저장 성공으로 보고하지 않는다.
 
 ## 배치 수집과 저장
 
 사용자가 CRETOP 결과의 중앙 저장까지 요청한 경우 다음 단일 경로를 사용한다.
+
+이 경로의 `--limit`은 특정 사업자등록번호를 지정하지 않고 중앙 DB의 미처리 리드를 순서대로 고른다. 지정한 한 회사를 수집할 때는 위의 검증된 한 회사 payload 경로를 사용한다.
 
 ```bash
 uv run python scripts/cretop_detail_collection.py \
