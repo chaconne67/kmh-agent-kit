@@ -7,7 +7,7 @@ description: CRETOP(크레탑) 브라우저·로그인 상태 확인, 기업 상
 
 ## 역할
 
-기존 RNDLOG 래퍼를 통해 CRETOP Windows 브라우저를 조사하고 수집한다. Windows는 화면 조작과 증거 생성을 맡고, 중앙 래퍼는 결과 검증과 `company` 스키마 저장을 맡는다.
+현재 프로젝트의 공식 래퍼를 통해 CRETOP Windows 브라우저를 조사하고 수집한다. Windows는 화면 조작과 증거 생성을 맡고, 중앙 래퍼는 결과 검증과 요청된 경우의 `company` 스키마 저장을 맡는다. 프로젝트마다 래퍼 복사본을 독립적으로 유지하므로 다른 프로젝트의 스크립트를 실행하거나 함께 수정하지 않는다.
 
 별도 브라우저 runner나 임시 수집 스크립트를 만들지 않는다. 현재 래퍼와 Windows agent가 실행 경로의 정본이므로, 다른 경로를 만들면 로그인 세션·품질검사·저장 재개 계약이 갈라진다.
 
@@ -19,8 +19,8 @@ description: CRETOP(크레탑) 브라우저·로그인 상태 확인, 기업 상
 
 1. 현재 프로젝트 지침과 `~/.gbrain-agent.md`를 읽고 카드가 지정한 선행 GBrain 페이지를 확인한다.
 2. GBrain의 `project/cretop-windows-runtime`에서 현재 접속 경로·로그인 상태·운영 위험을 확인한다.
-3. 현재 RNDLOG 저장소의 Git 상태를 확인하고 기존 변경을 보존한다.
-4. RNDLOG의 `scripts/cretop_detail_collection.py`, `scripts/cretop_agent.py`, `docs/cretop/cretop_local_primary_runbook.md`, `docs/cretop/final_collection_procedure.md`에서 현재 명령과 화면 계약을 확인한다.
+3. 현재 프로젝트 공식 저장소의 Git 상태를 확인하고 기존 변경을 보존한다.
+4. 현재 프로젝트의 `scripts/cretop_detail_collection.py`, `scripts/cretop_agent.py`와 CRETOP 운영 문서에서 현재 명령과 화면 계약을 확인한다.
 
 코드와 GBrain이 다르면 현재 코드와 직접 확인한 서버 상태를 기준으로 삼고, 검증 후 GBrain을 갱신한다. 서버 주소·화면 좌표·로그인 marker·파일 hash를 이 스킬에 복사하지 않는다. 변할 수 있는 값은 정본에서 매번 다시 확인한다.
 
@@ -51,7 +51,7 @@ description: CRETOP(크레탑) 브라우저·로그인 상태 확인, 기업 상
 
 ## 실행 전 점검
 
-- RNDLOG 저장소의 프로젝트 Python 경로에서 래퍼 `--help`가 실행되는지 확인한다. 시스템 Python으로 대체하지 않는다.
+- 현재 프로젝트의 Python 경로에서 래퍼 `--help`가 실행되는지 확인한다. 시스템 Python으로 대체하지 않는다.
 - 현재 접속 경로와 Administrator console의 기존 Chrome 소유권을 확인한다.
 - 상태가 불명확하면 수집보다 `remote-inspect-browser`를 먼저 실행한다.
 - 단일 기업 조회에는 숫자 10자리 사업자등록번호를 사용한다. 회사명은 확인된 값만 넘기고 추정하지 않는다.
@@ -59,7 +59,7 @@ description: CRETOP(크레탑) 브라우저·로그인 상태 확인, 기업 상
 - 시작 명령마다 추적 가능한 고유 `--run-id`를 정하고, 상태 확인·회수·재개에 같은 값을 사용한다.
 - 필요한 DB·Telegram 환경값은 이름과 존재 여부만 확인한다. 비밀값·쿠키·세션·비밀번호를 출력하거나 증거에 기록하지 않는다.
 
-모든 명령은 현재 RNDLOG 루트에서 프로젝트의 공식 실행기인 `uv run python`으로 실행한다.
+모든 명령은 현재 프로젝트 루트에서 공식 실행기인 `uv run python`으로 실행한다.
 
 ## 조사
 
@@ -133,6 +133,46 @@ uv run python scripts/cretop_detail_collection.py \
 시작 명령은 비동기이므로 한 번 실행했다고 조회가 끝난 것이 아니다. 같은 `run-id`로 상태를 확인하고, `result_exists=true`이며 작업이 `Running`이 아닐 때만 회수한다. 결과 파일 없이 작업이 끝났으면 같은 시작 명령을 반복하지 말고 증거를 보고한다.
 
 원시 결과는 검색 결과와 상세 진입 증거일 뿐 검증된 기업 사실이나 중앙 DB 저장 성공이 아니다.
+
+## 지역·업종 회사 목록 전체 수집
+
+사용자가 지역과 업종에 해당하는 회사 목록을 요청하면 현재 프로젝트의 `company-list` 명령만 사용한다. 이 명령은 상세기업 수집이나 DB 저장 경로와 분리된 하나의 화면 경로다.
+
+payload는 다음 계약을 따른다.
+
+```json
+{
+  "sido": "<verified-sido>",
+  "sigungu": "<verified-sigungu>",
+  "industry_code": "<verified-industry-code>",
+  "industry_name": "<verified-industry-name>"
+}
+```
+
+```bash
+uv run python scripts/cretop_detail_collection.py \
+  remote-agent-start \
+  --agent-command company-list \
+  --payload-file <verified-company-list-payload.json> \
+  --run-id <run-id>
+
+uv run python scripts/cretop_detail_collection.py \
+  remote-batch-status \
+  --run-id <run-id>
+
+uv run python scripts/cretop_detail_collection.py \
+  remote-result-fetch \
+  --run-id <run-id>
+```
+
+Windows agent는 화면 배율을 정규화하고 `스마트검색 → 상세조건 검색 → 상세정보 → 주소 → 업종 → 조회하기`를 순서대로 실행한다. 결과 화면에서는 10개씩 보기 상태로 모든 페이지를 순회하고 각 페이지의 회사명·대표자명·사업자번호를 복사한다.
+
+- 좌표 숫자와 클릭 순서는 Windows agent 상수와 좌표 테스트가 정본이다.
+- 페이지 번호가 10개 미만인 마지막 묶음은 가운데 정렬되므로, 번호 좌표는 고정 시작점이 아니라 현재 묶음 크기로 계산한다.
+- 페이지마다 예상 회사 수를 확인하고 직전 페이지와 같은 회사 목록이면 이동 실패로 중단한다.
+- 화면에 사업자번호가 없는 회사는 회사명과 대표자명을 보존하고 `business_number`를 빈 문자열로 둔다. 법인번호나 다른 값으로 채우지 않는다.
+- 완료는 `total_count == collected_count == len(items)`이고 마지막 페이지까지 확인됐을 때만 인정한다.
+- `remote-result-fetch`는 JSON과 화면 증거를 회수할 뿐 DB에 저장하지 않는다. 목록 저장이 필요하면 별도 승인된 소비 경로를 사용한다.
 
 ## 단일 기업 전체 수집·검증·저장
 
