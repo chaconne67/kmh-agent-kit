@@ -15,14 +15,24 @@ GBrain 등록 이름은 영문 소문자·숫자·중간 하이픈으로 된 1~3
 
 운영 서버 설치는 이 절차의 기본값이 아닙니다. Coconut·RNDLOG·CEO Loan·Exdigm 운영 서버는 키트와 분리해 현재 상태를 유지합니다. 다른 서버도 명시적으로 선택한 경우에만 아래 절차를 적용합니다.
 
-## 퀵 설치 방법
+## 한 줄 설치
 
-### 처음 등록하는 `abc_project` 서버
+이미 등록된 `<등록-이름>`을 사용합니다.
 
-먼저 변경 내용을 확인하려면:
+| 터미널 | 최초 설치 명령 |
+|---|---|
+| Linux·macOS·WSL·Git Bash | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- <등록-이름>` |
+| Windows PowerShell | `& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'` |
+| Windows CMD | `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'"` |
+
+설치 후 새 터미널을 열면 PowerShell·CMD·Git Bash·Linux·macOS 어디서든 `kitpull`, `kitpush`를 사용할 수 있습니다.
+
+### 처음 등록하는 `abc_project` 역할
+
+중앙 Linux 환경에서 먼저 생성 내용을 확인합니다.
 
 ```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh --new abc-project --dry-run
+curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- --new abc-project --dry-run
 ```
 
 확인 후 실제 설치:
@@ -34,25 +44,16 @@ git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-a
 처음부터 바로 설치하려면 다음 한 줄만 실행합니다.
 
 ```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh --new abc-project
+curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- --new abc-project
 ```
 
-새 셸을 열거나 `source ~/.bashrc`를 실행하면 `kitpull`, `kitpush`를 사용할 수 있습니다.
-
-### 기존 역할을 새 장비에 설치
-
-| 역할 | 최초 설치 명령 |
-|---|---|
-| 중앙 DB·GBrain `49.247.45.243` | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh main` |
-| Judy WSL | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh judy` |
-
-그 밖의 Linux·WSL 서버는 자동 배포 대상이 아닙니다. 설치하기로 별도 결정한 장비에서만 기존 등록 이름으로 `~/kmh-agent-kit/install.sh <등록 이름>`을 실행합니다.
+그 밖의 서버는 자동 배포 대상이 아닙니다. 설치하기로 별도 결정한 장비에서만 위 한 줄 명령을 실행합니다.
 
 ## 그 외
 
 ### 설치 전 조건
 
-- 실행 계정은 `chaconne`을 기준으로 합니다.
+- 키트는 설치 명령을 실행한 사용자 계정에 전역 설치됩니다.
 - 원격 서버는 `chaconne@49.247.45.243`로 비밀번호 없이 SSH 접속할 수 있어야 합니다.
 - GitHub 저장소를 clone할 SSH 키가 준비되어 있어야 합니다.
 - 기존 `~/.claude`, `~/.codex`, `~/.gbrain` 일반 파일은 설치기가 백업합니다.
@@ -89,7 +90,7 @@ ssh -o BatchMode=yes -o ConnectTimeout=10 chaconne@49.247.45.243 true
 
 ### 설치된 장비 업데이트
 
-Linux·WSL·Windows Git Bash에서 같은 명령을 실행합니다.
+Linux·macOS·Windows PowerShell·CMD·Git Bash에서 같은 명령을 실행합니다.
 
 ```bash
 kitpull
@@ -116,7 +117,7 @@ kitpush
 
 ```bash
 python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
-readlink -f ~/.gbrain-agent.md
+readlink ~/.gbrain-agent.md
 ```
 
 신규 `abc-project`:
@@ -147,25 +148,9 @@ gbrain-fundkeeper policy
 systemctl --user status gbrain-http.service --no-pager
 ```
 
-### Windows Git Bash
+### Windows
 
-Gram17:
-
-```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
-~/kmh-agent-kit/install.sh gram17
-source ~/.bashrc
-```
-
-Venture:
-
-```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
-~/kmh-agent-kit/install.sh venture
-source ~/.bashrc
-```
-
-`install.sh`가 내부 PowerShell 설치기를 호출합니다. Windows는 junction과 하드링크를 사용하며 Linux 전용 GBrain 프록시·systemd 서비스는 설치하지 않습니다. `kitpull`은 Git checkout으로 끊길 수 있는 파일 하드링크를 매번 다시 연결합니다.
+상단 표의 PowerShell·CMD·Git Bash 명령 중 하나를 실행합니다. 설치기는 사용자 PATH에 `kitpull.cmd`·`kitpush.cmd`를 추가하고 Git Bash의 셸 설정도 연결합니다. Windows는 junction과 하드링크를 사용하며 Linux 전용 systemd 서비스는 설치하지 않습니다.
 
 ### 주의
 

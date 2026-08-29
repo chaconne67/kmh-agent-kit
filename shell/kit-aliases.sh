@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # kmh-agent-kit 일상 동기화 명령.
 # 최초 설치가 Git 로컬 설정에 저장한 등록 이름으로 공용 자산과 해당 도메인을 자동 선택한다.
 
@@ -13,7 +15,10 @@ _kit_registered_agent() {
 
   # 기존 설치는 저장값이 없으므로 현재 카드에서 한 번만 복구한다.
   if [ -z "$agent" ]; then
-    card="$(readlink -f "$HOME/.gbrain-agent.md" 2>/dev/null || true)"
+    card="$(readlink "$HOME/.gbrain-agent.md" 2>/dev/null || true)"
+    if [ -n "$card" ] && [[ "$card" != /* ]] && [[ ! "$card" =~ ^[A-Za-z]:[/\\] ]]; then
+      card="$(cd "$(dirname "$HOME/.gbrain-agent.md")" 2>/dev/null && cd "$(dirname "$card")" 2>/dev/null && printf '%s/%s\n' "$PWD" "$(basename "$card")" || true)"
+    fi
     case "$card" in
       "$kit"/gbrain-cards/*.md)
         agent="$(basename "$card" .md)"
@@ -186,3 +191,25 @@ kitpush() {
     return 1
   fi
 }
+
+_kit_dispatch() {
+  local command_name="$(basename "$0")"
+  case "$command_name" in
+    kitpull) kitpull "$@" ;;
+    kitpush) kitpush "$@" ;;
+    *)
+      case "${1:-}" in
+        pull) shift; kitpull "$@" ;;
+        push) shift; kitpush "$@" ;;
+        *)
+          echo "ERROR: 사용법: kitpull | kitpush [커밋 메시지]" >&2
+          return 64
+          ;;
+      esac
+      ;;
+  esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  _kit_dispatch "$@"
+fi

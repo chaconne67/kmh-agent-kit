@@ -20,12 +20,14 @@ def run(
     *args: str | Path,
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
+    input_text: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         [str(arg) for arg in args],
         cwd=cwd,
         env=env,
+        input=input_text,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -145,6 +147,58 @@ class KitSyncTests(unittest.TestCase):
         self.assertEqual(upstream, "origin/main")
         self.assertEqual((home / "install.log").read_text(encoding="utf-8"), "main\n")
 
+    def test_standalone_commands_use_same_pull_and_push_paths(self) -> None:
+        home, repo = self.fixture.clone()
+        command_dir = home / ".local" / "bin"
+        command_dir.mkdir(parents=True)
+        pull_command = command_dir / "kitpull"
+        push_command = command_dir / "kitpush"
+        pull_command.symlink_to(repo / "shell" / "kit-aliases.sh")
+        push_command.symlink_to(repo / "shell" / "kit-aliases.sh")
+        pull_command.chmod(0o755)
+        env = os.environ.copy()
+        env.update({"HOME": str(home), "GIT_TERMINAL_PROMPT": "0"})
+
+        run(pull_command, env=env)
+        (repo / "README.md").write_text("standalone push\n", encoding="utf-8")
+        run(push_command, "standalone command", env=env)
+
+        self.assertEqual(
+            (home / "install.log").read_text(encoding="utf-8"), "main\n" * 3
+        )
+        remote_text = run(
+            "git", "--git-dir", self.fixture.remote, "show", "main:README.md"
+        ).stdout
+        self.assertEqual(remote_text, "standalone push\n")
+
+    def test_raw_bash_installer_clones_then_runs_checked_out_installer(self) -> None:
+        home = self.fixture.root / "bootstrap-home"
+        home.mkdir()
+        env = os.environ.copy()
+        env.update(
+            {
+                "HOME": str(home),
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": f"url.file://{self.fixture.remote}.insteadOf",
+                "GIT_CONFIG_VALUE_0": "git@github.com:chaconne67/kmh-agent-kit.git",
+                "GIT_TERMINAL_PROMPT": "0",
+            }
+        )
+
+        run(
+            "bash",
+            "-s",
+            "--",
+            "sam",
+            cwd=self.fixture.root,
+            env=env,
+            input_text=(ROOT / "install.sh").read_text(encoding="utf-8"),
+        )
+
+        checkout = home / "kmh-agent-kit"
+        self.assertTrue((checkout / ".git").is_dir())
+        self.assertEqual((home / "install.log").read_text(encoding="utf-8"), "sam\n")
+
     def test_git_bash_installer_dispatches_to_powershell_with_agent(self) -> None:
         fake_bin = self.fixture.root / "fake-bin"
         fake_bin.mkdir()
@@ -172,6 +226,62 @@ class KitSyncTests(unittest.TestCase):
         self.assertEqual(decoded[-2:], ["-Agent", "gram17"])
         self.assertIn("-File", decoded)
         self.assertIn(str(ROOT / "install.ps1"), decoded)
+
+    def test_posix_installer_adds_global_commands_and_preserves_hermes_skills(self) -> None:
+        home = self.fixture.root / "posix-home"
+        repo = home / "kmh-agent-kit"
+        home.mkdir()
+        shutil.copytree(
+            ROOT,
+            repo,
+            symlinks=True,
+            ignore=shutil.ignore_patterns(".git", "__pycache__"),
+        )
+        run("git", "init", "--initial-branch=main", repo)
+        fake_bin = self.fixture.root / "darwin-bin"
+        fake_bin.mkdir()
+        fake_uname = fake_bin / "uname"
+        fake_uname.write_text("#!/usr/bin/env bash\nprintf 'Darwin\\n'\n", encoding="utf-8")
+        fake_uname.chmod(0o755)
+
+        policy = home / "agent-policy.toml"
+        policy.write_text("# test policy\n", encoding="utf-8")
+        wrapper = home / ".local" / "bin" / "gbrain-sam"
+        wrapper.parent.mkdir(parents=True)
+        wrapper.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+        wrapper.chmod(0o755)
+        personal_skill = home / ".hermes" / "skills" / "code-review"
+        personal_skill.mkdir(parents=True)
+        (personal_skill / "PERSONAL.txt").write_text("keep\n", encoding="utf-8")
+        env = os.environ.copy()
+        env.update(
+            {
+                "HOME": str(home),
+                "GBRAIN_POLICY_FILE": str(policy),
+                "PATH": f"{fake_bin}:{env['PATH']}",
+            }
+        )
+
+        run(repo / "install.sh", "sam", env=env)
+        run(repo / "install.sh", "sam", env=env)
+
+        self.assertEqual((personal_skill / "PERSONAL.txt").read_text(), "keep\n")
+        self.assertFalse(personal_skill.is_symlink())
+        self.assertTrue((home / ".hermes" / "skills" / "code-review-loop").is_symlink())
+        self.assertEqual(
+            (home / ".local" / "bin" / "kitpull").resolve(),
+            (repo / "shell" / "kit-aliases.sh").resolve(),
+        )
+        self.assertIn('*":$HOME/.local/bin:"*', (home / ".zshrc").read_text())
+        self.assertEqual((home / ".zshrc").read_text().count("kmh-agent-kit command path"), 1)
+        self.assertIn(
+            '*":$HOME/.local/bin:"*',
+            (home / ".bash_profile").read_text(),
+        )
+        saved = run(
+            "git", "config", "--local", "--get", "kmh-agent-kit.agent", cwd=repo
+        ).stdout.strip()
+        self.assertEqual(saved, "sam")
 
     def test_pull_and_push_reject_detached_or_non_main_branch(self) -> None:
         home, repo = self.fixture.clone()

@@ -1,14 +1,14 @@
 # Skill Management
 
 이 저장소의 `skills/`가 직접 만든 독립 스킬과 외부에서 가져온 독립 스킬의 단일 원본이다.
-live 위치(`~/.claude/skills`, `~/.agents/skills`, `<프로젝트>/.claude/skills`,
+live 위치(`~/.claude/skills`, `~/.agents/skills`, `~/.hermes/skills`, `<프로젝트>/.claude/skills`,
 `<프로젝트>/.agents/skills`)에는 프로필 심링크만 있다. 도구가 관리하는 네이티브·플러그인
 스킬은 이 저장소로 복제하지 않는다.
 
-| 범위 | Codex | Claude Code |
-|---|---|---|
-| 사용자 전역 | `~/.agents/skills` | `~/.claude/skills` |
-| 프로젝트 | `<프로젝트>/.agents/skills` | `<프로젝트>/.claude/skills` |
+| 범위 | Codex | Claude Code | Hermes |
+|---|---|---|---|
+| 사용자 전역 | `~/.agents/skills` | `~/.claude/skills` | Linux·macOS `~/.hermes/skills`, Windows `%LOCALAPPDATA%\hermes\skills` |
+| 프로젝트 | `<프로젝트>/.agents/skills` | `<프로젝트>/.claude/skills` | 사용자 전역 스킬 사용 |
 
 Codex의 `~/.codex/skills/.system`과 플러그인 캐시, Claude Code의 내장 기능은 각 도구가
 관리한다. 설치기는 이 영역을 수정하지 않는다.
@@ -19,7 +19,7 @@ Codex의 `~/.codex/skills/.system`과 플러그인 캐시, Claude Code의 내장
 
 | | 원본 | 전역 프로필 | 프로젝트 프로필 |
 |---|---|---|---|
-| 공용 스킬 | `skills/common/<이름>` | O — **claude·codex 양쪽 모두** | 보통 불필요 |
+| 공용 스킬 | `skills/common/<이름>` | O — **Claude·Codex·Hermes 모두** | 보통 불필요 |
 | 도메인 스킬 | `skills/domains/<도메인>/<이름>` | **금지** | O (그 프로젝트에서만 발동) |
 
 판정 기준은 "이 스킬이 특정 제품·업무 맥락을 알아야만 쓸모가 있는가"다. 그렇다면 도메인
@@ -105,17 +105,15 @@ kitpull
 
 ## Windows 기기
 
-Git Bash에서 `install.sh`를 쓴다. 이 스크립트가 내부적으로 `install.ps1`을 호출한다. 개발자 모드도 관리자 권한도 필요 없고, 별도 폴백 절차도 없다.
+PowerShell·CMD·Git Bash 중 편한 터미널에서 README 최상단의 한 줄 설치 명령을 실행한다. 개발자 모드나 관리자 권한은 필요 없다.
 
-```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
-~/kmh-agent-kit/install.sh gram17  # Venture는 venture
-source ~/.bashrc
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'
 ```
 
 동작이 Linux와 다른 지점은 세 곳뿐이다:
 
-- **live 연결** — 심링크 대신 junction(디렉토리)·하드링크(파일). 권한이 필요 없고, live에서 편집하면 레포 작업트리가 바뀌는 동작은 같다. Codex는 `.agents/skills`, Claude Code는 `.claude/skills`를 사용한다.
+- **live 연결** — 심링크 대신 junction(디렉토리)·하드링크(파일). Codex는 `.agents/skills`, Claude Code는 `.claude/skills`, Hermes는 `%LOCALAPPDATA%\hermes\skills`를 사용한다. Hermes의 기존 개인 스킬과 설정은 덮어쓰지 않는다.
 - **프로필 항목** — 개발자 모드가 꺼진 Windows는 git이 `core.symlinks=false`로 clone하므로 `claude/skills/<이름>`이 링크가 아니라 대상 경로만 담긴 일반 파일이 된다. `install.ps1`과 `check-skill-deps.py`가 이 표현도 링크로 인정한다.
 - **GBrain 런타임** — Linux용 원격 프록시·systemd 유닛은 건너뛴다. 등록 이름의 규칙 카드는 연결된다.
 

@@ -1,8 +1,39 @@
 # KMH Agent Kit
 
+## 운영체제별 한 줄 설치
+
+`<등록-이름>`을 이미 등록된 자신의 이름으로 바꾸어 실행합니다. 예: `main`, `sam`, `judy`.
+
+### Linux·macOS·WSL·Windows Git Bash
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- <등록-이름>
+```
+
+### Windows PowerShell
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'
+```
+
+### Windows 커맨드 프롬프트(CMD)
+
+```bat
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'"
+```
+
+설치가 끝나면 터미널을 새로 엽니다. 이후에는 모든 운영체제와 터미널에서 다음 두 명령만 사용합니다.
+
+```text
+kitpull
+kitpush
+```
+
+세 설치 명령은 터미널 문법만 다르고, 같은 GitHub 원본과 같은 설치 경로를 사용합니다. Git과 이 저장소에 접속할 GitHub SSH 키가 필요합니다.
+
 ## 개요
 
-KMH Agent Kit은 중앙 조정 장비와 개인 개발 장비의 Codex·Claude Code에 공용 스킬과 작업 규칙을 설치하고, 프로젝트 역할별 GBrain 공간을 연결하는 저장소입니다. 다른 서버 설치는 명시적으로 선택할 때만 수행합니다.
+KMH Agent Kit은 Linux·macOS·Windows 사용자 계정에 Codex·Claude Code·Hermes 공용 스킬과 작업 규칙을 전역 설치하고, 프로젝트 역할별 GBrain 카드를 연결하는 저장소입니다. 다른 서버 설치는 명시적으로 선택할 때만 수행합니다.
 
 설치 명령에 넣는 값은 장비의 호스트명이 아니라 **등록 이름**입니다. 등록 이름이 사용할 GBrain 공간·접근 정책·카드를 결정합니다.
 
@@ -27,14 +58,12 @@ kitpull
 kitpush
 ```
 
-## 퀵 설치 방법
+## 신규 등록 이름 만들기
 
-### 새로운 `abc_project` 역할을 처음 등록
-
-키트를 쓰기로 선택한 Linux·WSL 장비의 `chaconne` 계정에서 다음 한 줄을 실행합니다.
+새로운 `abc_project` 역할 자체를 처음 등록할 때는 중앙 Linux 환경에서 다음 한 줄을 실행합니다.
 
 ```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh --new abc-project
+curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- --new abc-project
 ```
 
 이 명령은 다음 작업을 완료합니다.
@@ -45,10 +74,9 @@ git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-a
 4. 중앙 GBrain SSH 프록시 연결
 5. 카드와 정책 연결 검증
 
-실제 생성 전에 내용을 확인하려면 clone 후 dry-run을 사용합니다.
+실제 생성 전에 내용을 확인하려면 한 줄 설치 후 dry-run을 사용합니다.
 
 ```bash
-git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
 ~/kmh-agent-kit/install.sh --new abc-project --dry-run
 ~/kmh-agent-kit/install.sh --new abc-project
 ```
@@ -57,28 +85,6 @@ git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
 
 - GitHub에서 이 저장소를 clone할 수 있어야 합니다.
 - `chaconne@49.247.45.243`에 비밀번호 없이 SSH 접속할 수 있어야 합니다.
-
-최초 설치 직후 현재 셸에서도 일상 명령을 사용하려면 한 번 실행합니다.
-
-```bash
-source ~/.bashrc
-```
-
-### 이미 등록된 역할을 설치
-
-저장소가 이미 있으면 해당 행의 명령 하나만 실행합니다.
-
-| 역할 | 등록 이름 | 설치 명령 |
-|---|---|---|
-| 중앙 DB·GBrain `49.247.45.243` | `main` | `~/kmh-agent-kit/install.sh main` |
-| Judy WSL | `judy` | `~/kmh-agent-kit/install.sh judy` |
-
-저장소도 없는 장비에서는 역할에 맞는 한 줄을 그대로 실행합니다.
-
-| 역할 | 최초 설치 명령 |
-|---|---|
-| 중앙 DB·GBrain | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh main` |
-| Judy WSL | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh judy` |
 
 운영 서버는 에이전트 키트의 자동 설치·배포 대상이 아닙니다. Coconut·RNDLOG·CEO Loan·Exdigm 운영 서버는 현재 상태를 유지합니다. 다른 서버에 설치하는 기능은 남겨 두되, 장비별로 명시적으로 선택한 경우에만 실행합니다.
 
@@ -146,7 +152,7 @@ source ~/.bashrc
 
 | 설치 대상 | 저장소 원본 | 실제 사용 위치 |
 |---|---|---|
-| 공용 스킬 | `skills/common/` | `~/.claude/skills/`, `~/.agents/skills/` |
+| 공용 스킬 | `skills/common/` | Claude·Codex·Hermes의 사용자 스킬 폴더 |
 | 전역 지침 | `claude/CLAUDE.md`, `codex/AGENTS.md` | 각 도구의 전역 지침 위치 |
 | 프로젝트 스킬 | `projects/` | 프로젝트의 `.claude/skills/`, `.agents/skills/` |
 | GBrain 카드 | `gbrain-cards/` | `~/.gbrain-agent.md` |
@@ -156,7 +162,7 @@ Linux에서는 저장소 원본을 실제 사용 위치에 심볼릭 링크합�
 
 ### 업데이트
 
-키트를 설치한 Linux·WSL·Windows Git Bash 장비에서 같은 명령을 사용합니다.
+키트를 설치한 Linux·macOS·Windows PowerShell·CMD·Git Bash에서 같은 명령을 사용합니다.
 
 ```bash
 kitpull
@@ -175,7 +181,7 @@ kitpush "설명할 커밋 메시지"
 
 ```bash
 python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
-readlink -f ~/.gbrain-agent.md
+readlink ~/.gbrain-agent.md
 ```
 
 신규 `abc-project` 정책 확인:
@@ -190,16 +196,9 @@ gbrain-abc-project policy
 ~/.gbrain/bin/gbrain_with_google_env.sh doctor --fast
 ```
 
-### Windows Git Bash
+### Windows 터미널
 
-Windows도 Git Bash에서 Linux와 같은 설치 명령을 사용합니다. 내부적으로 PowerShell 설치기가 junction과 하드링크를 구성합니다.
-
-| 역할 | 설치 명령 |
-|---|---|
-| Gram17 | `~/kmh-agent-kit/install.sh gram17` |
-| Venture | `~/kmh-agent-kit/install.sh venture` |
-
-먼저 Git Bash에서 저장소를 `~/kmh-agent-kit`에 clone하고 설치 명령을 실행한 뒤 새 터미널을 엽니다. Windows는 Linux용 GBrain SSH 프록시와 systemd 서비스를 설치하지 않습니다.
+README 최상단의 PowerShell·CMD·Git Bash 설치 명령 중 현재 터미널에 맞는 한 줄을 실행합니다. 설치기가 사용자 PATH에 `kitpull.cmd`·`kitpush.cmd`를 등록하므로 새 PowerShell·CMD·Git Bash에서 같은 명령을 사용합니다. Windows는 junction과 하드링크를 사용하며 Linux 전용 systemd 서비스는 설치하지 않습니다.
 
 Coconut·RNDLOG·CEO Loan·Exdigm 운영 서버에서는 위 설치 명령을 자동으로 실행하지 않습니다.
 

@@ -1,4 +1,4 @@
-# kmh-agent-kit installer for Windows Git Bash.
+# kmh-agent-kit installer for Windows PowerShell, Command Prompt, and Git Bash.
 # Directories use junctions and files use hardlinks, so no Developer Mode is required.
 
 [CmdletBinding()]
@@ -13,24 +13,91 @@ param(
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
+function Get-KitGitExecutable {
+    $candidates = @()
+    $command = Get-Command git.exe -ErrorAction SilentlyContinue
+    if ($command -and $command.Source) { $candidates += $command.Source }
+    if ($env:LOCALAPPDATA) {
+        $candidates += (Join-Path $env:LOCALAPPDATA 'hermes\git\cmd\git.exe')
+        $candidates += (Join-Path $env:LOCALAPPDATA 'hermes\git\bin\git.exe')
+    }
+    if ($env:ProgramFiles) { $candidates += (Join-Path $env:ProgramFiles 'Git\cmd\git.exe') }
+    if (${env:ProgramFiles(x86)}) { $candidates += (Join-Path ${env:ProgramFiles(x86)} 'Git\cmd\git.exe') }
+
+    foreach ($candidate in $candidates | Select-Object -Unique) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+    throw '[error] Git을 찾지 못했습니다. kitpush에 Git이 필요합니다.'
+}
+
+function Invoke-BootstrapCheckout {
+    param([hashtable]$ForwardedParameters)
+
+    if (-not $env:USERPROFILE) { throw '[error] USERPROFILE이 없습니다.' }
+    $checkout = Join-Path $env:USERPROFILE 'kmh-agent-kit'
+    $git = Get-KitGitExecutable
+    if ((Test-Path -LiteralPath $checkout) -and
+        -not (Test-Path -LiteralPath (Join-Path $checkout '.git') -PathType Container)) {
+        throw "[error] 설치 경로가 이미 있지만 Git 저장소가 아닙니다: $checkout"
+    }
+
+    if (Test-Path -LiteralPath (Join-Path $checkout '.git') -PathType Container) {
+        $dirty = & $git -C $checkout status --porcelain=v1 --untracked-files=normal
+        if ($LASTEXITCODE -ne 0) { throw '[error] 기존 키트 상태 확인 실패' }
+        if ($dirty) { throw "[error] 기존 키트에 로컬 변경이 있어 자동 설치를 중단합니다: $checkout" }
+        & $git -C $checkout fetch --prune origin
+        if ($LASTEXITCODE -ne 0) { throw '[error] origin 갱신 실패' }
+        & $git -C $checkout show-ref --verify --quiet refs/remotes/origin/main
+        if ($LASTEXITCODE -ne 0) { throw '[error] 원격 origin/main 브랜치가 없습니다.' }
+        & $git -C $checkout show-ref --verify --quiet refs/heads/main
+        if ($LASTEXITCODE -eq 0) {
+            & $git -C $checkout checkout main
+        } else {
+            & $git -C $checkout checkout -b main --track origin/main
+        }
+        if ($LASTEXITCODE -ne 0) { throw '[error] main 브랜치 전환 실패' }
+        & $git -C $checkout merge --ff-only origin/main
+        if ($LASTEXITCODE -ne 0) { throw '[error] 기존 키트 fast-forward 실패' }
+    } else {
+        & $git clone --branch main --single-branch git@github.com:chaconne67/kmh-agent-kit.git $checkout
+        if ($LASTEXITCODE -ne 0) { throw '[error] kmh-agent-kit clone 실패' }
+    }
+
+    & (Join-Path $checkout 'install.ps1') @ForwardedParameters
+    if (-not $?) { throw '[error] 체크아웃된 설치기 실행 실패' }
+}
+
+$forwardedParameters = @{}
+foreach ($key in $PSBoundParameters.Keys) { $forwardedParameters[$key] = $PSBoundParameters[$key] }
+$isRepositoryInstaller = $MyInvocation.MyCommand.Path -and $PSScriptRoot -and
+    (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git') -PathType Container) -and
+    (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'manifests\skills.json') -PathType Leaf)
+if (-not $isRepositoryInstaller) {
+    Invoke-BootstrapCheckout -ForwardedParameters $forwardedParameters
+    return
+}
+
 $repoDir    = $PSScriptRoot
 $homeDir    = $env:USERPROFILE
 $claudeHome = if ($env:CLAUDE_HOME) { $env:CLAUDE_HOME } else { Join-Path $homeDir '.claude' }
 $codexHome  = if ($env:CODEX_HOME)  { $env:CODEX_HOME }  else { Join-Path $homeDir '.codex' }
 $agentsHome = Join-Path $homeDir '.agents'
+$hermesHome = if ($env:HERMES_HOME) { $env:HERMES_HOME } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'hermes' } else { Join-Path $homeDir '.hermes' }
+$script:gitExe = Get-KitGitExecutable
 $stamp      = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backupRoot = Join-Path $homeDir ".kmh-agent-kit-backup-$stamp"
 
 function Show-Usage {
     @'
-KMH Agent Kit (Windows Git Bash)
+KMH Agent Kit (Windows PowerShell·Command Prompt·Git Bash)
 
 최초 설치 또는 재연결:
-  ~/kmh-agent-kit/install.sh gram17
-  ~/kmh-agent-kit/install.sh venture
+  .\install.ps1 -Agent <등록-이름>
 
 프로젝트 프로필 연결:
-  ~/kmh-agent-kit/install.sh --project ~/projects/rndlog rndlog
+  .\install.ps1 -Project "$HOME\projects\rndlog" -ProfileName rndlog
 
 이후 동기화:
   kitpull
@@ -47,7 +114,7 @@ function Assert-Name {
 
 function Invoke-KitGit {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
-    & git -C $repoDir @Arguments
+    & $script:gitExe -C $repoDir @Arguments
     if ($LASTEXITCODE -ne 0) { throw "[error] git 명령 실패: git -C $repoDir $($Arguments -join ' ')" }
 }
 
@@ -112,7 +179,7 @@ function Link-Entry {
 }
 
 function Link-Profile {
-    param([string]$Profile, [string]$Live)
+    param([string]$Profile, [string]$Live, [switch]$PreserveExisting)
 
     if (-not (Test-Path -LiteralPath $Profile)) { return }
     if (-not (Test-Path -LiteralPath $Live)) {
@@ -126,7 +193,19 @@ function Link-Profile {
             Write-Warning "  skip (대상 해석 실패): $($entry.Name)"
             continue
         }
-        Link-Entry -Target $target -Link (Join-Path $Live $entry.Name)
+        $linkPath = Join-Path $Live $entry.Name
+        if ($PreserveExisting -and (Test-Path -LiteralPath $linkPath)) {
+            $existing = Get-Item -LiteralPath $linkPath -Force
+            $skillsRoot = (Join-Path $repoDir 'skills').TrimEnd('\')
+            $managed = $existing.LinkType -eq 'Junction' -and $existing.Target -and
+                ($existing.Target[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')
+            if (-not $managed) {
+                Write-Host "  Hermes 기존 스킬 유지: $linkPath"
+                $linked[$entry.Name] = $true
+                continue
+            }
+        }
+        Link-Entry -Target $target -Link $linkPath
         $linked[$entry.Name] = $true
     }
 
@@ -196,11 +275,70 @@ function Add-ShellLine {
     Write-Host "  shell source: $Path"
 }
 
+function Get-GitBashExecutable {
+    $candidates = @()
+    if ($env:HERMES_GIT_BASH_PATH) { $candidates += $env:HERMES_GIT_BASH_PATH }
+    $gitParent = Split-Path $script:gitExe -Parent
+    $gitRoot = Split-Path $gitParent -Parent
+    $candidates += (Join-Path $gitRoot 'bin\bash.exe')
+    $candidates += (Join-Path $gitRoot 'usr\bin\bash.exe')
+    if ($env:LOCALAPPDATA) {
+        $candidates += (Join-Path $env:LOCALAPPDATA 'hermes\git\bin\bash.exe')
+        $candidates += (Join-Path $env:LOCALAPPDATA 'hermes\git\usr\bin\bash.exe')
+    }
+    if ($env:ProgramFiles) {
+        $candidates += (Join-Path $env:ProgramFiles 'Git\bin\bash.exe')
+        $candidates += (Join-Path $env:ProgramFiles 'Git\usr\bin\bash.exe')
+    }
+    if (${env:ProgramFiles(x86)}) {
+        $candidates += (Join-Path ${env:ProgramFiles(x86)} 'Git\bin\bash.exe')
+    }
+    $command = Get-Command bash.exe -ErrorAction SilentlyContinue
+    if ($command -and $command.Source -and $command.Source -notmatch '\\System32\\') {
+        $candidates += $command.Source
+    }
+
+    foreach ($candidate in $candidates | Select-Object -Unique) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+    throw '[error] Git Bash의 bash.exe를 찾지 못했습니다.'
+}
+
+function Add-UserPathEntry {
+    param([string]$Path)
+    $current = [Environment]::GetEnvironmentVariable('Path', 'User')
+    $entries = @($current -split ';' | Where-Object { $_ })
+    if (-not ($entries | Where-Object { $_.TrimEnd('\') -eq $Path.TrimEnd('\') })) {
+        $updated = (@($Path) + $entries) -join ';'
+        [Environment]::SetEnvironmentVariable('Path', $updated, 'User')
+    }
+    if (-not (($env:Path -split ';') | Where-Object { $_.TrimEnd('\') -eq $Path.TrimEnd('\') })) {
+        $env:Path = "$Path;$env:Path"
+    }
+}
+
 function Install-ShellCommands {
     $bashRepo = Convert-ToGitBashPath -Path $repoDir
     $aliasLine = '[ -f "' + $bashRepo + '/shell/kit-aliases.sh" ] && . "' + $bashRepo + '/shell/kit-aliases.sh"'
     Add-ShellLine -Path (Join-Path $homeDir '.bashrc') -Marker 'kmh-agent-kit aliases' -Line $aliasLine
     Add-ShellLine -Path (Join-Path $homeDir '.bash_profile') -Marker 'load ~/.bashrc for kmh-agent-kit' -Line '[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"'
+
+    $commandDir = Join-Path $homeDir '.local\bin'
+    if (-not (Test-Path -LiteralPath $commandDir)) {
+        New-Item -ItemType Directory -Path $commandDir -Force | Out-Null
+    }
+    $bash = Get-GitBashExecutable
+    $aliasScript = "$bashRepo/shell/kit-aliases.sh"
+    $gitDir = Split-Path $script:gitExe -Parent
+    foreach ($command in 'kitpull', 'kitpush') {
+        $action = if ($command -eq 'kitpull') { 'pull' } else { 'push' }
+        $content = "@echo off`r`nset `"PATH=$gitDir;%PATH%`"`r`n`"$bash`" --noprofile --norc `"$aliasScript`" $action %*`r`n"
+        Write-Utf8NoBom -Path (Join-Path $commandDir "$command.cmd") -Content $content
+    }
+    Add-UserPathEntry -Path $commandDir
+    Add-UserPathEntry -Path $gitDir
 }
 
 function Install-Global {
@@ -209,6 +347,8 @@ function Install-Global {
     Link-Profile -Profile "$repoDir\claude\skills" -Live "$claudeHome\skills"
     Write-Host "[codex] $agentsHome\skills"
     Link-Profile -Profile "$repoDir\codex\skills" -Live "$agentsHome\skills"
+    Write-Host "[hermes] $hermesHome\skills"
+    Link-Profile -Profile "$repoDir\codex\skills" -Live "$hermesHome\skills" -PreserveExisting
 
     Write-Host '[instructions]'
     Link-Entry -Target "$repoDir\claude\CLAUDE.md" -Link "$claudeHome\CLAUDE.md"
@@ -283,7 +423,7 @@ function Register-KnownProjects {
 }
 
 function Install-RegisteredProjects {
-    $rows = & git -C $repoDir config --local --get-regexp '^kmh-agent-kit\.project\.' 2>$null
+    $rows = & $script:gitExe -C $repoDir config --local --get-regexp '^kmh-agent-kit\.project\.' 2>$null
     if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 1) { throw '[error] 프로젝트 등록 정보 조회 실패' }
     foreach ($row in $rows) {
         if ($row -notmatch '^(\S+)\s+(.+)$') { continue }
@@ -322,7 +462,7 @@ function Assert-Install {
         $cardPath = Join-Path $homeDir '.gbrain-agent.md'
         $cardItem = Get-Item -LiteralPath $cardPath -Force
         if ($cardItem.LinkType -ne 'HardLink') { throw "[error] GBrain 카드 하드링크 검증 실패: $cardPath" }
-        $savedAgent = (& git -C $repoDir config --local --get kmh-agent-kit.agent).Trim()
+        $savedAgent = (& $script:gitExe -C $repoDir config --local --get kmh-agent-kit.agent).Trim()
         if ($LASTEXITCODE -ne 0 -or $savedAgent -ne $AgentName) {
             throw "[error] 등록 이름 저장 검증 실패: $AgentName"
         }

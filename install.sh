@@ -2,14 +2,15 @@
 set -euo pipefail
 
 # kmh-agent-kit installer — 전역 자산, GBrain 카드, 프로젝트 프로필을 한 경로로 연결한다.
-# 공식 설치 경로: ./install.sh <에이전트>
-# 신규 공간 생성: ./install.sh --new <에이전트>
+# raw URL로 실행하면 저장소를 준비한 뒤 체크아웃된 설치기로 이어간다.
 
-repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+installer_source="${BASH_SOURCE[0]:-}"
+repo_dir="$(cd "$(dirname "${installer_source:-.}")" && pwd)"
 home_dir="${HOME:?HOME is required}"
 claude_home="${CLAUDE_HOME:-$home_dir/.claude}"
 codex_home="${CODEX_HOME:-$home_dir/.codex}"
 agents_home="$home_dir/.agents"
+hermes_home="${HERMES_HOME:-$home_dir/.hermes}"
 gbrain_home="${GBRAIN_HOME:-$home_dir/.gbrain}"
 policy_file="${GBRAIN_POLICY_FILE:-$gbrain_home/memory/agent-policy.toml}"
 gbrain_cli="${GBRAIN_CLI_WRAPPER:-$gbrain_home/bin/gbrain_with_google_env.sh}"
@@ -22,9 +23,41 @@ die() {
   exit 64
 }
 
+bootstrap_checkout() {
+  local checkout="$home_dir/kmh-agent-kit"
+  command -v git >/dev/null 2>&1 || die "Git을 먼저 설치해야 합니다. kitpush에 Git이 필요합니다."
+
+  if [ -e "$checkout" ] && [ ! -d "$checkout/.git" ]; then
+    die "설치 경로가 이미 있지만 Git 저장소가 아닙니다: $checkout"
+  fi
+
+  if [ -d "$checkout/.git" ]; then
+    [ -z "$(git -C "$checkout" status --porcelain=v1 --untracked-files=normal)" ] ||
+      die "기존 키트에 로컬 변경이 있어 자동 설치를 중단합니다: $checkout"
+    git -C "$checkout" fetch --prune origin
+    git -C "$checkout" show-ref --verify --quiet refs/remotes/origin/main ||
+      die "원격 origin/main 브랜치가 없습니다."
+    if git -C "$checkout" show-ref --verify --quiet refs/heads/main; then
+      git -C "$checkout" checkout main
+    else
+      git -C "$checkout" checkout -b main --track origin/main
+    fi
+    git -C "$checkout" merge --ff-only origin/main
+  else
+    git clone --branch main --single-branch git@github.com:chaconne67/kmh-agent-kit.git "$checkout"
+  fi
+
+  [ -x "$checkout/install.sh" ] || chmod u+x "$checkout/install.sh"
+  exec "$checkout/install.sh" "$@"
+}
+
+if [ -z "$installer_source" ] || [ ! -d "$repo_dir/.git" ] || [ ! -f "$repo_dir/manifests/skills.json" ]; then
+  bootstrap_checkout "$@"
+fi
+
 show_usage() {
   cat <<'EOF'
-KMH Agent Kit
+KMH Agent Kit (Linux·macOS·WSL·Windows Git Bash)
 
 새로운 프로젝트 역할을 처음 등록:
   ./install.sh --new abc-project
@@ -32,8 +65,7 @@ KMH Agent Kit
 
 이미 등록된 역할을 설치 — 해당 등록 이름 하나만 사용:
   ./install.sh main
-  ./install.sh fundkeeper
-  ./install.sh judy
+  ./install.sh sam
 
 중앙 조정실 프로젝트 프로필만 연결:
   ./install.sh --project ~/projects/rndlog rndlog
@@ -116,12 +148,23 @@ link_entry() {
 }
 
 link_profile() {
-  local profile="$1" live="$2"
+  local profile="$1" live="$2" preserve_existing="${3:-no}"
   mkdir -p "$live"
-  local entry live_entry
+  local entry live_entry current_target
   for entry in "$profile"/*; do
     [ -e "$entry" ] || continue
-    link_entry "$entry" "$live/$(basename "$entry")"
+    live_entry="$live/$(basename "$entry")"
+    if [ "$preserve_existing" = yes ] && { [ -e "$live_entry" ] || [ -L "$live_entry" ]; }; then
+      current_target="$(readlink "$live_entry" 2>/dev/null || true)"
+      case "$current_target" in
+        "$profile"/*) ;;
+        *)
+          echo "Hermes 기존 스킬 유지: $live_entry"
+          continue
+          ;;
+      esac
+    fi
+    link_entry "$entry" "$live_entry"
   done
   for live_entry in "$live"/*; do
     [ -L "$live_entry" ] || continue
@@ -163,11 +206,53 @@ install_file() {
   cp -a "$src" "$dst"
 }
 
+append_shell_line() {
+  local file="$1" marker="$2" line="$3"
+  if grep -Fxq "# $marker" "$file" 2>/dev/null; then
+    local tmp="$file.kmh-agent-kit-$$"
+    awk -v marker="# $marker" -v replacement="$line" '
+      $0 == marker {
+        print
+        if ((getline) >= 0) print replacement
+        next
+      }
+      { print }
+    ' "$file" > "$tmp"
+    if ! cmp -s "$tmp" "$file"; then
+      cp "$tmp" "$file"
+      echo "$file의 $marker 갱신"
+    fi
+    rm -f "$tmp"
+    return 0
+  fi
+  printf '\n# %s\n%s\n' "$marker" "$line" >> "$file"
+  echo "$file에 $marker 추가"
+}
+
+install_shell_commands() {
+  local command_dir="$home_dir/.local/bin"
+  mkdir -p "$command_dir"
+  link_entry "$repo_dir/shell/kit-aliases.sh" "$command_dir/kitpull"
+  link_entry "$repo_dir/shell/kit-aliases.sh" "$command_dir/kitpush"
+
+  append_shell_line "$home_dir/.bashrc" "kmh-agent-kit aliases" \
+    "[ -f \"$repo_dir/shell/kit-aliases.sh\" ] && . \"$repo_dir/shell/kit-aliases.sh\""
+  append_shell_line "$home_dir/.bashrc" "kmh-agent-kit command path" \
+    'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
+  append_shell_line "$home_dir/.profile" "kmh-agent-kit command path" \
+    'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
+  append_shell_line "$home_dir/.bash_profile" "kmh-agent-kit command path" \
+    'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
+  append_shell_line "$home_dir/.zshrc" "kmh-agent-kit command path" \
+    'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
+}
+
 install_global() {
   local agent_name="${1:-}"
   remove_kit_skill_links "$codex_home/skills"
   link_profile "$repo_dir/claude/skills" "$claude_home/skills"
   link_profile "$repo_dir/codex/skills" "$agents_home/skills"
+  link_profile "$repo_dir/codex/skills" "$hermes_home/skills" yes
   link_entry "$repo_dir/claude/CLAUDE.md" "$claude_home/CLAUDE.md"
   link_entry "$repo_dir/codex/AGENTS.md" "$codex_home/AGENTS.md"
 
@@ -196,12 +281,13 @@ install_global() {
     install_file "$repo_dir/gbrain/systemd/gbrain-memory-distill.timer" "$home_dir/.config/systemd/user/gbrain-memory-distill.timer"
   fi
 
-  if [ -f "$repo_dir/shell/kit-aliases.sh" ] && ! grep -q "kmh-agent-kit/shell/kit-aliases.sh" "$home_dir/.bashrc" 2>/dev/null; then
-    printf '\n# kmh-agent-kit aliases\n[ -f "%s/shell/kit-aliases.sh" ] && . "%s/shell/kit-aliases.sh"\n' "$repo_dir" "$repo_dir" >> "$home_dir/.bashrc"
-    echo "~/.bashrc에 kit-aliases source 라인 추가"
-  fi
+  install_shell_commands
 
-  python3 "$repo_dir/scripts/check-skill-deps.py"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 "$repo_dir/scripts/check-skill-deps.py"
+  else
+    echo "[warning] python3 미발견 — 스킬 의존성 검사를 건너뜁니다." >&2
+  fi
 
   if [ "$agent_name" = main ] && command -v systemctl >/dev/null 2>&1 && [ -x "${GBRAIN_CLI:-$home_dir/.bun/bin/gbrain}" ]; then
     systemctl --user daemon-reload || true
@@ -291,7 +377,7 @@ install_gbrain_card() {
 verify_agent_install() {
   local agent_name="$1"
   local expected_card="$repo_dir/gbrain-cards/$agent_name.md"
-  [ "$(readlink -f "$home_dir/.gbrain-agent.md")" = "$expected_card" ] ||
+  [ "$(readlink "$home_dir/.gbrain-agent.md" 2>/dev/null || true)" = "$expected_card" ] ||
     die "GBrain 카드 링크 검증에 실패했습니다: $agent_name"
 
   if [ "$agent_name" = "main" ]; then
@@ -590,7 +676,7 @@ case "${1:-}" in
     die "알 수 없는 옵션: $1. ./install.sh --help"
     ;;
   *)
-    [ "$#" -eq 1 ] || die "서버 이름은 하나만 입력합니다. ./install.sh --help"
+    [ "$#" -eq 1 ] || die "등록 이름은 하나만 입력합니다. ./install.sh --help"
     install_agent "$1"
     ;;
 esac

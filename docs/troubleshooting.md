@@ -45,17 +45,16 @@ git -C ~/kmh-agent-kit fetch origin
 git -C ~/kmh-agent-kit diff origin/main...main
 ```
 
-## Windows Git Bash Commands Are Missing
+## Windows Commands Are Missing
 
-Git Bash에서 장비 등록 이름으로 설치기를 다시 실행합니다.
+PowerShell에서 등록 이름으로 설치기를 다시 실행한 뒤 터미널을 새로 엽니다.
 
-```bash
-~/kmh-agent-kit/install.sh gram17  # Venture는 venture
-source ~/.bashrc
-type kitpull kitpush
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'
+Get-Command kitpull, kitpush
 ```
 
-설치기는 `.bashrc`와 `.bash_profile`의 로딩 경로를 구성하고, Git checkout으로 끊길 수 있는 파일 하드링크도 다시 연결합니다.
+설치기는 사용자 PATH에 `.local\bin`을 추가하고, PowerShell·CMD용 명령과 Git Bash의 셸 설정을 함께 구성합니다.
 
 ## Bun Install Fails Because unzip Is Missing
 
