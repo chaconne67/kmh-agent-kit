@@ -18,9 +18,9 @@ description: CRETOP(크레탑) 브라우저·로그인 상태 확인, 기업 상
 작업 전에 다음 순서로 현재 계약을 확인한다.
 
 1. 현재 프로젝트 지침과 `~/.gbrain-agent.md`를 읽고 카드가 지정한 선행 GBrain 페이지를 확인한다.
-2. GBrain의 `project/cretop-windows-runtime`에서 현재 접속 경로·로그인 상태·운영 위험을 확인한다.
+2. GBrain의 `project/cretop-windows-runtime`에서 현재 접속 경로·로그인 상태·운영 위험을 확인한다. 담보대출 대상 작업이면 `project/ceoloan-mortgage-target-path`와 `project/ceoloan-mortgage-target-regions`도 확인한다.
 3. 현재 프로젝트 공식 저장소의 Git 상태를 확인하고 기존 변경을 보존한다.
-4. 현재 프로젝트의 `scripts/cretop_detail_collection.py`, `scripts/cretop_agent.py`와 CRETOP 운영 문서에서 현재 명령과 화면 계약을 확인한다.
+4. 현재 프로젝트의 `scripts/cretop_detail_collection.py`, `scripts/cretop_agent.py`와 직접 관련된 테스트에서 현재 명령·화면·좌표 계약을 확인한다.
 
 코드와 GBrain이 다르면 현재 코드와 직접 확인한 서버 상태를 기준으로 삼고, 검증 후 GBrain을 갱신한다. 서버 주소·화면 좌표·로그인 marker·파일 hash를 이 스킬에 복사하지 않는다. 변할 수 있는 값은 정본에서 매번 다시 확인한다.
 
@@ -51,6 +51,8 @@ description: CRETOP(크레탑) 브라우저·로그인 상태 확인, 기업 상
 
 ## 실행 전 점검
 
+- 공식 저장소와 실제 실행 복사본의 커밋 및 CRETOP 스크립트 hash가 같은지 확인한다. 코드 수정·검증·커밋은 공식 저장소에서만 한다.
+- 현재 실행 호스트가 이번 명령에 필요한 Windows SSH와 DB 접속 경로를 모두 갖췄는지 확인한다. 하나라도 닿지 않으면 비밀값 복사, 임시 우회 또는 수동 DB 보정으로 이어가지 않고 GBrain의 현재 제약과 함께 중단한다.
 - 현재 프로젝트의 Python 경로에서 래퍼 `--help`가 실행되는지 확인한다. 시스템 Python으로 대체하지 않는다.
 - 현재 접속 경로와 Administrator console의 기존 Chrome 소유권을 확인한다.
 - 상태가 불명확하면 수집보다 `remote-inspect-browser`를 먼저 실행한다.
@@ -59,14 +61,14 @@ description: CRETOP(크레탑) 브라우저·로그인 상태 확인, 기업 상
 - 시작 명령마다 추적 가능한 고유 `--run-id`를 정하고, 상태 확인·회수·재개에 같은 값을 사용한다.
 - 필요한 DB·Telegram 환경값은 이름과 존재 여부만 확인한다. 비밀값·쿠키·세션·비밀번호를 출력하거나 증거에 기록하지 않는다.
 
-모든 명령은 현재 프로젝트 루트에서 공식 실행기인 `uv run python`으로 실행한다.
+모든 명령은 현재 프로젝트 루트에서 공식 실행기인 `uv run python -m scripts.cretop_detail_collection`으로 실행한다. 모듈 실행은 프로젝트 루트를 Python 경로에 포함하므로 별도 `PYTHONPATH` 보정이 필요 없다. 비대화형 SSH에서 `uv`가 PATH에 없으면 현재 호스트에서 확인한 `uv` 실행 파일의 절대경로를 사용한다.
 
 ## 조사
 
 다음 명령으로 기존 Chrome을 조작하지 않는 진단 증거를 만든다.
 
 ```bash
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-inspect-browser \
   --run-id <run-id>
 ```
@@ -78,15 +80,15 @@ uv run python scripts/cretop_detail_collection.py \
 조사 결과가 기존 로그인 세션의 공식 복구·연장 경로를 지원하고 사용자가 화면 조작을 요청했을 때만 실행한다.
 
 ```bash
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-preflight \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-batch-status \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-result-fetch \
   --run-id <run-id>
 ```
@@ -108,16 +110,16 @@ uv run python scripts/cretop_detail_collection.py \
 이 명령은 상세 진입 확인용이다. 8개 화면 전체 본문 수집, 중앙 품질검사, 중앙 DB 저장은 수행하지 않는다. 내부 좌표와 클릭 순서를 사람이 다시 따라 하지 말고 다음 중앙 래퍼 명령만 실행한다.
 
 ```bash
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-search-detail \
   --business-number <10-digit-business-number> \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-batch-status \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-result-fetch \
   --run-id <run-id>
 ```
@@ -136,7 +138,7 @@ uv run python scripts/cretop_detail_collection.py \
 
 ## 지역·업종 회사 목록 전체 수집
 
-사용자가 지역과 업종에 해당하는 회사 목록을 요청하면 현재 프로젝트의 `company-list` 명령만 사용한다. 이 명령은 상세기업 수집이나 DB 저장 경로와 분리된 하나의 화면 경로다.
+사용자가 지역과 업종에 해당하는 담보대출 회사 목록의 수집과 저장을 요청하면 현재 프로젝트의 `company-list` 시작과 `remote-company-list-fetch` 저장을 하나의 경로로 사용한다. 화면 확인이나 원시 결과만 요청한 경우에만 마지막 명령을 `remote-result-fetch`로 바꾼다.
 
 payload는 다음 계약을 따른다.
 
@@ -150,18 +152,18 @@ payload는 다음 계약을 따른다.
 ```
 
 ```bash
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-agent-start \
   --agent-command company-list \
   --payload-file <verified-company-list-payload.json> \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-batch-status \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
-  remote-result-fetch \
+uv run python -m scripts.cretop_detail_collection \
+  remote-company-list-fetch \
   --run-id <run-id>
 ```
 
@@ -172,7 +174,8 @@ Windows agent는 화면 배율을 정규화하고 `스마트검색 → 상세조
 - 페이지마다 예상 회사 수를 확인하고 직전 페이지와 같은 회사 목록이면 이동 실패로 중단한다.
 - 화면에 사업자번호가 없는 회사는 회사명과 대표자명을 보존하고 `business_number`를 빈 문자열로 둔다. 법인번호나 다른 값으로 채우지 않는다.
 - 완료는 `total_count == collected_count == len(items)`이고 마지막 페이지까지 확인됐을 때만 인정한다.
-- `remote-result-fetch`는 JSON과 화면 증거를 회수할 뿐 DB에 저장하지 않는다. 목록 저장이 필요하면 별도 승인된 소비 경로를 사용한다.
+- `remote-company-list-fetch`는 원격 결과와 화면 증거 회수, 완전성 검사, `company` 원문 저장, 회사 연결, `MortgageTarget` 등록을 순서대로 수행한다. 같은 `run-id`의 같은 결과는 이어서 처리하고, 내용이 다르면 충돌로 중단한다.
+- 저장 요청에서 `remote-result-fetch`를 먼저 실행하거나 별도 저장 스크립트를 만들지 않는다. 저장하지 않는 조사 요청에만 `remote-result-fetch`를 사용하고 DB 저장 성공으로 보고하지 않는다.
 
 ## 단일 기업 전체 수집·검증·저장
 
@@ -200,17 +203,17 @@ Windows agent는 화면 배율을 정규화하고 `스마트검색 → 상세조
 - 이미 처리된 사업자등록번호를 다시 수집하려면 현재 재조회 상태와 승인 범위를 먼저 확인한다. 상태를 임의로 바꾸지 않는다.
 
 ```bash
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-agent-start \
   --agent-command collect-batch \
   --payload-file <verified-one-company-payload.json> \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-batch-status \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-batch-fetch \
   --run-id <run-id>
 ```
@@ -224,16 +227,16 @@ uv run python scripts/cretop_detail_collection.py \
 이 경로의 `--limit`은 특정 사업자등록번호를 지정하지 않고 중앙 DB의 미처리 리드를 순서대로 고른다. 지정한 한 회사를 수집할 때는 위의 검증된 한 회사 payload 경로를 사용한다.
 
 ```bash
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   batch-script-only-collect \
   --limit <approved-limit> \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-batch-status \
   --run-id <run-id>
 
-uv run python scripts/cretop_detail_collection.py \
+uv run python -m scripts.cretop_detail_collection \
   remote-batch-fetch \
   --run-id <run-id>
 ```
