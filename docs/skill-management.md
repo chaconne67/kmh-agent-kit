@@ -43,23 +43,23 @@ Codex의 `~/.codex/skills/.system`과 플러그인 캐시, Claude Code의 내장
   기록하지 않는다.
 - **플러그인은 도구가 관리한다.** 플러그인 스킬을 독립 스킬로 다시 복사하거나 링크하지 않는다.
 
-## 일상 수정 (git만 사용)
+## 일상 수정
 
 한 서버에서 스킬·지침을 수정하면 심링크 덕에 레포 작업트리가 이미 바뀌어 있다:
 
 ```bash
-cd ~/kmh-agent-kit
-git status --short          # 수정 내용 확인
-git add -A && git commit -m "..." && git push
+kitpush "변경 설명"
 ```
 
 다른 서버:
 
 ```bash
-cd ~/kmh-agent-kit && git pull --ff-only
+kitpull
 ```
 
-pull만으로 live에 즉시 반영된다(같은 파일이므로). `install.sh` 재실행은 **새 스킬이 추가·삭제된 경우에만** 필요하다(새 링크 생성/깨진 링크 정리).
+두 명령은 `main ↔ origin/main`만 사용한다. `kitpull`은 fast-forward 뒤 설치기를 실행하고, `kitpush`도 commit·재배치·push 전후에 설치기를 실행한다. 따라서 새 스킬 추가·삭제, Windows 파일 하드링크 교체, 등록 프로젝트 프로필 갱신까지 자동 반영된다.
+
+비중앙 등록은 공용 파일과 자기 카드·도메인만 push할 수 있다. 중앙 `main` 등록은 모든 도메인을 조정할 수 있다.
 
 ## 새 스킬 추가
 
@@ -75,8 +75,8 @@ pull만으로 live에 즉시 반영된다(같은 파일이므로). `install.sh` 
    ln -s ../../../skills/domains/<도메인>/<이름> projects/<도메인>/skills/<이름>
    ```
 3. 다른 스킬을 전제로 하면 `manifests/skills.json`의 `depends_on`에 추가.
-4. `python3 scripts/check-skill-deps.py` 통과 확인 → 커밋·푸시.
-5. 다른 서버: `git pull && ./install.sh`.
+4. `python3 scripts/check-skill-deps.py` 통과 확인 → `kitpush`.
+5. 다른 설치 장비: `kitpull`.
 
 작성 원칙은 `skills/common/skill-writing-guide/`와 `skills/common/prompt-guide/`를 따른다.
 
@@ -105,23 +105,23 @@ pull만으로 live에 즉시 반영된다(같은 파일이므로). `install.sh` 
 
 ## Windows 기기
 
-`install.ps1`을 쓴다. 개발자 모드도 관리자 권한도 필요 없고, 별도 폴백 절차도 없다.
+Git Bash에서 `install.sh`를 쓴다. 이 스크립트가 내부적으로 `install.ps1`을 호출한다. 개발자 모드도 관리자 권한도 필요 없고, 별도 폴백 절차도 없다.
 
-```powershell
-git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
-cd $env:USERPROFILE\kmh-agent-kit
-.\install.ps1
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
+~/kmh-agent-kit/install.sh gram17  # Venture는 venture
+source ~/.bashrc
 ```
 
 동작이 Linux와 다른 지점은 세 곳뿐이다:
 
 - **live 연결** — 심링크 대신 junction(디렉토리)·하드링크(파일). 권한이 필요 없고, live에서 편집하면 레포 작업트리가 바뀌는 동작은 같다. Codex는 `.agents/skills`, Claude Code는 `.claude/skills`를 사용한다.
 - **프로필 항목** — 개발자 모드가 꺼진 Windows는 git이 `core.symlinks=false`로 clone하므로 `claude/skills/<이름>`이 링크가 아니라 대상 경로만 담긴 일반 파일이 된다. `install.ps1`과 `check-skill-deps.py`가 이 표현도 링크로 인정한다.
-- **GBrain 런타임** — bash 래퍼·systemd 유닛은 건너뛴다. 규칙 카드(`-Gbrain`)는 연결된다.
+- **GBrain 런타임** — Linux용 원격 프록시·systemd 유닛은 건너뛴다. 등록 이름의 규칙 카드는 연결된다.
 
 **주의**: 이 기기에서 프로필 링크를 손으로 만들면(탐색기 복사, `New-Item -ItemType File` 등) git에 일반 파일로 커밋되어 **Linux 서버의 설치가 조용히 깨진다**. 반드시 `scripts/link-skill.py`를 써서 인덱스에 심링크로 등록한다.
 
-하드링크는 inode 공유라서, 일부 에디터처럼 저장 시 파일을 새로 만들어 교체하는 방식이면 연결이 끊긴다. `~/.claude/CLAUDE.md`를 편집한 뒤 레포 `git status`에 변경이 안 보이면 `.\install.ps1`을 다시 실행해 다시 잇는다.
+하드링크는 파일 교체 방식의 저장이나 Git checkout으로 연결이 끊길 수 있다. `kitpull`과 `kitpush`는 설치기를 다시 실행해 현재 저장소 원본에 하드링크를 재연결한다. 전역 지침을 직접 고칠 때는 `~/kmh-agent-kit` 안의 원본을 편집하는 것이 정본 경로다.
 
 ## GBrain 에이전트 카드
 

@@ -2,7 +2,7 @@
 
 ## 개요
 
-KMH Agent Kit은 여러 서버와 프로젝트의 Codex·Claude Code에 공용 스킬과 작업 규칙을 설치하고, 프로젝트 역할별 GBrain 공간을 연결하는 저장소입니다.
+KMH Agent Kit은 중앙 조정 장비와 개인 개발 장비의 Codex·Claude Code에 공용 스킬과 작업 규칙을 설치하고, 프로젝트 역할별 GBrain 공간을 연결하는 저장소입니다. 다른 서버 설치는 명시적으로 선택할 때만 수행합니다.
 
 설치 명령에 넣는 값은 장비의 호스트명이 아니라 **등록 이름**입니다. 등록 이름이 사용할 GBrain 공간·접근 정책·카드를 결정합니다.
 
@@ -31,7 +31,7 @@ kitpush
 
 ### 새로운 `abc_project` 역할을 처음 등록
 
-신규 서버의 `chaconne` 계정에서 다음 한 줄을 실행합니다.
+키트를 쓰기로 선택한 Linux·WSL 장비의 `chaconne` 계정에서 다음 한 줄을 실행합니다.
 
 ```bash
 git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh --new abc-project
@@ -71,7 +71,6 @@ source ~/.bashrc
 | 역할 | 등록 이름 | 설치 명령 |
 |---|---|---|
 | 중앙 DB·GBrain `49.247.45.243` | `main` | `~/kmh-agent-kit/install.sh main` |
-| FundKeeper `49.247.38.186` | `fundkeeper` | `~/kmh-agent-kit/install.sh fundkeeper` |
 | Judy WSL | `judy` | `~/kmh-agent-kit/install.sh judy` |
 
 저장소도 없는 장비에서는 역할에 맞는 한 줄을 그대로 실행합니다.
@@ -79,11 +78,9 @@ source ~/.bashrc
 | 역할 | 최초 설치 명령 |
 |---|---|
 | 중앙 DB·GBrain | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh main` |
-| FundKeeper | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh fundkeeper` |
 | Judy WSL | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh judy` |
 
-RNDLOG와 CEO Loan은 운영 서버 설치 대상이 아닙니다. 두 프로젝트의 지침·스킬·GBrain은 중앙
-조정실에만 두고, 중앙 에이전트가 SSH로 운영 저장소를 관리합니다.
+운영 서버는 에이전트 키트의 자동 설치·배포 대상이 아닙니다. Coconut·RNDLOG·CEO Loan·Exdigm 운영 서버는 현재 상태를 유지합니다. 다른 서버에 설치하는 기능은 남겨 두되, 장비별로 명시적으로 선택한 경우에만 실행합니다.
 
 ## 그 외
 
@@ -91,8 +88,8 @@ RNDLOG와 CEO Loan은 운영 서버 설치 대상이 아닙니다. 두 프로젝
 
 | 명령 | 용도 |
 |---|---|
-| `kitpull` | 저장소를 받은 뒤 이 서버의 공용 자산과 매칭 도메인 재설치 |
-| `kitpush` | 이 서버의 공용·매칭 도메인 변경 검증, 커밋, push |
+| `kitpull` | `origin/main`을 fast-forward로 받은 뒤 등록 자산과 프로젝트 프로필 재설치 |
+| `kitpush` | 허용 범위를 검사하고 원격 변경 위에 재배치한 뒤 `origin/main`으로 push |
 | `./install.sh main` | 중앙 DB·GBrain 역할 설치 |
 | `./install.sh fundkeeper` | FundKeeper 역할 설치 |
 | `./install.sh judy` | Judy WSL 역할 설치 |
@@ -112,10 +109,11 @@ RNDLOG와 CEO Loan은 운영 서버 설치 대상이 아닙니다. 두 프로젝
 
 기존 설치는 첫 `kitpull` 또는 `kitpush`에서 현재 GBrain 카드를 읽어 등록 이름을 한 번 복구합니다. 이후에는 저장된 이름이 기준입니다.
 
-- `kitpull`: Git 저장소 전체를 받은 뒤 공용 자산과 현재 등록 이름에 매칭되는 프로젝트 프로필만 실제 환경에 연결합니다.
-- `kitpush`: 공용 파일, 현재 등록 이름의 카드, 매칭 도메인만 커밋·push합니다.
+- 두 명령은 항상 로컬 `main`과 `origin/main`만 사용합니다. 추적 브랜치가 없거나 잘못돼 있으면 `origin/main`으로 복구합니다.
+- `kitpull`: 작업 폴더가 깨끗할 때만 fast-forward한 뒤 등록 자산과 저장된 프로젝트 프로필을 실제 환경에 다시 연결합니다.
+- `kitpush`: 공용 파일, 현재 등록 이름의 카드, 매칭 도메인만 커밋·push합니다. `main` 등록은 중앙 조정 역할이므로 모든 도메인을 다룰 수 있습니다.
 - 다른 도메인의 변경이 함께 있으면 `kitpush`는 변경 경로를 표시하고 중단합니다.
-- 원격 변경이 먼저 있으면 `kitpush`는 커밋 전에 중단하고 `kitpull`을 안내합니다.
+- 원격 변경이 먼저 있으면 `kitpush`가 로컬 커밋을 `origin/main` 위에 재배치합니다. 충돌하면 재배치를 취소하고 로컬 커밋을 보존한 채 중단합니다.
 
 ### 신규 등록 작동 원리
 
@@ -136,12 +134,13 @@ RNDLOG와 CEO Loan은 운영 서버 설치 대상이 아닙니다. 두 프로젝
 
 | 등록 이름 | 자동 연결되는 프로젝트 프로필 |
 |---|---|
-| `main` | `~/projects/exdigm`의 `exdigm` 프로필 |
+| `main` | `~/projects/<프로필명>`과 저장소 프로필 이름이 일치하는 모든 프로젝트 |
 | `fundkeeper` | `~/fundkeeper`의 `fundkeeper` 프로필 |
 | 그 외 | 같은 이름의 프로젝트 폴더와 프로필이 모두 있을 때 연결 |
 
-RNDLOG와 CEO Loan 프로젝트 프로필은 중앙 조정실에만 연결합니다. 운영 서버에는 프로젝트
-프로필·공용 지침·GBrain 카드를 설치하지 않습니다.
+`./install.sh --project <경로> <프로필>`로 연결한 위치는 저장소의 로컬 Git 설정에 기록됩니다. 이후 `kitpull`과 `kitpush`가 해당 프로필을 다시 연결합니다.
+
+운영 서버에는 프로젝트 프로필·공용 지침·GBrain 카드를 자동 설치하지 않습니다. 중앙 조정 장비의 프로젝트 폴더에만 프로필을 연결해도 운영 저장소를 관리할 수 있습니다.
 
 ### 설치 파일 연결 방식
 
@@ -157,7 +156,7 @@ Linux에서는 저장소 원본을 실제 사용 위치에 심볼릭 링크합�
 
 ### 업데이트
 
-모든 Linux·WSL 서버에서 같은 명령을 사용합니다.
+키트를 설치한 Linux·WSL·Windows Git Bash 장비에서 같은 명령을 사용합니다.
 
 ```bash
 kitpull
@@ -191,18 +190,18 @@ gbrain-abc-project policy
 ~/.gbrain/bin/gbrain_with_google_env.sh doctor --fast
 ```
 
-### Windows
+### Windows Git Bash
 
-Windows는 기존 PowerShell 설치기를 사용합니다.
+Windows도 Git Bash에서 Linux와 같은 설치 명령을 사용합니다. 내부적으로 PowerShell 설치기가 junction과 하드링크를 구성합니다.
 
 | 역할 | 설치 명령 |
 |---|---|
-| Gram17 | `.\install.ps1 -Gbrain gram17` |
-| Venture | `.\install.ps1 -Gbrain venture` |
+| Gram17 | `~/kmh-agent-kit/install.sh gram17` |
+| Venture | `~/kmh-agent-kit/install.sh venture` |
 
-먼저 저장소를 `$env:USERPROFILE\kmh-agent-kit`에 clone하고 그 폴더에서 명령을 실행합니다. Windows는 junction과 하드링크를 사용하며 Linux용 GBrain SSH 프록시와 systemd 서비스를 설치하지 않습니다.
+먼저 Git Bash에서 저장소를 `~/kmh-agent-kit`에 clone하고 설치 명령을 실행한 뒤 새 터미널을 엽니다. Windows는 Linux용 GBrain SSH 프록시와 systemd 서비스를 설치하지 않습니다.
 
-Exdigm 운영 서버 `115.68.224.161`은 현재 이 저장소의 설치 대상이 아닙니다. 해당 서버에서는 위 설치 명령을 실행하지 않습니다.
+Coconut·RNDLOG·CEO Loan·Exdigm 운영 서버에서는 위 설치 명령을 자동으로 실행하지 않습니다.
 
 ### 저장소에 포함하는 범위
 

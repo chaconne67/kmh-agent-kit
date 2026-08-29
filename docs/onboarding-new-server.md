@@ -11,7 +11,9 @@
 
 GBrain 등록 이름은 영문 소문자·숫자·중간 하이픈으로 된 1~32자입니다. 밑줄은 허용되지 않으므로 `abc_project`는 `abc-project`로 등록합니다.
 
-최초 설치 뒤에는 모든 서버에서 `kitpull`, `kitpush`만 사용합니다. 최초 설치가 저장한 등록 이름으로 공용 자산과 매칭 도메인을 자동 선택합니다.
+최초 설치 뒤에는 키트를 설치한 장비에서 `kitpull`, `kitpush`만 사용합니다. 최초 설치가 저장한 등록 이름으로 공용 자산과 매칭 도메인을 자동 선택합니다.
+
+운영 서버 설치는 이 절차의 기본값이 아닙니다. Coconut·RNDLOG·CEO Loan·Exdigm 운영 서버는 키트와 분리해 현재 상태를 유지합니다. 다른 서버도 명시적으로 선택한 경우에만 아래 절차를 적용합니다.
 
 ## 퀵 설치 방법
 
@@ -42,10 +44,9 @@ git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-a
 | 역할 | 최초 설치 명령 |
 |---|---|
 | 중앙 DB·GBrain `49.247.45.243` | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh main` |
-| FundKeeper `49.247.38.186` | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh fundkeeper` |
-| Rndlog `49.247.207.147` | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh rndlog` |
-| Ceoloan `49.247.205.170` | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh ceoloan` |
 | Judy WSL | `git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit && ~/kmh-agent-kit/install.sh judy` |
+
+그 밖의 Linux·WSL 서버는 자동 배포 대상이 아닙니다. 설치하기로 별도 결정한 장비에서만 기존 등록 이름으로 `~/kmh-agent-kit/install.sh <등록 이름>`을 실행합니다.
 
 ## 그 외
 
@@ -86,9 +87,9 @@ ssh -o BatchMode=yes -o ConnectTimeout=10 chaconne@49.247.45.243 true
 
 이 검증 중 하나라도 실패하면 설치 성공으로 보고하지 않습니다.
 
-### 기존 서버 업데이트
+### 설치된 장비 업데이트
 
-모든 Linux·WSL 서버에서 같은 명령을 실행합니다.
+Linux·WSL·Windows Git Bash에서 같은 명령을 실행합니다.
 
 ```bash
 kitpull
@@ -100,7 +101,16 @@ kitpull
 kitpush
 ```
 
-최초 설치가 등록 이름을 Git 로컬 설정에 저장하므로 이름을 다시 입력하지 않습니다. 다른 도메인의 변경이 있으면 `kitpush`가 해당 경로를 표시하고 중단합니다. 원격 변경이 먼저 있어도 커밋 전에 중단하고 `kitpull`을 안내합니다.
+최초 설치가 등록 이름을 Git 로컬 설정에 저장하므로 이름을 다시 입력하지 않습니다.
+
+- `kitpull`과 `kitpush`는 `main ↔ origin/main` 경로만 사용하며 원격 추적 설정을 자동 복구합니다.
+- `kitpull`은 로컬 변경이나 아직 push하지 않은 커밋이 있으면 중단합니다.
+- `kitpush`는 원격 변경을 먼저 받아 로컬 커밋을 그 위에 재배치합니다.
+- 재배치가 충돌하면 원상 복구하고 로컬 커밋을 보존합니다.
+- 다른 도메인의 변경이 있으면 `kitpush`가 해당 경로를 표시하고 중단합니다.
+- `main` 등록은 중앙 조정 역할이므로 모든 도메인 경로를 push할 수 있습니다.
+
+`./install.sh --project <경로> <프로필>`로 연결한 프로젝트는 로컬 Git 설정에 저장됩니다. 이후 두 동기화 명령이 해당 프로필을 매번 다시 연결합니다.
 
 ### 설치 결과 확인
 
@@ -137,31 +147,30 @@ gbrain-fundkeeper policy
 systemctl --user status gbrain-http.service --no-pager
 ```
 
-### Windows
+### Windows Git Bash
 
 Gram17:
 
-```powershell
-git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
-cd $env:USERPROFILE\kmh-agent-kit
-.\install.ps1
-.\install.ps1 -Gbrain gram17
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
+~/kmh-agent-kit/install.sh gram17
+source ~/.bashrc
 ```
 
 Venture:
 
-```powershell
-git clone https://github.com/chaconne67/kmh-agent-kit.git $env:USERPROFILE\kmh-agent-kit
-cd $env:USERPROFILE\kmh-agent-kit
-.\install.ps1
-.\install.ps1 -Gbrain venture
+```bash
+git clone git@github.com:chaconne67/kmh-agent-kit.git ~/kmh-agent-kit
+~/kmh-agent-kit/install.sh venture
+source ~/.bashrc
 ```
 
-Windows는 junction과 하드링크를 사용하며 Linux 전용 GBrain 프록시·systemd 서비스는 설치하지 않습니다.
+`install.sh`가 내부 PowerShell 설치기를 호출합니다. Windows는 junction과 하드링크를 사용하며 Linux 전용 GBrain 프록시·systemd 서비스는 설치하지 않습니다. `kitpull`은 Git checkout으로 끊길 수 있는 파일 하드링크를 매번 다시 연결합니다.
 
 ### 주의
 
 - 기존 역할을 새 장비에 설치할 때는 `--new`를 쓰지 않고 위 표의 등록 이름을 사용합니다.
 - 신규 카드 파일은 자동 commit·push하지 않습니다. 내용을 검토한 뒤 저장소에 반영합니다.
-- Exdigm 운영 서버 `115.68.224.161`은 현재 이 저장소의 설치 대상이 아닙니다.
+- Coconut·RNDLOG·CEO Loan·Exdigm 운영 서버는 자동 설치 대상이 아닙니다.
+- 다른 서버 설치도 장비별로 명시적으로 선택한 경우에만 수행합니다.
 - API 키, DB 비밀번호, OAuth 토큰은 저장소와 GBrain 카드에 넣지 않습니다.

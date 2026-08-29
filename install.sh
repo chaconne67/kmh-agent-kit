@@ -39,7 +39,7 @@ KMH Agent Kit
   ./install.sh --project ~/projects/rndlog rndlog
   ./install.sh --project ~/projects/ceoloan ceoloan
 
-최초 설치 후 모든 서버에서 동일:
+최초 설치 후 키트를 설치한 장비에서 동일:
   kitpull
   kitpush
 
@@ -48,6 +48,49 @@ KMH Agent Kit
   ./install.sh --project ~/projects/exdigm exdigm
   ./install.sh --help
 EOF
+}
+
+run_windows_installer() {
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) ;;
+    *) return 0 ;;
+  esac
+
+  command -v powershell.exe >/dev/null 2>&1 || die "Windows PowerShell을 찾지 못했습니다."
+  command -v cygpath >/dev/null 2>&1 || die "Git Bash의 cygpath를 찾지 못했습니다."
+
+  local ps_script
+  local -a ps_args=()
+  ps_script="$(cygpath -aw "$repo_dir/install.ps1")"
+  case "${1:-}" in
+    "")
+      [ "$#" -eq 0 ] || die "인수가 올바르지 않습니다. ./install.sh --help"
+      ;;
+    -h|--help)
+      [ "$#" -eq 1 ] || die "도움말에는 추가 인수를 사용할 수 없습니다."
+      ps_args=(-Help)
+      ;;
+    --project)
+      [ "$#" -eq 3 ] || die "사용법: ./install.sh --project ~/projects/exdigm exdigm"
+      ps_args=(-Project "$(cygpath -aw "$2")" -ProfileName "$3")
+      ;;
+    --gbrain)
+      [ "$#" -eq 2 ] || die "사용법: ./install.sh --gbrain gram17"
+      ps_args=(-Agent "$2")
+      ;;
+    --new|--register-agent)
+      die "$1 명령은 중앙 Linux 환경에서만 실행할 수 있습니다."
+      ;;
+    --*)
+      die "알 수 없는 옵션: $1. ./install.sh --help"
+      ;;
+    *)
+      [ "$#" -eq 1 ] || die "등록 이름은 하나만 입력합니다. ./install.sh --help"
+      ps_args=(-Agent "$1")
+      ;;
+  esac
+
+  exec powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$ps_script" "${ps_args[@]}"
 }
 
 validate_agent_name() {
@@ -121,34 +164,37 @@ install_file() {
 }
 
 install_global() {
+  local agent_name="${1:-}"
   remove_kit_skill_links "$codex_home/skills"
   link_profile "$repo_dir/claude/skills" "$claude_home/skills"
   link_profile "$repo_dir/codex/skills" "$agents_home/skills"
   link_entry "$repo_dir/claude/CLAUDE.md" "$claude_home/CLAUDE.md"
   link_entry "$repo_dir/codex/AGENTS.md" "$codex_home/AGENTS.md"
 
-  mkdir -p "$gbrain_home/bin" "$gbrain_home/logs" "$home_dir/.config/systemd/user"
-  install_file "$repo_dir/gbrain/bin/gbrain_with_google_env.sh" "$gbrain_home/bin/gbrain_with_google_env.sh"
-  install_file "$repo_dir/gbrain/bin/gbrain_http_with_google_env.sh" "$gbrain_home/bin/gbrain_http_with_google_env.sh"
-  install_file "$repo_dir/gbrain/bin/memory_distill.py" "$gbrain_home/bin/memory_distill.py"
-  install_file "$repo_dir/gbrain/bin/gbrain-agent" "$gbrain_home/bin/gbrain-agent"
-  chmod 700 "$gbrain_home/bin/gbrain_with_google_env.sh" "$gbrain_home/bin/gbrain_http_with_google_env.sh" "$gbrain_home/bin/memory_distill.py"
-  chmod 755 "$gbrain_home/bin/gbrain-agent"
+  if [ "$agent_name" = main ]; then
+    mkdir -p "$gbrain_home/bin" "$gbrain_home/logs" "$home_dir/.config/systemd/user"
+    install_file "$repo_dir/gbrain/bin/gbrain_with_google_env.sh" "$gbrain_home/bin/gbrain_with_google_env.sh"
+    install_file "$repo_dir/gbrain/bin/gbrain_http_with_google_env.sh" "$gbrain_home/bin/gbrain_http_with_google_env.sh"
+    install_file "$repo_dir/gbrain/bin/memory_distill.py" "$gbrain_home/bin/memory_distill.py"
+    install_file "$repo_dir/gbrain/bin/gbrain-agent" "$gbrain_home/bin/gbrain-agent"
+    chmod 700 "$gbrain_home/bin/gbrain_with_google_env.sh" "$gbrain_home/bin/gbrain_http_with_google_env.sh" "$gbrain_home/bin/memory_distill.py"
+    chmod 755 "$gbrain_home/bin/gbrain-agent"
 
-  if [ -f "$policy_file" ]; then
-    mkdir -p "$home_dir/.local/bin"
-    link_entry "$gbrain_home/bin/gbrain-agent" "$home_dir/.local/bin/gbrain-agent"
-    local registered_agent
-    while IFS= read -r registered_agent; do
-      if sed -n "/^\[agents\.$registered_agent\]$/,/^\[/p" "$policy_file" | grep -q '^private_source'; then
-        link_entry "$gbrain_home/bin/gbrain-agent" "$home_dir/.local/bin/gbrain-$registered_agent"
-      fi
-    done < <(sed -n 's/^\[agents\.\([A-Za-z0-9_-]*\)\]$/\1/p' "$policy_file")
+    if [ -f "$policy_file" ]; then
+      mkdir -p "$home_dir/.local/bin"
+      link_entry "$gbrain_home/bin/gbrain-agent" "$home_dir/.local/bin/gbrain-agent"
+      local registered_agent
+      while IFS= read -r registered_agent; do
+        if sed -n "/^\[agents\.$registered_agent\]$/,/^\[/p" "$policy_file" | grep -q '^private_source'; then
+          link_entry "$gbrain_home/bin/gbrain-agent" "$home_dir/.local/bin/gbrain-$registered_agent"
+        fi
+      done < <(sed -n 's/^\[agents\.\([A-Za-z0-9_-]*\)\]$/\1/p' "$policy_file")
+    fi
+
+    install_file "$repo_dir/gbrain/systemd/gbrain-http.service" "$home_dir/.config/systemd/user/gbrain-http.service"
+    install_file "$repo_dir/gbrain/systemd/gbrain-memory-distill.service" "$home_dir/.config/systemd/user/gbrain-memory-distill.service"
+    install_file "$repo_dir/gbrain/systemd/gbrain-memory-distill.timer" "$home_dir/.config/systemd/user/gbrain-memory-distill.timer"
   fi
-
-  install_file "$repo_dir/gbrain/systemd/gbrain-http.service" "$home_dir/.config/systemd/user/gbrain-http.service"
-  install_file "$repo_dir/gbrain/systemd/gbrain-memory-distill.service" "$home_dir/.config/systemd/user/gbrain-memory-distill.service"
-  install_file "$repo_dir/gbrain/systemd/gbrain-memory-distill.timer" "$home_dir/.config/systemd/user/gbrain-memory-distill.timer"
 
   if [ -f "$repo_dir/shell/kit-aliases.sh" ] && ! grep -q "kmh-agent-kit/shell/kit-aliases.sh" "$home_dir/.bashrc" 2>/dev/null; then
     printf '\n# kmh-agent-kit aliases\n[ -f "%s/shell/kit-aliases.sh" ] && . "%s/shell/kit-aliases.sh"\n' "$repo_dir" "$repo_dir" >> "$home_dir/.bashrc"
@@ -157,7 +203,7 @@ install_global() {
 
   python3 "$repo_dir/scripts/check-skill-deps.py"
 
-  if command -v systemctl >/dev/null 2>&1 && [ -x "${GBRAIN_CLI:-$home_dir/.bun/bin/gbrain}" ]; then
+  if [ "$agent_name" = main ] && command -v systemctl >/dev/null 2>&1 && [ -x "${GBRAIN_CLI:-$home_dir/.bun/bin/gbrain}" ]; then
     systemctl --user daemon-reload || true
     systemctl --user enable --now gbrain-http.service || true
     systemctl --user enable --now gbrain-memory-distill.timer || true
@@ -167,6 +213,7 @@ install_global() {
 install_project_profile() {
   local project_path="$1" profile_name="$2"
   local profile="$repo_dir/projects/$profile_name"
+  validate_agent_name "$profile_name"
   [ -d "$profile" ] || die "프로젝트 프로필이 없습니다: $profile"
   [ -d "$project_path" ] || die "프로젝트 폴더가 없습니다: $project_path"
   remove_kit_skill_links "$project_path/.codex/skills"
@@ -175,6 +222,57 @@ install_project_profile() {
   [ -f "$profile/CLAUDE.md" ] && link_entry "$profile/CLAUDE.md" "$project_path/CLAUDE.md"
   [ -f "$profile/AGENTS.md" ] && link_entry "$profile/AGENTS.md" "$project_path/AGENTS.md"
   echo "프로젝트 프로필 연결: $profile_name → $project_path"
+}
+
+register_project_profile() {
+  local project_path="$1" profile_name="$2" absolute_path
+  absolute_path="$(cd "$project_path" && pwd -P)"
+  git -C "$repo_dir" config --local --replace-all "kmh-agent-kit.project.$profile_name" "$absolute_path"
+  echo "프로젝트 프로필 등록: $profile_name → $absolute_path"
+}
+
+register_known_projects() {
+  local agent_name="$1" profile profile_name project_path
+  case "$agent_name" in
+    main)
+      for profile in "$repo_dir"/projects/*; do
+        [ -d "$profile" ] || continue
+        profile_name="$(basename "$profile")"
+        project_path="$home_dir/projects/$profile_name"
+        if [ -d "$project_path" ]; then
+          register_project_profile "$project_path" "$profile_name"
+        fi
+      done
+      ;;
+    fundkeeper)
+      if [ -d "$home_dir/fundkeeper" ]; then
+        register_project_profile "$home_dir/fundkeeper" fundkeeper
+      fi
+      ;;
+    *)
+      if [ -d "$repo_dir/projects/$agent_name" ] && [ -d "$home_dir/$agent_name" ]; then
+        register_project_profile "$home_dir/$agent_name" "$agent_name"
+      fi
+      ;;
+  esac
+  return 0
+}
+
+install_registered_projects() {
+  local key project_path profile_name
+  while read -r key project_path; do
+    [ -n "${key:-}" ] || continue
+    profile_name="${key##*.}"
+    if [ ! -d "$repo_dir/projects/$profile_name" ]; then
+      echo "[warning] 등록된 프로젝트 프로필이 없어 건너뜁니다: $profile_name" >&2
+      continue
+    fi
+    if [ ! -d "$project_path" ]; then
+      echo "[warning] 등록된 프로젝트 경로가 없어 건너뜁니다: $project_path" >&2
+      continue
+    fi
+    install_project_profile "$project_path" "$profile_name"
+  done < <(git -C "$repo_dir" config --local --get-regexp '^kmh-agent-kit\.project\.' 2>/dev/null || true)
 }
 
 install_gbrain_card() {
@@ -188,27 +286,6 @@ install_gbrain_card() {
     link_entry "$repo_dir/gbrain/bin/gbrain-remote-proxy" "$home_dir/.local/bin/gbrain-$agent_name"
   fi
   echo "GBrain 카드 연결: $agent_name"
-}
-
-install_known_project() {
-  local agent_name="$1"
-  case "$agent_name" in
-    main)
-      if [ -d "$home_dir/projects/exdigm" ]; then
-        install_project_profile "$home_dir/projects/exdigm" exdigm
-      fi
-      ;;
-    fundkeeper)
-      if [ -d "$home_dir/fundkeeper" ]; then
-        install_project_profile "$home_dir/fundkeeper" fundkeeper
-      fi
-      ;;
-    *)
-      if [ -d "$repo_dir/projects/$agent_name" ] && [ -d "$home_dir/$agent_name" ]; then
-        install_project_profile "$home_dir/$agent_name" "$agent_name"
-      fi
-      ;;
-  esac
 }
 
 verify_agent_install() {
@@ -235,14 +312,15 @@ install_agent() {
   git -C "$repo_dir" rev-parse --git-dir >/dev/null 2>&1 ||
     die "kmh-agent-kit Git 저장소에서 실행해야 합니다: $repo_dir"
 
-  install_global
+  install_global "$agent_name"
   install_gbrain_card "$agent_name"
-  install_known_project "$agent_name"
+  register_known_projects "$agent_name"
+  install_registered_projects
   verify_agent_install "$agent_name"
   git -C "$repo_dir" config --local kmh-agent-kit.agent "$agent_name"
 
   echo "설치 완료: $agent_name"
-  echo "서버 등록 이름 저장: $agent_name (이후 kitpull·kitpush가 자동 사용)"
+  echo "장비 등록 이름 저장: $agent_name (이후 kitpull·kitpush가 자동 사용)"
   if [ -d "$backup_root" ]; then
     echo "기존 파일 백업: $backup_root"
   fi
@@ -474,10 +552,12 @@ add_new_agent() {
   fi
 }
 
+run_windows_installer "$@"
+
 case "${1:-}" in
   "")
     [ "$#" -eq 0 ] || die "인수가 올바르지 않습니다. ./install.sh --help"
-    install_global
+    install_global ""
     echo "공용 설치 완료. 전체 설치 명령은 ./install.sh --help에서 서버별로 확인하세요."
     ;;
   -h|--help)
@@ -487,6 +567,7 @@ case "${1:-}" in
   --project)
     [ "$#" -eq 3 ] || die "사용법: ./install.sh --project ~/projects/exdigm exdigm"
     install_project_profile "$2" "$3"
+    register_project_profile "$2" "$3"
     ;;
   --gbrain)
     [ "$#" -eq 2 ] || die "사용법: ./install.sh --gbrain rndlog"
