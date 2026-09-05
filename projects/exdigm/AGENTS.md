@@ -84,7 +84,9 @@ GBrain은 중앙 서버에서만 사용합니다. `~/.gbrain-agent.md`를 먼저
 - 테스트는 `scripts/debug_workspace.sh test`를 사용해 공용 잠금과 개발 전용 테스트 DB를 함께 적용합니다.
 - 코드 변경 후 `uv run --locked python -m tools.code_knowledge catalog_update`를 원격 worktree에서 실행합니다.
 - UI 변경은 `goexdigm`으로 띄운 같은 `runserver`를 `https://dev.exdigm.com`에서 직접 확인합니다.
-- 실행 동작·데이터·권한·배포 경로가 바뀌는 변경은 `code-review-loop`를 통과합니다.
+- `resume-evolution-loop`로 수행하는 이력서 생성 개선의 프롬프트·생성 코드 반복 수정은 빠른 테스트·수정·재검증을 위해 해당 스킬의 `Direct Review Only`를 우선 적용하고 `code-review-loop`를 실행하지 않습니다.
+- 이 예외는 이력서 진화의 반복 개선에만 적용합니다. 운영 배포·권한·운영 데이터·외부 효과를 바꾸는 작업은 예외가 아닙니다.
+- 그 밖에 실행 동작·데이터·권한·배포 경로가 바뀌는 변경은 `code-review-loop`를 통과합니다.
 
 ## 회사 확장 경계
 
