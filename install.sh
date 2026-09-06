@@ -387,6 +387,7 @@ verify_agent_install() {
     local wrapper="$home_dir/.local/bin/gbrain-$agent_name"
     [ -x "$wrapper" ] || die "GBrain 래퍼가 없습니다: $wrapper"
     "$wrapper" policy >/dev/null
+    "$wrapper" --source default get agent/gbrain-operating-protocol >/dev/null
   fi
 }
 
@@ -416,10 +417,11 @@ render_agent_card() {
   local agent_name="$1"
   printf '%s\n' "- 너는 GBrain 공간 \`$agent_name\`을 쓰는 에이전트다. GBrain 본체는 중앙 서버(\`chaconne@49.247.45.243\`)에 있고, 로컬 \`gbrain-$agent_name\`은 중앙의 정책 래퍼를 호출한다."
   printf '%s\n' "- 작업 전 \`gbrain-$agent_name query \"작업 주제\"\`로 공용 지식과 자기 공간을 함께 조회한다. 명령 문법은 \`gbrain-$agent_name help\`로 확인한다."
+  printf '%s\n' "- 공용 본문은 \`gbrain-$agent_name --source default get <slug>\`, 공용 목록은 \`gbrain-$agent_name --source default list\`로 읽는다. \`--source\`를 생략한 get·list·쓰기는 자기 공간을 사용한다."
   printf '%s\n' "- 사적 기록은 \`gbrain-$agent_name note\` 또는 \`put\`으로 저장한다. 쓰기는 \`$agent_name\` 소스의 \`agents/$agent_name/private/\` 아래로 제한된다."
-  printf '%s\n' "- 공용 지식은 읽기 전용이다. 공용 반영이 필요하면 자기 공간에 근거를 기록하고 주인님께 승격을 요청한다."
+  printf '%s\n' "- 공용 기록은 \`gbrain-$agent_name --source default put <slug> <file.md|->\` 또는 \`gbrain-$agent_name --source default note <slug> <본문>\`으로 직접 저장한다. 허용 경로는 \`policy\`의 \`common_write_prefixes\`를 따른다. 기존 공용 페이지를 바꾸기 전에는 본문을 읽고 필요한 부분만 갱신한다."
   printf '%s\n' "- GBrain을 읽지 못하면 프로젝트 판단이 필요한 작업은 중단하고 연결 실패를 보고한다. 단순 상태 확인은 진행할 수 있지만 GBrain 미조회 사실을 함께 알린다."
-  printf '%s\n' "- 코드와 GBrain이 다르면 현재 코드를 기준으로 검증하고, 재사용 가치가 있는 확정 사실만 자기 공간에 갱신한다."
+  printf '%s\n' "- 코드와 GBrain이 다르면 현재 코드를 기준으로 검증한다. 여러 에이전트가 쓸 확정 지식은 공용에, 프로젝트·기기 고유 기록은 자기 공간에 갱신한다."
 }
 
 create_agent_card() {
@@ -491,12 +493,13 @@ read_prefixes = [
   "feedback",
   "project",
   "reference",
+  "incident",
   "shared/common",
   "agents/$agent_name/private"
 ]
-write_sources = ["$agent_name"]
-write_prefixes = ["agents/$agent_name/private"]
-common_write = false
+write_sources = ["default", "$agent_name"]
+write_prefixes = ["agent", "feedback", "project", "reference", "incident", "shared/common", "agents/$agent_name/private"]
+common_write = true
 can_promote = false
 EOF
   fi
@@ -545,11 +548,12 @@ register_agent_central() {
     '  "feedback",' \
     '  "project",' \
     '  "reference",' \
+    '  "incident",' \
     '  "shared/common",' \
     "  \"agents/$agent_name/private\"" \
-    "write_sources = [\"$agent_name\"]" \
-    "write_prefixes = [\"agents/$agent_name/private\"]" \
-    'common_write = false' \
+    "write_sources = [\"default\", \"$agent_name\"]" \
+    "write_prefixes = [\"agent\", \"feedback\", \"project\", \"reference\", \"incident\", \"shared/common\", \"agents/$agent_name/private\"]" \
+    'common_write = true' \
     'can_promote = false'; then
     agent_block=yes
   fi

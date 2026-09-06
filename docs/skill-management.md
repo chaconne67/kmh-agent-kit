@@ -134,7 +134,9 @@ GBrain 사용 규칙은 서버가 아니라 **에이전트 단위**로 다르다
 
 - 등록부는 `~/.gbrain/memory/agent-policy.toml` 하나다. `[agents.<이름>]`의 `private_source`(필수)·`private_prefix`(선택)가 공간을 정의한다.
 - 래퍼는 단일 스크립트 `gbrain-agent`(kit `gbrain/bin/`)뿐이다. `gbrain-<이름>` 심링크는 install.sh가 정책 파일에서 자동 생성하며, 호출된 이름으로 에이전트를 감지한다. 에이전트별 사본 스크립트를 만들지 않는다.
-- 공용(default) 직접 쓰기는 없다. 공용 반영은 사적 공간 기록 후 주인님 승격 단일 경로다 (pending-shared 제안 흐름은 2026-07-21 폐지).
+- 각 에이전트는 자기 공간과 공용(default)을 조회·기록한다. 기본 get·list·쓰기는 자기 공간, `--source default get|list|put|note`는 공용을 사용한다. `query`·`query-all`은 공용과 자기 공간만 검색하며, 일부 검색이 실패해도 실패 상태를 반환한다.
+- 공용 쓰기는 정책의 `defaults.common_direct_write`, 에이전트의 `common_write`와 `write_sources`가 허용해야 한다. 경로는 `guardrails.common_write_prefixes`(agent·feedback·project·reference·incident·shared/common)로 제한한다. 다른 에이전트의 개인 공간은 접근하지 않는다.
+- Windows 설치기는 Git Bash 프록시와 PowerShell·CMD용 `.cmd` 명령을 함께 연결한다. 설치 완료 검증에는 같은 명령으로 공용 운영 프로토콜 본문을 읽는 과정이 포함된다.
 
 새 공간 에이전트 추가는 설치기의 단일 경로를 사용한다:
 

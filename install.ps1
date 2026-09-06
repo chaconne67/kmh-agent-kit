@@ -449,6 +449,15 @@ function Install-AgentCard {
         throw "[error] 등록되지 않은 에이전트: $AgentName"
     }
     Link-Entry -Target $card -Link (Join-Path $homeDir '.gbrain-agent.md')
+    if ($AgentName -ne 'main') {
+        $commandDir = Join-Path $homeDir '.local\bin'
+        $proxy = Join-Path $repoDir 'gbrain\bin\gbrain-remote-proxy'
+        Link-Entry -Target $proxy -Link (Join-Path $commandDir "gbrain-$AgentName")
+        $bash = Get-GitBashExecutable
+        $bashProxy = Convert-ToGitBashPath -Path $proxy
+        $content = "@echo off`r`n`"$bash`" --noprofile --norc `"$bashProxy`" $AgentName %*`r`n"
+        Write-Utf8NoBom -Path (Join-Path $commandDir "gbrain-$AgentName.cmd") -Content $content
+    }
 }
 
 function Assert-Install {
@@ -465,6 +474,14 @@ function Assert-Install {
         $savedAgent = (& $script:gitExe -C $repoDir config --local --get kmh-agent-kit.agent).Trim()
         if ($LASTEXITCODE -ne 0 -or $savedAgent -ne $AgentName) {
             throw "[error] 등록 이름 저장 검증 실패: $AgentName"
+        }
+        if ($AgentName -ne 'main') {
+            $wrapper = Join-Path $homeDir ".local\bin\gbrain-$AgentName"
+            if ((Get-Item -LiteralPath $wrapper -Force).LinkType -ne 'HardLink') {
+                throw "[error] GBrain 프록시 하드링크 검증 실패: $wrapper"
+            }
+            & "$wrapper.cmd" --source default get agent/gbrain-operating-protocol | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw '[error] GBrain 공용 문서 조회 검증 실패' }
         }
     }
 }

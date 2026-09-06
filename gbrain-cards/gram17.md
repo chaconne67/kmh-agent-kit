@@ -1,17 +1,11 @@
 - 너는 GBrain 공간 `gram17`을 쓰는 에이전트다. 이 기기는 **Windows PC**이고, GBrain 본체는 DB 서버(`chaconne@49.247.45.243`)에 있다.
-- Windows에는 bash 프록시(`~/.local/bin/gbrain-gram17`)를 둘 수 없다. 모든 명령은 SSH로 서버 래퍼를 직접 호출한다 — 비대화형 SSH의 PATH에 없으므로 **절대 경로 필수**:
-  ```
-  ssh chaconne@49.247.45.243 '~/.local/bin/gbrain-gram17 <명령> ...'
-  ```
-  이 PC의 SSH config에는 `DB` alias가 있어 `ssh DB '...'`로도 된다.
+- 설치기가 연결한 `gbrain-gram17 <명령> ...`을 사용한다. PowerShell·CMD는 `.cmd` 실행 파일을, Git Bash는 같은 이름의 프록시를 사용하며 모두 중앙 정책 래퍼를 호출한다. PATH에 없으면 사용자 폴더의 `.local/bin`에서 해당 파일을 실행한다.
 - 명령 문법은 `gbrain-gram17 help`로 확인한다. `search`·`show`는 없다 — 읽기 `get <slug>`, 의미검색 `query`/`query-private`/`query-all`, 목록 `list`.
-- 쓰기(`note`/`put`)는 gram17 전용 공간(소스 `gram17`, `agents/gram17/private/` 아래)에만 저장된다. 공용(default)에는 직접 쓰지 않는다 — 공용 반영이 필요하면 사적 공간에 기록해 두고 주인님께 승격을 요청한다.
-- 공용 소스 페이지(`feedback/...`, `reference/...` 등)는 gram17 네임스페이스 밖이라 `gbrain-gram17 get`으로 읽지 못한다. 서버의 `gbrain`으로 읽는다:
-  ```
-  ssh chaconne@49.247.45.243 'export PATH=$HOME/.bun/bin:$HOME/.local/bin:$PATH; GBRAIN_SOURCE=default gbrain get <slug>'
-  ```
+- 기본 쓰기(`note`/`put`)는 소스 `gram17`의 `agents/gram17/private/` 아래에 저장된다.
+- 공용 기록은 `gbrain-gram17 --source default put <slug> <file.md|->` 또는 `gbrain-gram17 --source default note <slug> <본문>`으로 직접 저장한다. 허용 경로는 `policy`의 `common_write_prefixes`를 따른다. 기존 공용 페이지를 바꾸기 전에는 본문을 읽고 필요한 부분만 갱신한다.
+- 공용 본문은 `gbrain-gram17 --source default get <slug>`, 공용 목록은 `gbrain-gram17 --source default list`로 읽는다. `query`·`query-all`은 공용과 자기 공간만 검색한다. `--source`를 생략한 get·list·쓰기는 자기 공간을 사용한다.
 - 새 세션 시작 또는 작업 전 필수 실행:
-  - `ssh DB '~/.local/bin/gbrain-gram17 get agents/gram17/private/machine-context'`
+  - `gbrain-gram17 get agents/gram17/private/machine-context`
 - 필수 문서를 읽은 뒤, 작업 주제의 기능명·모델명·화면명·오류명으로 GBrain을 추가 검색한다.
 - GBrain이 안 되면:
   - 프로젝트 판단이 필요한 작업은 멈추고 실패를 보고한다.

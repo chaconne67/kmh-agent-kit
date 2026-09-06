@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -374,6 +375,156 @@ class KitSyncTests(unittest.TestCase):
             run("git", "--git-dir", self.fixture.remote, "show", "main:common.txt").stdout,
             "remote\n",
         )
+
+
+class GBrainAccessTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory(prefix="kmh-gbrain-access-")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.policy = self.root / "policy.toml"
+        self.policy.write_text(textwrap.dedent('''\
+            [defaults]
+            common_direct_write = false
+            [guardrails]
+            common_write_prefixes = ["agent", "reference", "shared/common"]
+            [agents.sample]
+            private_source = "sample"
+            private_prefix = "agents/sample/private"
+            read_sources = ["default", "sample"]
+            write_sources = ["sample"]
+            common_write = false
+        '''), encoding="utf-8")
+        self.log = self.root / "calls.jsonl"
+        self.mock = self.root / "mock-cli"
+        self.mock.write_text(textwrap.dedent('''\
+            #!/usr/bin/env python3
+            import json, os, sys
+            args = sys.argv[1:]
+            source = os.environ.get("GBRAIN_SOURCE", "")
+            for flag in ("--source", "--source-id"):
+                if flag in args:
+                    source = args[args.index(flag) + 1]
+            body = ""
+            if "--stdin" in args:
+                body = sys.stdin.read()
+            if "--file" in args:
+                with open(args[args.index("--file") + 1]) as f:
+                    body = f.read()
+            with open(os.environ["TEST_CALLS"], "a") as f:
+                f.write(json.dumps({"source": source, "args": args, "body": body}) + "\\n")
+            if os.environ.get("TEST_FAIL_SOURCE") == source:
+                print("backend unavailable", file=sys.stderr)
+                sys.exit(23)
+            print("document available")
+        '''), encoding="utf-8")
+        self.mock.chmod(0o755)
+        self.env = os.environ.copy()
+        self.env.update(GBRAIN_POLICY_FILE=str(self.policy),
+                        GBRAIN_CLI_WRAPPER=str(self.mock), TEST_CALLS=str(self.log))
+        self.wrapper = ROOT / "gbrain/bin/gbrain-agent"
+
+    def invoke(self, *args: str, **kwargs) -> subprocess.CompletedProcess[str]:
+        return run("bash", self.wrapper, "sample", *args, env=self.env, **kwargs)
+
+    def calls(self) -> list[dict]:
+        return [json.loads(line) for line in self.log.read_text().splitlines()] if self.log.exists() else []
+
+    def test_private_lookup_keeps_existing_source(self) -> None:
+        self.invoke("get", "agents/sample/private/page")
+        self.assertEqual(self.calls()[0]["source"], "sample")
+
+    def test_shared_lookup_uses_explicit_source(self) -> None:
+        self.invoke("--source", "default", "get", "agent/protocol")
+        self.assertEqual(self.calls()[0]["source"], "default")
+
+    def test_list_and_explicit_query_use_selected_source(self) -> None:
+        self.invoke("list")
+        self.invoke("--source", "default", "list", "--tag", "incident", "-n", "80")
+        self.invoke("--source", "default", "query", "topic")
+        self.assertEqual([call["source"] for call in self.calls()], ["sample", "default", "default"])
+        self.assertEqual(self.calls()[1]["args"], ["list", "--limit", "80", "--tag", "incident"])
+        result = self.invoke("--source", "default", "list", "--source-id", "other", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(len(self.calls()), 3)
+
+    def test_private_notes_keep_prefix_and_unprefixed_agent_conventions(self) -> None:
+        self.invoke("note", "page", "한글 기록")
+        self.assertIn("agents/sample/private/page", self.calls()[0]["args"])
+        self.assertIn("visibility: private", self.calls()[0]["body"])
+        self.policy.write_text(self.policy.read_text().replace('private_prefix = "agents/sample/private"', ''))
+        self.invoke("note", "knowledge/page", "기존 경로")
+        self.assertIn("knowledge/page", self.calls()[1]["args"])
+
+    def test_other_private_source_is_rejected(self) -> None:
+        result = self.invoke("--source", "other-agent", "get", "page", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.calls(), [])
+
+    def test_all_query_stays_in_authorized_sources(self) -> None:
+        self.invoke("query-all", "topic")
+        self.assertEqual([call["source"] for call in self.calls()], ["default", "sample"])
+
+    def test_partial_query_failure_is_not_reported_as_success(self) -> None:
+        self.env["TEST_FAIL_SOURCE"] = "default"
+        result = self.invoke("query", "topic", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual([call["source"] for call in self.calls()], ["default", "sample"])
+
+    def test_private_input_and_prefix_are_preserved(self) -> None:
+        body = "한글 기록\nsecond line\n"
+        self.invoke("put", "agents/sample/private/page", "-", input_text=body)
+        self.assertEqual(self.calls()[0]["source"], "sample")
+        self.assertEqual(self.calls()[0]["body"], body)
+        self.log.unlink()
+        result = self.invoke("put", "agents/other/private/page", "-", input_text=body, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.calls(), [])
+
+    def test_shared_write_requires_policy_permission(self) -> None:
+        result = self.invoke("--source", "default", "put", "reference/page", "-", input_text="body", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.calls(), [])
+
+    def test_allowed_shared_write_uses_common_source_and_prefix(self) -> None:
+        text = self.policy.read_text().replace("common_direct_write = false", "common_direct_write = true")
+        text = text.replace("common_write = false", "common_write = true")
+        text = text.replace('write_sources = ["sample"]', 'write_sources = ["default", "sample"]')
+        self.policy.write_text(text)
+        self.invoke("--source", "default", "put", "reference/page", "-", input_text="body")
+        self.assertEqual(self.calls()[0]["source"], "default")
+        self.log.unlink()
+        result = self.invoke("--source", "default", "put", "agents/other/private/page", "-", input_text="body", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.calls(), [])
+
+    def test_new_agent_registration_enables_shared_writes(self) -> None:
+        self.policy.write_text(self.policy.read_text().replace("common_direct_write = false", "common_direct_write = true"))
+        installer = (ROOT / "install.sh").read_text()
+        function = "append_policy_blocks() {" + installer.split("append_policy_blocks() {", 1)[1].split("\n}\n", 1)[0] + "\n}"
+        env = self.env | {"policy_file": str(self.policy), "stamp": "test"}
+        run("bash", "-c", function + '\nappend_policy_blocks fresh "$1" yes yes', "test", self.root / "fresh", env=env)
+        run("bash", self.wrapper, "fresh", "--source", "default", "put", "reference/page", "-", env=env, input_text="shared knowledge")
+        self.assertEqual(self.calls()[0]["source"], "default")
+
+    def test_proxy_forwards_file_and_stdin_with_source_selection(self) -> None:
+        fake_bin = self.root / "bin"
+        fake_bin.mkdir()
+        ssh = fake_bin / "ssh"
+        ssh.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@" > "$TEST_SSH_ARGS"\ncat > "$TEST_SSH_BODY"\n')
+        ssh.chmod(0o755)
+        args_file, body_file = self.root / "ssh-args", self.root / "ssh-body"
+        env = self.env | {"PATH": str(fake_bin) + os.pathsep + self.env["PATH"],
+                          "TEST_SSH_ARGS": str(args_file), "TEST_SSH_BODY": str(body_file)}
+        body = "literal $value and 한글\n"
+        input_file = self.root / "input with spaces.md"
+        input_file.write_text(body, encoding="utf-8")
+        for file in (str(input_file), "-"):
+            with self.subTest(file=file):
+                run("bash", ROOT / "gbrain/bin/gbrain-remote-proxy", "sample", "--source", "default",
+                    "put", "reference/page", file, env=env, input_text=body if file == "-" else "")
+                self.assertEqual(body_file.read_text(encoding="utf-8"), body)
+                self.assertIn("--source default put reference/page -", args_file.read_text())
 
 
 if __name__ == "__main__":

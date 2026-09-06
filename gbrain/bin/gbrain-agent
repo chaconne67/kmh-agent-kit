@@ -8,8 +8,7 @@ set -euo pipefail
 #   gbrain-agent <에이전트> <명령> ...
 #   gbrain-<에이전트> <명령> ...        # 이름 심링크 (install.sh가 정책에서 자동 생성)
 #
-# 규칙: 사적 쓰기는 자기 소스(+정책에 프리픽스가 있으면 그 아래)로만.
-# 공용(default) 직접 쓰기 없음. 공용 반영은 사적 기록 후 주인님 승격 (pending-shared 폐지, 2026-07-21).
+# 기본 대상은 자기 공간이다. --source default로 공용을 명시하며 읽기·쓰기 권한은 정책을 따른다.
 
 POLICY_FILE="${GBRAIN_POLICY_FILE:-$HOME/.gbrain/memory/agent-policy.toml}"
 GBRAIN_BIN="${GBRAIN_CLI_WRAPPER:-$HOME/.gbrain/bin/gbrain_with_google_env.sh}"
@@ -25,43 +24,77 @@ else
   agent="${base#gbrain-}"
 fi
 
+[[ "$agent" =~ ^[A-Za-z0-9_-]+$ ]] || die "invalid agent name: $agent"
+requested_source=""
+if [[ "${1:-}" == "--source" ]]; then
+  [[ $# -ge 3 && -n "$2" ]] || die "usage: gbrain-$agent --source <source> <command> ..."
+  requested_source="$2"
+  shift 2
+fi
+cmd="${1:-help}"
+[[ $# -eq 0 ]] || shift
 [[ -f "$POLICY_FILE" ]] || die "policy file not found: $POLICY_FILE"
-block="$(sed -n "/^\[agents\.$agent\]/,/^\[/p" "$POLICY_FILE")"
-[[ -n "$block" ]] || die "unknown agent '$agent' — agent-policy.toml에 [agents.$agent] 항목을 등록하라"
-
-toml_get() { printf '%s\n' "$block" | sed -n "s/^$1 *= *\"\(.*\)\".*/\1/p" | head -1; }
-PRIVATE_SOURCE="$(toml_get private_source)"
-[[ -n "$PRIVATE_SOURCE" ]] || die "agent '$agent'에 private_source가 없다 (공간 없는 에이전트)"
-PRIVATE_PREFIX="$(toml_get private_prefix)"   # 비어 있으면 프리픽스 강제 없음 (예: judy)
+bun="${BUN_BIN:-$HOME/.bun/bin}/bun"
+[[ -x "$bun" ]] || die "Bun runtime not found: $bun"
+policy_values="$("$bun" -e '
+const [file, agent, requested, command] = process.argv.slice(1);
+const policy = Bun.TOML.parse(await Bun.file(file).text());
+const entry = policy.agents?.[agent];
+if (!entry?.private_source) throw new Error(`unknown or unregistered private source: ${agent}`);
+const own = entry.private_source;
+const source = requested || own;
+if (source !== own && source !== "default") throw new Error(`source outside agent scope: ${source}`);
+const reads = (entry.read_sources || []).filter(s => s === "default" || s === own);
+if (!reads.includes(source)) throw new Error(`read source not allowed: ${source}`);
+const writing = command === "put" || command === "note";
+if (writing && !(entry.write_sources || []).includes(source)) throw new Error(`write source not allowed: ${source}`);
+if (writing && source === "default" && !(policy.defaults?.common_direct_write && entry.common_write))
+  throw new Error("common writing is not allowed by policy");
+const prefix = entry.private_prefix || "";
+const prefixes = source === "default" ? (policy.guardrails?.common_write_prefixes || []) : (prefix ? [prefix] : []);
+if (writing && source === "default" && !prefixes.length) throw new Error("common write prefixes are missing");
+if ([own, ...reads, ...prefixes, prefix].some(v => typeof v !== "string" || /\s/.test(v)))
+  throw new Error("invalid source or prefix in policy");
+console.log([own, source, prefix, (requested ? [source] : reads).join(" "), prefixes.join(" ")].join("\n"));
+' "$POLICY_FILE" "$agent" "$requested_source" "$cmd")" || exit 64
+mapfile -t policy_fields <<<"$policy_values"
+PRIVATE_SOURCE="${policy_fields[0]}"
+TARGET_SOURCE="${policy_fields[1]}"
+PRIVATE_PREFIX="${policy_fields[2]:-}"
+read -r -a READ_SOURCES <<<"${policy_fields[3]}"
+read -r -a WRITE_PREFIXES <<<"${policy_fields[4]:-}"
 
 usage() {
   cat <<USAGE
-gbrain-$agent — policy-safe GBrain wrapper (space: source '$PRIVATE_SOURCE'${PRIVATE_PREFIX:+, prefix $PRIVATE_PREFIX/})
+gbrain-$agent — policy-safe GBrain wrapper (default source: '$PRIVATE_SOURCE')
 
 Usage:
+  gbrain-$agent [--source default|$PRIVATE_SOURCE] <command> ...
   gbrain-$agent policy
   gbrain-$agent sources
   gbrain-$agent put <slug> <file.md|-> [type]
   gbrain-$agent note <slug-suffix> <markdown text...>
   gbrain-$agent query <query...>          # default + 자기 공간
   gbrain-$agent query-private <query...>
-  gbrain-$agent query-all <query...>
+  gbrain-$agent query-all <query...>      # 허용된 공용 + 자기 공간 (query와 동일)
   gbrain-$agent get <slug>
-  gbrain-$agent list
+  gbrain-$agent list [--tag <tag>] [-n <1-100>]  # 기본 50건, GBrain 상한 100건
 
 Rules:
   - 사적 쓰기는 소스 '$PRIVATE_SOURCE'${PRIVATE_PREFIX:+의 $PRIVATE_PREFIX/ 아래}에만 저장된다.
-  - 공용(default) 직접 쓰기는 없다. 공용 반영은 사적 공간에 기록 후 주인님께 승격을 요청한다.
+  - 공용 조회·저장은 --source default로 명시한다. 저장은 정책에서 허용한 경우에만 가능하다.
+  - 다른 에이전트의 개인 공간에는 접근하지 않는다. 검색 실패는 실패 상태로 반환한다.
 USAGE
 }
 
 require_prefix() {
   local value="$1"
-  [[ -z "$PRIVATE_PREFIX" ]] && return 0
-  case "$value" in
-    "$PRIVATE_PREFIX"/*) ;;
-    *) die "private slug must start with $PRIVATE_PREFIX/ (got: $value)" ;;
-  esac
+  local prefix
+  [[ ${#WRITE_PREFIXES[@]} -eq 0 ]] && return 0
+  for prefix in "${WRITE_PREFIXES[@]}"; do
+    case "$value" in "$prefix"/*) return 0 ;; esac
+  done
+  die "slug outside allowed write prefixes for '$TARGET_SOURCE': $value"
 }
 
 require_file() { [[ -f "$1" ]] || { echo "ERROR: file not found: $1" >&2; exit 66; }; }
@@ -69,34 +102,31 @@ require_file() { [[ -f "$1" ]] || { echo "ERROR: file not found: $1" >&2; exit 6
 run_query_for_source() {
   local source="$1" query="$2" limit="${3:-5}"
   printf '\n[%s]\n' "$source"
-  "$GBRAIN_BIN" query "$query" --source-id "$source" --limit "$limit" || true
+  "$GBRAIN_BIN" query "$query" --source-id "$source" --limit "$limit"
 }
-
-cmd="${1:-}"
-if [[ -z "$cmd" ]]; then usage; exit 0; fi
-shift || true
 
 case "$cmd" in
   policy)
-    exec sed -n "/^\[sources\.$PRIVATE_SOURCE\]/,/^$/p; /^\[agents\.$agent\]/,/^$/p" "$POLICY_FILE"
+    exec sed -n "/^\[defaults\]/,/^$/p; /^\[guardrails\]/,/^$/p; /^\[sources\.$PRIVATE_SOURCE\]/,/^$/p; /^\[agents\.$agent\]/,/^$/p" "$POLICY_FILE"
     ;;
   sources)
     exec "$GBRAIN_BIN" sources list
     ;;
   put)
+    [[ $# -ge 2 && $# -le 3 ]] || { usage; exit 64; }
     slug="${1:-}"; file="${2:-}"; type="${3:-reference}"
     [[ -n "$slug" && -n "$file" ]] || { usage; exit 64; }
     require_prefix "$slug"
     if [[ "$file" == "-" ]]; then
-      exec "$GBRAIN_BIN" capture --source "$PRIVATE_SOURCE" --slug "$slug" --type "$type" --stdin --json
+      exec "$GBRAIN_BIN" capture --source "$TARGET_SOURCE" --slug "$slug" --type "$type" --stdin --json
     fi
     require_file "$file"
-    exec "$GBRAIN_BIN" capture --source "$PRIVATE_SOURCE" --slug "$slug" --type "$type" --file "$file" --json
+    exec "$GBRAIN_BIN" capture --source "$TARGET_SOURCE" --slug "$slug" --type "$type" --file "$file" --json
     ;;
   note)
     suffix="${1:-}"; shift || true
     [[ -n "$suffix" && $# -gt 0 ]] || { usage; exit 64; }
-    if [[ -n "$PRIVATE_PREFIX" ]]; then
+    if [[ "$TARGET_SOURCE" == "$PRIVATE_SOURCE" && -n "$PRIVATE_PREFIX" ]]; then
       case "$suffix" in
         "$PRIVATE_PREFIX"/*) slug="$suffix" ;;
         *) slug="$PRIVATE_PREFIX/$suffix" ;;
@@ -104,41 +134,55 @@ case "$cmd" in
     else
       slug="$suffix"
     fi
+    require_prefix "$slug"
+    visibility=""
+    [[ "$TARGET_SOURCE" != "$PRIVATE_SOURCE" ]] || visibility="visibility: private"
     tmp="$(mktemp)"
     trap 'rm -f "$tmp"' EXIT
     cat > "$tmp" <<EOF
 ---
 page_type: note
 agent_id: $agent
-logical_source_id: $PRIVATE_SOURCE
-visibility: private
+logical_source_id: $TARGET_SOURCE
+$visibility
 ---
 
 $*
 EOF
-    "$GBRAIN_BIN" capture --source "$PRIVATE_SOURCE" --slug "$slug" --type note --file "$tmp" --json
+    "$GBRAIN_BIN" capture --source "$TARGET_SOURCE" --slug "$slug" --type note --file "$tmp" --json
     ;;
-  query)
+  query|query-all)
     [[ $# -gt 0 ]] || { usage; exit 64; }
     query="$*"
-    run_query_for_source default "$query" 5
-    run_query_for_source "$PRIVATE_SOURCE" "$query" 5
+    status=0
+    for source in "${READ_SOURCES[@]}"; do
+      run_query_for_source "$source" "$query" 5 || status=$?
+    done
+    exit "$status"
     ;;
   query-private)
+    [[ -z "$requested_source" || "$requested_source" == "$PRIVATE_SOURCE" ]] || die "query-private requires the private source"
     [[ $# -gt 0 ]] || { usage; exit 64; }
     exec "$GBRAIN_BIN" query "$*" --source-id "$PRIVATE_SOURCE" --limit 8
     ;;
-  query-all)
-    [[ $# -gt 0 ]] || { usage; exit 64; }
-    exec "$GBRAIN_BIN" query "$*" --source-id __all__ --limit 8
-    ;;
   get)
+    [[ $# -eq 1 ]] || { usage; exit 64; }
     slug="${1:-}"
     [[ -n "$slug" ]] || { usage; exit 64; }
-    GBRAIN_SOURCE="$PRIVATE_SOURCE" exec "$GBRAIN_BIN" get "$slug"
+    GBRAIN_SOURCE="$TARGET_SOURCE" exec "$GBRAIN_BIN" get "$slug"
     ;;
   list)
-    GBRAIN_SOURCE="$PRIVATE_SOURCE" exec "$GBRAIN_BIN" list -n 50
+    limit=50; tag=()
+    while [[ $# -gt 0 ]]; do
+      [[ $# -ge 2 ]] || { usage; exit 64; }
+      case "$1" in
+        --tag) [[ -n "$2" && "$2" != -* ]] || die "tag is required"; tag=(--tag "$2") ;;
+        -n) [[ "$2" =~ ^([1-9]|[1-9][0-9]|100)$ ]] || die "limit must be between 1 and 100"; limit="$2" ;;
+        *) die "unsupported list option: $1" ;;
+      esac
+      shift 2
+    done
+    GBRAIN_SOURCE="$TARGET_SOURCE" exec "$GBRAIN_BIN" list --limit "$limit" "${tag[@]}"
     ;;
   -h|--help|help)
     usage
