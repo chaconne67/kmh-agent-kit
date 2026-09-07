@@ -241,8 +241,10 @@ install_shell_commands() {
     'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
   append_shell_line "$home_dir/.profile" "kmh-agent-kit command path" \
     'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
-  append_shell_line "$home_dir/.bash_profile" "kmh-agent-kit command path" \
-    'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
+  if [ -f "$home_dir/.bash_profile" ]; then
+    append_shell_line "$home_dir/.bash_profile" "kmh-agent-kit command path" \
+      'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
+  fi
   append_shell_line "$home_dir/.zshrc" "kmh-agent-kit command path" \
     'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac'
 }

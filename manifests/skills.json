@@ -1,6 +1,19 @@
 {
   "_readme": "스킬 배치의 정본은 프로필 심링크(claude/skills, codex/skills, projects/*/skills)이고 공용/도메인 분류의 정본은 원본 위치(skills/common/, skills/domains/<도메인>/)다. depends_on은 스킬 간 의존관계, external_sources는 외부에서 직접 가져온 독립 스킬의 원본 URL과 revision만 기록한다. 도구가 관리하는 플러그인은 기록하지 않는다.",
-  "external_sources": {},
+  "external_sources": {
+    "design-taste-frontend": {
+      "url": "https://github.com/Leonxlnx/taste-skill/tree/ccbc15639c97057cbfcf32ecebc38ef716e4bb37/skills/taste-skill",
+      "revision": "ccbc15639c97057cbfcf32ecebc38ef716e4bb37"
+    },
+    "emil-design-eng": {
+      "url": "https://github.com/emilkowalski/skills/tree/d23d7f88a2e21c9e4b1418c7abe420f5c1052ba7/skills/emil-design-eng",
+      "revision": "d23d7f88a2e21c9e4b1418c7abe420f5c1052ba7"
+    },
+    "impeccable": {
+      "url": "https://github.com/pbakaus/impeccable/tree/8dac6ae7e020c43ab10ce9b41939f6fd42627b96/plugin/skills/impeccable",
+      "revision": "8dac6ae7e020c43ab10ce9b41939f6fd42627b96"
+    }
+  },
   "depends_on": {
     "code-review-loop": ["code-review"],
     "full-review": ["code-review"],

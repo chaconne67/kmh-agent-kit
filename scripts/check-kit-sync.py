@@ -247,6 +247,12 @@ class KitSyncTests(unittest.TestCase):
 
         policy = home / "agent-policy.toml"
         policy.write_text("# test policy\n", encoding="utf-8")
+        (home / ".bashrc").write_text(
+            "alias preserved_alias='printf preserved'\n", encoding="utf-8"
+        )
+        (home / ".profile").write_text(
+            '[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"\n', encoding="utf-8"
+        )
         wrapper = home / ".local" / "bin" / "gbrain-sam"
         wrapper.parent.mkdir(parents=True)
         wrapper.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
@@ -275,9 +281,37 @@ class KitSyncTests(unittest.TestCase):
         )
         self.assertIn('*":$HOME/.local/bin:"*', (home / ".zshrc").read_text())
         self.assertEqual((home / ".zshrc").read_text().count("kmh-agent-kit command path"), 1)
+        self.assertFalse((home / ".bash_profile").exists())
+        login_shell = run(
+            "bash",
+            "--login",
+            "-ic",
+            "type preserved_alias; type -P kitpull; type -P kitpush",
+            env=env,
+        )
+        self.assertIn("preserved_alias is aliased", login_shell.stdout)
+        self.assertIn(str(home / ".local" / "bin" / "kitpull"), login_shell.stdout)
+        self.assertIn(str(home / ".local" / "bin" / "kitpush"), login_shell.stdout)
+
+        bash_profile = home / ".bash_profile"
+        bash_profile.write_text("export PRESERVED_PROFILE=yes\n", encoding="utf-8")
+        run(repo / "install.sh", "sam", env=env)
+        self.assertIn("export PRESERVED_PROFILE=yes", bash_profile.read_text())
         self.assertIn(
             '*":$HOME/.local/bin:"*',
-            (home / ".bash_profile").read_text(),
+            bash_profile.read_text(),
+        )
+        self.assertEqual(bash_profile.read_text().count("kmh-agent-kit command path"), 1)
+        existing_profile_shell = run(
+            "bash",
+            "--login",
+            "-ic",
+            'test "$PRESERVED_PROFILE" = yes; type -P kitpull',
+            env=env,
+        )
+        self.assertIn(
+            str(home / ".local" / "bin" / "kitpull"),
+            existing_profile_shell.stdout,
         )
         saved = run(
             "git", "config", "--local", "--get", "kmh-agent-kit.agent", cwd=repo

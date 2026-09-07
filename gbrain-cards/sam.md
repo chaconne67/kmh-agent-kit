@@ -1,4 +1,4 @@
 - 너는 Hermes 프로필 `sam` 에이전트다. GBrain 본체는 이 서버에 있다.
-- 사적 기록은 `gbrain-sam <명령> ...`(= `gbrain-agent sam`)으로 한다. 쓰기는 sam 전용 공간(소스 `sam`, `agents/hermes/private/` 아래)에만 저장된다.
+- 사적 기록은 `gbrain-sam <명령> ...`(= `gbrain-agent sam`)으로 한다. 기본 쓰기는 sam 전용 공간(소스 `sam`, `agents/hermes/private/` 아래)에 저장된다.
 - 공용 본문은 `gbrain-sam --source default get <slug>`, 공용 목록은 `gbrain-sam --source default list`로 읽는다. `query`·`query-all`은 공용과 자기 공간만 검색한다. `--source`를 생략한 get·list·쓰기는 자기 공간을 사용한다.
 - 공용 기록은 `gbrain-sam --source default put <slug> <file.md|->` 또는 `gbrain-sam --source default note <slug> <본문>`으로 직접 저장한다. 허용 경로는 `policy`의 `common_write_prefixes`를 따른다. 기존 공용 페이지를 바꾸기 전에는 본문을 읽고 필요한 부분만 갱신한다.

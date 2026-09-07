@@ -93,7 +93,7 @@ uv run python -m scripts.cretop_detail_collection \
   --run-id <run-id>
 ```
 
-완전 로그아웃처럼 비밀번호 입력이 필요한 상태에서는 preflight를 시작하지 않는다. 사람이 기존 Chrome 프로필의 로그인을 복구한 뒤 새 `run-id`로 다시 조사한다.
+Chrome 제목이나 로그인 폼 노출만으로 완전 로그아웃을 판정하지 않는다. Windows agent가 인식하는 재로그인·자동로그아웃 팝업은 기존 preflight 복구 대상이다. 기존 복구가 실패하고 비밀번호·OTP·CAPTCHA 같은 새 인증정보 입력이 실제로 필요할 때만 멈추고, 사람이 기존 Chrome 프로필의 로그인을 복구한 뒤 새 `run-id`로 다시 조사한다.
 
 ## 단일 기업 검색·상세 진입 확인
 
