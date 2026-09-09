@@ -76,9 +76,10 @@ GBrain은 과거 맥락이고 현재 코드와 서버가 최종 기준입니다.
 
 - Django 검사: `cd /home/chaconne/ceoloan/repo && uv run python manage.py check --settings=main.settings.local`
 - 관련 테스트: `cd /home/chaconne/ceoloan/repo && uv run pytest -q <대상>`
-- 정적 파일이 필요한 화면 테스트는 Tailwind 빌드와 `collectstatic`을 먼저 실행합니다.
-- 제품 화면은 `ceoloan-design-system`에 따라 모바일·데스크톱 실제 화면과 HTMX 교체 후
-  상호작용을 확인합니다.
+- 원격 화면 검증의 공통 절차는 공용 `web-automation` 스킬의 「Remote development UI verification」을 따릅니다.
+- CEO Loan의 서버·테스트·CSS 설정과 디자인 기준은
+  [.agents/skills/ceoloan-design-system/SKILL.md](.agents/skills/ceoloan-design-system/SKILL.md)의
+  「실행 위치」와 「프로젝트 검증 설정」을 사용합니다.
 - 운영 확인은 `https://rogeon.kr`의 HTTP 200과 `ceoloan-web`의 healthy 상태를 사용합니다.
 - 검증하지 못한 항목을 통과했다고 보고하지 않습니다.
 

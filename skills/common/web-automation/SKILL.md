@@ -1,6 +1,6 @@
 ---
 name: web-automation
-description: Use for browser investigation or automation involving scraping, downloads, login, form filling, posting, admin actions, Playwright, Selenium, or CDP.
+description: Use for browser investigation, remote development UI verification, or automation involving scraping, downloads, login, form filling, posting, admin actions, Playwright, Selenium, or CDP.
 ---
 
 # Web Automation
@@ -11,6 +11,9 @@ Terminology:
 
 - **Final-path implementation**: the durable functions, wrapper, and session service that own the browser workflow.
 - **Final-path command**: the official CLI or service entry that invokes that implementation.
+
+For remote development UI acceptance tests, first read **Remote development UI verification** below.
+It defines the isolated test scope; the Operation Gate continues to govern production and external effects.
 
 ## Operation Gate
 
@@ -27,6 +30,107 @@ Manual reproduction proves only observed page behavior, not the automation. If n
 Execution must remain within the authority granted by the user. Stop before externally visible or destructive actions when approval is absent or ambiguous.
 
 If the project provides a UI design skill (for example `$exdigm-design` in the Exdigm project), use it together with this one for UI or template changes. That skill owns project URLs, interaction acceptance, and screenshot verification; this skill still owns browser phase classification.
+
+## Remote development UI verification
+
+When the app runs on a remote server and the browser runs in the control room, follow this procedure.
+Project instructions supply the SSH target, repository, runtime and start command, isolated test setup,
+asset build/serve commands, target routes, and design acceptance criteria. Verify those values from the
+current project before dependent actions; do not copy another project's addresses, ports, or framework settings.
+
+### 1. Identify the two machines and the current session
+
+Codex in the Windows control room operates a browser on Windows; the application and development server
+run on the remote Linux host. `127.0.0.1` always refers to the machine making that connection.
+A browser launched on remote Linux is a separate environment; its window is not automatically visible on Windows.
+Confirm the actual execution hosts when using another agent or browser tool.
+
+Record this once and update only changed values after a restart or tab/port change:
+
+| Component | Evidence to retain |
+|---|---|
+| Server | SSH host, repository/revision or working changes, start command, process/tool session ID |
+| Data | Settings, actual test DB/schema, test user role, blocked external effects |
+| Connection | Server binding/port, control-room port or approved project URL, tunnel session ID |
+| Browser | Machine, browser name, browser/tab IDs, exact URL |
+
+Follow a user-specified browser. Otherwise prefer an available in-app browser for a review the user should
+see. Inspect tool capabilities and current tabs before selecting it. An ambient URL or an old error message
+is not proof that a server, tab, or dialog is still present.
+
+### 2. Prepare the application's real test path
+
+Use the project's existing development/test entry point and fixtures. Confirm the actual database connection
+and schema; a setting named local, development, or debug does not establish isolation. Keep credentials out
+of logs. Use isolated synthetic data and existing test doubles for email, messages, and external APIs.
+
+For UI acceptance testing, operating the actual application UI against verified isolated test data is
+Investigation: it establishes application behavior, not a reusable automation's success. Assert resulting
+test data as well as screen feedback. Production or external-service effects remain subject to the Operation
+Gate and its final-path command requirement. Do not create an automation wrapper merely to inspect a test UI.
+
+Check build output locations and shared mounts before building or collecting assets. Use the project's
+commands and static serving configuration. A successful build does not establish that the browser received
+the new CSS. Resolve manifest/hash versus source-file serving in the responsible test configuration; do not
+alter production settings, inject CSS, or rewrite captured HTML to claim the actual application path passed.
+
+### 3. Start the remote server and connect the control room
+
+Bind the development server to the remote loopback interface and use SSH local forwarding by default.
+Follow an explicitly defined project access path when one already exists; verify its server and browser
+endpoints rather than silently replacing it. Check both ports and their owners before allocating a new port.
+
+For SSH forwarding, run this command shape on the control-room machine in a tracked session.
+Replace the placeholders with the verified project/session values before execution:
+
+```text
+ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:<local-port>:127.0.0.1:<remote-port> <ssh-target>
+```
+
+The listener is on the control-room machine; the destination loopback is on the SSH target. The browser opens
+`http://127.0.0.1:<local-port>/<route>`. If the app lives in a container, first verify the host-to-container
+port mapping. Keep the server and tunnel session IDs separate even when one tool manages both.
+
+Verify the remote process/listener and HTTP response first, then the same route from the control room.
+A running SSH process alone does not prove the development server is reachable. Check redirects and the
+expected application marker. Do not solve connection errors by exposing a development port publicly,
+changing production firewalls/DB tunnels, or killing an unidentified process.
+
+### 4. Verify CSS, then appearance and behavior
+
+1. Confirm the selected tab's URL, title, logged-in role, and changed screen. A login or stale page returning
+   HTTP 200 is not the requested screen.
+2. Inspect the document's actual stylesheet requests, successful response/type/content, and current console
+   errors. Compare representative elements' computed styles with the project's tokens/classes. Report any
+   unavailable network/computed-style evidence instead of treating it as passed.
+3. If assets are missing or stale, inspect the serving path, code read by the server, and cache. Fix the
+   evidenced cause, refresh, and repeat the same check before judging design.
+4. Inspect actual screenshots at the project's mobile and desktop widths. Check layout, typography, spacing,
+   input/button positions, wrapping, and dialogs. Measure document overflow against viewport width and
+   distinguish intended table scrolling from whole-page overflow.
+5. Exercise affected empty, invalid, loading, success, cancellation, keyboard, and focus states as applicable.
+   Submit through the actual UI in the verified test environment; check resulting data and protected records.
+6. Navigate away and back through the application's partial/client navigation and repeat the affected controls.
+   Attribute requests and console errors to the current attempt, distinguishing old server-shutdown errors.
+
+Automation success without inspecting the rendered screen does not establish design accuracy. For native
+alerts/confirmations, use the current tool's supported dialog API. On failure, re-observe the tab and dialog;
+do not repeat an unchanged failing operation. Only when user action is necessary, give the verified browser
+name, URL, current dialog text, and exact action. Tool limitations do not by themselves justify product changes.
+
+### 5. Report and close the correct resources
+
+Keep project test results, URL/browser/viewport, CSS application evidence, UI/data outcomes, and remaining
+gaps together. Reuse this session through validation rather than repeatedly rebuilding the environment.
+A fixture-owned server lives only as long as its fixture; retain it until the intended review is finished.
+
+When showing a live review to the user, keep the server and connection alive and open the correct tab.
+Verify whether the tool preserves processes after the response before promising an available URL. When
+verification is finished, save evidence and stop only this run's owned tabs, server, and tunnel by tracked ID.
+Preserve user/shared browsers and other jobs. Confirm cleanup of temporary fixtures, files, and test resources.
+
+Mark stopped URLs as stopped; do not ask the user to open them or dismiss a historical dialog there. Report
+code verification, a currently viewable development screen, and production deployment as separate states.
 
 ## Preflight
 

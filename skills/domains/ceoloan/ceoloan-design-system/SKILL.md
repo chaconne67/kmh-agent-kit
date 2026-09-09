@@ -17,13 +17,11 @@ CEO Loan의 실제 코드에 이미 있는 시각 언어와 영업 업무 흐름
 
 ## 실행 위치
 
-1. 중앙 조정실 `/home/chaconne/projects/ceoloan`에서 지침과 이 스킬을 읽는다.
-2. `chaconne@49.247.205.170`에 SSH로 접속한다.
-3. 실제 저장소 `/home/chaconne/ceoloan/repo`의 기존 변경을 확인하고 보존한다.
-4. 요청 범위만 수정하고 같은 원격 저장소에서 빌드·검사·화면 검증을 수행한다.
-
-중앙의 `/home/chaconne/ceoloan` 복제본과 원격 운영 서버의 에이전트 설정은 작업 경로로 사용하지
-않는다.
+- 조정실: `C:\Users\chaconne\projects\ceoloan`; 지침·스킬 원본: `C:\Users\chaconne\kmh-agent-kit`.
+- 앱·빌드·개발 서버: SSH `chaconne@49.247.205.170`, 저장소 `/home/chaconne/ceoloan/repo`.
+- 운영 URL: `https://rogeon.kr`. 호스트 코드를 직접 읽는 정기 작업은 웹 배포 전에도 소스 변경의 영향을 받는다.
+- 원격 화면 검증은 공용 `web-automation`의 「Remote development UI verification」을 따른다.
+  아래 「프로젝트 검증 설정」을 그 절차의 입력으로 사용한다.
 
 ## 정본 순서
 
@@ -93,17 +91,27 @@ GBrain은 결정 이유와 과거 맥락에 사용하고 현재 코드와 다르
 - `templates/common/base.html`의 `htmx:load` Alpine 초기화 경로를 중복 구현하지 않는다.
 - 요청의 준비 → 처리 중 → 성공과 준비 → 처리 중 → 실패 경로를 모두 보이게 한다.
 
-## 검증
+## 프로젝트 검증 설정
 
-1. 원격 저장소에서 `npm run css`를 실행한다.
-2. `uv run python manage.py check --settings=main.settings.local`을 실행한다.
-3. 동작을 바꿨으면 운영 외부 효과가 없는 관련 테스트를 실행한다.
-4. 실제 화면에서 모바일 390px·480px와 데스크톱 1024px 이상을 확인한다.
-5. HTMX 변경은 클릭 전·처리 중·성공·실패와 브라우저 콘솔·네트워크를 확인한다.
-6. 메뉴를 오간 뒤에도 화면 지역 리스너가 남거나 오류가 누적되지 않는지 확인한다.
-7. 운영 DB·문자 발송에 쓰는 동작은 화면 검증으로 실행하지 않는다.
+공통 연결·브라우저·CSS 적용·자원 종료 절차는 `web-automation`이 소유한다.
+CEO Loan 고유 설정과 디자인 합격 기준은 다음과 같다.
 
-실제 화면을 열지 못했거나 특정 상태를 만들지 못했으면 그 항목을 검증했다고 보고하지 않는다.
+- Python: 비대화형 SSH에서 `uv`가 PATH에 없으면 확인된 `/home/chaconne/.local/bin/uv` 또는
+  저장소의 `.venv/bin/python`을 사용한다.
+- 테스트: 기존 pytest 설정과 DB fixture를 사용한다. 설정은 `main.settings.local`, DB 선택은
+  `POSTGRES_DB`다. 실제 연결 DB·스키마와 외부 API 테스트 대역을 확인한 후 `live_server`를 실행한다.
+  실행할 테스트 진입점은 변경 대상의 현재 테스트에서 확인한다.
+- CSS: 원격 저장소에서 `npm run css` 후 검증 설정으로 `collectstatic --noinput`을 실행한다.
+  원천은 `static/css/input.css`, Git 추적 산출물은 `static/css/output.css`, 수집 경로는 `STATIC_ROOT`다.
+- 정적 제공: `STORAGES['staticfiles']`는 `CompressedManifestStaticFilesStorage`다.
+  pytest 제공기가 원본만 찾아 해시 URL이 404가 되면 테스트 fixture의 staticfiles 백엔드만
+  `django.contrib.staticfiles.storage.StaticFilesStorage`로 맞추고 다른 저장소 설정은 유지한다.
+  운영 manifest 제공 검증은 수집된 해시 파일을 실제 제공하는 구성에서 별도로 확인한다.
+- 코드 검사: `uv run python manage.py check --settings=main.settings.local`과 영향 범위의
+  `uv run pytest -q <대상>`을 원격 저장소에서 실행한다.
+- 디자인 폭: 모바일 390px·480px, 데스크톱 1024px 이상. 위 토큰·컴포넌트·접근성 계약으로 판정한다.
+- 화면 수명: HTMX 메뉴로 `#main-content`가 교체된 뒤 Alpine 입력·버튼·모달을 재검증한다.
+  합성 데이터의 실제 제출 결과와 제외·보호 대상 보존을 함께 확인한다.
 
 ## 완료 조건
 
