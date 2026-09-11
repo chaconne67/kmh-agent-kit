@@ -2,34 +2,54 @@
 
 ## 운영체제별 한 줄 설치
 
-`<등록-이름>`을 이미 등록된 자신의 이름으로 바꾸어 실행합니다. 예: `main`, `sam`, `judy`.
+### Windows — Git Bash
 
-### Linux·macOS·WSL·Windows Git Bash
+Git for Windows에 포함된 Git Bash가 설치되어 있어야 합니다. 이 Windows 조정실은 아래 한 줄을 그대로 붙여 넣습니다.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- windows-control
+```
+
+셸 설치기가 공개 HTTPS 주소에서 키트를 내려받고, Windows를 감지하면 저장소의 `install.ps1`을 내부에서 호출합니다. 사용자가 PowerShell 단계를 따로 실행할 필요는 없습니다.
+
+### macOS — Terminal
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- <등록-이름>
 ```
 
-### Windows PowerShell
+### Linux — Bash
 
-```powershell
-& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'
+```bash
+curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- <등록-이름>
 ```
 
-### Windows 커맨드 프롬프트(CMD)
+macOS와 Linux에서는 `<등록-이름>`을 이미 등록된 자신의 이름으로 바꿉니다. 예: `main`, `sam`, `judy`.
 
-```bat
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'"
-```
-
-설치가 끝나면 터미널을 새로 엽니다. 이후에는 모든 운영체제와 터미널에서 다음 두 명령만 사용합니다.
+설치가 끝나면 터미널을 새로 엽니다. 이후에는 모든 운영체제에서 다음 두 명령만 사용합니다.
 
 ```text
 kitpull
 kitpush
 ```
 
-세 설치 명령은 터미널 문법만 다르고, 같은 GitHub 원본과 같은 설치 경로를 사용합니다. Git과 이 저장소에 접속할 GitHub SSH 키가 필요합니다.
+위 세 기본 명령의 첫 다운로드와 clone은 공개 HTTPS를 사용하므로 GitHub SSH 키가 없어도 시작할 수 있습니다. GitHub 쓰기 인증과 GBrain·프로젝트 서버의 새 장비 SSH 등록은 각각 해당 기능을 사용하기 전에 준비합니다.
+
+### Windows 대체 터미널
+
+Git Bash가 아닌 터미널이 필요한 경우에만 아래 명령을 사용합니다.
+
+PowerShell:
+
+```powershell
+& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent 'windows-control'
+```
+
+커맨드 프롬프트(CMD):
+
+```bat
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent 'windows-control'"
+```
 
 ## 개요
 
@@ -198,7 +218,7 @@ gbrain-abc-project policy
 
 ### Windows 터미널
 
-README 최상단의 PowerShell·CMD·Git Bash 설치 명령 중 현재 터미널에 맞는 한 줄을 실행합니다. 설치기가 사용자 PATH에 `kitpull.cmd`·`kitpush.cmd`를 등록하므로 새 PowerShell·CMD·Git Bash에서 같은 명령을 사용합니다. Windows는 junction과 하드링크를 사용하며 Linux 전용 systemd 서비스는 설치하지 않습니다.
+README 최상단의 Git Bash 한 줄을 실행합니다. 설치기가 사용자 PATH에 `kitpull.cmd`·`kitpush.cmd`를 등록하므로 새 PowerShell·CMD·Git Bash에서 같은 명령을 사용합니다. Windows는 junction과 하드링크를 사용하며 Linux 전용 systemd 서비스는 설치하지 않습니다.
 
 Coconut·RNDLOG·CEO Loan·Exdigm 운영 서버에서는 위 설치 명령을 자동으로 실행하지 않습니다.
 

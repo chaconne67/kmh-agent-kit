@@ -182,7 +182,7 @@ class KitSyncTests(unittest.TestCase):
                 "HOME": str(home),
                 "GIT_CONFIG_COUNT": "1",
                 "GIT_CONFIG_KEY_0": f"url.file://{self.fixture.remote}.insteadOf",
-                "GIT_CONFIG_VALUE_0": "git@github.com:chaconne67/kmh-agent-kit.git",
+                "GIT_CONFIG_VALUE_0": "https://github.com/chaconne67/kmh-agent-kit.git",
                 "GIT_TERMINAL_PROMPT": "0",
             }
         )
@@ -221,7 +221,7 @@ class KitSyncTests(unittest.TestCase):
         env = os.environ.copy()
         env.update({"HOME": str(home), "PATH": f"{fake_bin}:{env['PATH']}"})
 
-        run(ROOT / "install.sh", "gram17", env=env)
+        run("bash", ROOT / "install.sh", "gram17", env=env)
 
         arguments = (home / "powershell-args").read_bytes().rstrip(b"\0").split(b"\0")
         decoded = [argument.decode("utf-8") for argument in arguments]
@@ -408,6 +408,30 @@ class KitSyncTests(unittest.TestCase):
         self.assertEqual(
             run("git", "--git-dir", self.fixture.remote, "show", "main:common.txt").stdout,
             "remote\n",
+        )
+
+
+class EntryPointDocumentationTests(unittest.TestCase):
+    def test_readme_has_separate_primary_commands_for_each_os(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        onboarding = (ROOT / "docs" / "onboarding-new-server.md").read_text(
+            encoding="utf-8"
+        )
+        windows_command = (
+            "curl -fsSL https://raw.githubusercontent.com/chaconne67/"
+            "kmh-agent-kit/main/install.sh | bash -s -- windows-control"
+        )
+
+        self.assertIn("### Windows — Git Bash", readme)
+        self.assertIn("### macOS — Terminal", readme)
+        self.assertIn("### Linux — Bash", readme)
+        self.assertIn(windows_command, readme)
+        self.assertIn(windows_command, onboarding)
+        self.assertIn(
+            windows_command.replace("windows-control", "<등록-이름>").replace(
+                " | ", r" \| "
+            ),
+            onboarding,
         )
 
 

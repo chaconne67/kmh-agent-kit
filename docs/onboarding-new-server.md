@@ -19,13 +19,19 @@ GBrain 등록 이름은 영문 소문자·숫자·중간 하이픈으로 된 1~3
 
 이미 등록된 `<등록-이름>`을 사용합니다.
 
-| 터미널 | 최초 설치 명령 |
-|---|---|
-| Linux·macOS·WSL·Git Bash | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- <등록-이름>` |
-| Windows PowerShell | `& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'` |
-| Windows CMD | `powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent '<등록-이름>'"` |
+| 운영체제 | 기본 터미널 | 최초 설치 명령 |
+|---|---|---|
+| Windows | Git Bash | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- <등록-이름>` |
+| macOS | Terminal | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- <등록-이름>` |
+| Linux | Bash | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- <등록-이름>` |
 
-설치 후 새 터미널을 열면 PowerShell·CMD·Git Bash·Linux·macOS 어디서든 `kitpull`, `kitpush`를 사용할 수 있습니다.
+Windows는 Git for Windows에 포함된 Git Bash가 설치되어 있다는 전제로 위 한 줄을 실행합니다. 이 Windows 조정실에서는 아래 명령을 그대로 사용합니다.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- windows-control
+```
+
+`install.sh`가 Windows를 감지해 저장소의 `install.ps1`을 내부 호출하므로 사용자가 별도 PowerShell 순서를 수행하지 않습니다. 설치 후 새 터미널을 열면 PowerShell·CMD·Git Bash·Linux·macOS 어디서든 `kitpull`, `kitpush`를 사용할 수 있습니다.
 
 ### 처음 등록하는 `abc_project` 역할
 
@@ -54,8 +60,9 @@ curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/insta
 ### 설치 전 조건
 
 - 키트는 설치 명령을 실행한 사용자 계정에 전역 설치됩니다.
-- 원격 서버는 `chaconne@49.247.45.243`로 비밀번호 없이 SSH 접속할 수 있어야 합니다.
-- GitHub 저장소를 clone할 SSH 키가 준비되어 있어야 합니다.
+- Windows에서는 Git for Windows와 Git Bash가 설치되어 있어야 합니다.
+- 위 표의 기본 명령은 첫 clone에 공개 HTTPS를 사용하며 GitHub SSH 키가 필요하지 않습니다.
+- GBrain 확인까지 완료하려면 원격 서버 `chaconne@49.247.45.243`에 새 장비의 SSH 공개키를 등록해야 합니다.
 - 기존 `~/.claude`, `~/.codex`, `~/.gbrain` 일반 파일은 설치기가 백업합니다.
 
 현재 상태 확인:
@@ -150,7 +157,7 @@ systemctl --user status gbrain-http.service --no-pager
 
 ### Windows
 
-상단 표의 PowerShell·CMD·Git Bash 명령 중 하나를 실행합니다. 설치기는 사용자 PATH에 `kitpull.cmd`·`kitpush.cmd`를 추가하고 Git Bash의 셸 설정도 연결합니다. Windows는 junction과 하드링크를 사용하며 Linux 전용 systemd 서비스는 설치하지 않습니다.
+상단 표의 Git Bash 한 줄을 실행합니다. 설치기는 사용자 PATH에 `kitpull.cmd`·`kitpush.cmd`를 추가하고 Git Bash의 셸 설정도 연결합니다. Windows는 junction과 하드링크를 사용하며 Linux 전용 systemd 서비스는 설치하지 않습니다.
 
 ### 주의
 

@@ -44,7 +44,7 @@ bootstrap_checkout() {
     fi
     git -C "$checkout" merge --ff-only origin/main
   else
-    git clone --branch main --single-branch git@github.com:chaconne67/kmh-agent-kit.git "$checkout"
+    git clone --branch main --single-branch https://github.com/chaconne67/kmh-agent-kit.git "$checkout"
   fi
 
   [ -x "$checkout/install.sh" ] || chmod u+x "$checkout/install.sh"
@@ -57,7 +57,7 @@ fi
 
 show_usage() {
   cat <<'EOF'
-KMH Agent Kit (Linux·macOS·WSL·Windows Git Bash)
+KMH Agent Kit (Windows Git Bash·macOS·Linux·WSL)
 
 새로운 프로젝트 역할을 처음 등록:
   ./install.sh --new abc-project
