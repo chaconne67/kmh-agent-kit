@@ -124,6 +124,10 @@ kitpush
 
 `windows-control`은 저장소의 프로젝트 계약을 매번 다시 읽습니다. 다섯 조정 폴더의 `AGENTS.md`, `CLAUDE.md`, 스킬은 kit 정본에 연결되므로 어느 컴퓨터에서든 `kitpull`로 같은 상태가 됩니다. `venture`의 지침·스킬과 소스는 venture 저장소가 정본입니다.
 
+사용자가 만든 전역 스킬은 kit 정본에서 Codex와 Claude Code에 함께 연결됩니다. 같은 이름의 옛
+사용자 스킬은 백업한 뒤 교체합니다. 도구 기본 스킬과 플러그인 캐시, 키트에 없는 도구 스킬은
+각 도구가 계속 관리합니다. FundKeeper 폴더에는 Testbed 작업 스킬도 함께 연결됩니다.
+
 ### 설치 결과 확인
 
 ```bash

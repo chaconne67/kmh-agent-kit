@@ -131,6 +131,15 @@ validate_agent_name() {
     die "에이전트 이름은 영문 소문자·숫자·중간 하이픈으로 된 1~32자여야 합니다: $agent_name"
 }
 
+backup_entry() {
+  local path="$1" flat
+  mkdir -p "$backup_root"
+  flat="${path#"$home_dir"/}"
+  flat="${flat//\//_}"
+  mv "$path" "$backup_root/$flat"
+  echo "기존 항목 백업: $path"
+}
+
 # 링크가 아닌 기존 항목은 백업한 뒤 연결한다. 이미 올바른 링크면 그대로 둔다.
 link_entry() {
   local target="$1" link="$2"
@@ -138,10 +147,7 @@ link_entry() {
     [ "$(readlink "$link")" = "$target" ] && return 0
     unlink "$link"
   elif [ -e "$link" ]; then
-    mkdir -p "$backup_root"
-    local flat="${link#"$home_dir"/}"
-    flat="${flat//\//_}"
-    mv "$link" "$backup_root/$flat"
+    backup_entry "$link"
   fi
   mkdir -p "$(dirname "$link")"
   ln -s "$target" "$link"
@@ -188,6 +194,30 @@ remove_kit_skill_links() {
         echo "이전 Codex 사용자 스킬 링크 제거: $entry"
         ;;
     esac
+  done
+}
+
+migrate_legacy_global_skill_copies() {
+  local live_root source name live_entry target resolved
+  for live_root in "$codex_home/skills" "$agents_home/skills" "$claude_home/skills"; do
+    for source in "$repo_dir"/skills/common/* "$repo_dir"/skills/domains/*/*; do
+      [ -d "$source" ] || continue
+      name="$(basename "$source")"
+      live_entry="$live_root/$name"
+      { [ -e "$live_entry" ] || [ -L "$live_entry" ]; } || continue
+
+      target="$(readlink "$live_entry" 2>/dev/null || true)"
+      resolved="$(readlink -f "$live_entry" 2>/dev/null || true)"
+      case "$target:$resolved" in
+        "$repo_dir/codex/skills/"*:*|"$repo_dir/claude/skills/"*:*|*:"$repo_dir/skills/"*)
+          unlink "$live_entry"
+          ;;
+        *)
+          backup_entry "$live_entry"
+          ;;
+      esac
+      echo "이전 사용자 스킬 이전: $live_entry"
+    done
   done
 }
 
@@ -249,6 +279,7 @@ install_shell_commands() {
 
 install_global() {
   local agent_name="${1:-}"
+  migrate_legacy_global_skill_copies
   remove_kit_skill_links "$codex_home/skills"
   link_profile "$repo_dir/claude/skills" "$claude_home/skills"
   link_profile "$repo_dir/codex/skills" "$agents_home/skills"

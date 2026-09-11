@@ -1,0 +1,4 @@
+interface:
+  display_name: "Preflight"
+  short_description: "스킬과 워크플로우 실행 전 품질과 리스크 검증"
+  default_prompt: "Use $preflight to dry-run a skill or workflow and produce prerequisite, risk, and quality checks."

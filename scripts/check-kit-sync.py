@@ -271,6 +271,9 @@ class KitSyncTests(unittest.TestCase):
         personal_skill = home / ".hermes" / "skills" / "code-review"
         personal_skill.mkdir(parents=True)
         (personal_skill / "PERSONAL.txt").write_text("keep\n", encoding="utf-8")
+        legacy_skill = home / ".codex" / "skills" / "preflight" / "SKILL.md"
+        legacy_skill.parent.mkdir(parents=True)
+        legacy_skill.write_text("legacy preflight\n", encoding="utf-8")
         env = os.environ.copy()
         env.update(
             {
@@ -281,10 +284,21 @@ class KitSyncTests(unittest.TestCase):
         )
 
         run(repo / "install.sh", "sam", env=env)
+        backups_after_first_install = set(home.glob(".kmh-agent-kit-backup-*"))
         run(repo / "install.sh", "sam", env=env)
+        self.assertEqual(
+            set(home.glob(".kmh-agent-kit-backup-*")), backups_after_first_install
+        )
 
         self.assertEqual((personal_skill / "PERSONAL.txt").read_text(), "keep\n")
         self.assertFalse(personal_skill.is_symlink())
+        self.assertFalse(legacy_skill.parent.exists())
+        legacy_backups = list(
+            home.glob(".kmh-agent-kit-backup-*/.codex_skills_preflight/SKILL.md")
+        )
+        self.assertEqual(len(legacy_backups), 1)
+        self.assertEqual(legacy_backups[0].read_text(), "legacy preflight\n")
+        self.assertTrue((home / ".agents" / "skills" / "preflight").is_symlink())
         self.assertTrue((home / ".hermes" / "skills" / "code-review-loop").is_symlink())
         self.assertEqual(
             (home / ".local" / "bin" / "kitpull").resolve(),
@@ -479,9 +493,26 @@ class WindowsInstallerTests(unittest.TestCase):
             )
             run("git", "init", "--initial-branch=main", repo)
 
+            # Git for Windows의 기본 core.symlinks=false 체크아웃도 함께 재현한다.
+            for profile_entry, target_text in (
+                (
+                    repo / "codex" / "skills" / "check-master-plan",
+                    "../../skills/common/check-master-plan",
+                ),
+                (
+                    repo / "projects" / "ceoloan" / "skills" / "cretop",
+                    "../../../skills/domains/ceoloan/cretop",
+                ),
+            ):
+                profile_entry.unlink()
+                profile_entry.write_text(target_text, encoding="utf-8")
+
             preserved = home / "projects" / "rndlog" / "keep.txt"
             preserved.parent.mkdir(parents=True)
             preserved.write_text("keep\n", encoding="utf-8")
+            legacy_skill = home / ".codex" / "skills" / "preflight" / "SKILL.md"
+            legacy_skill.parent.mkdir(parents=True)
+            legacy_skill.write_text("legacy preflight\n", encoding="utf-8")
 
             venture_seed = temp / "venture-seed"
             venture_origin = temp / "venture.git"
@@ -530,9 +561,45 @@ class WindowsInstallerTests(unittest.TestCase):
             )
 
             run(*command, env=env)
+            backups_after_first_install = set(home.glob(".kmh-agent-kit-backup-*"))
             venture = home / "projects" / "venture"
             (venture / "AGENTS.md").write_text("local venture work\n", encoding="utf-8")
             run(*command, env=env)
+            self.assertEqual(
+                set(home.glob(".kmh-agent-kit-backup-*")), backups_after_first_install
+            )
+
+            for name, action in (("kitpull", "pull"), ("kitpush", "push")):
+                wrapper = home / ".local" / "bin" / f"{name}.cmd"
+                lines = wrapper.read_text(encoding="utf-8").splitlines()
+                self.assertEqual(len(lines), 1)
+                self.assertIn(f" {action} %*", lines[0])
+
+            for profile, skill in (
+                ("claude", "humanize-korean"),
+                ("projects/fundkeeper", "testbed"),
+            ):
+                self.assertTrue((repo / profile / "skills" / skill / "SKILL.md").is_file())
+            self.assertTrue(
+                os.path.samefile(
+                    home / ".agents" / "skills" / "check-master-plan",
+                    repo / "skills" / "common" / "check-master-plan",
+                )
+            )
+            self.assertTrue(
+                os.path.samefile(
+                    home / "projects" / "ceoloan" / ".agents" / "skills" / "cretop",
+                    repo / "skills" / "domains" / "ceoloan" / "cretop",
+                )
+            )
+
+            self.assertFalse(legacy_skill.parent.exists())
+            legacy_backups = list(
+                home.glob(".kmh-agent-kit-backup-*/.codex_skills_preflight/SKILL.md")
+            )
+            self.assertEqual(len(legacy_backups), 1)
+            self.assertEqual(legacy_backups[0].read_text(), "legacy preflight\n")
+            self.assertTrue((home / ".agents" / "skills" / "preflight").is_dir())
 
             profile_names = ("ceoloan", "exdigm", "fundkeeper", "rndlog", "ziin")
             for profile in profile_names:

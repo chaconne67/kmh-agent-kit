@@ -137,7 +137,6 @@ function Resolve-ProfileTarget {
     param([string]$Entry)
 
     $item = Get-Item -LiteralPath $Entry -Force
-    if ($item.PSIsContainer) { return $item.FullName }
     if ($item.LinkType -in 'SymbolicLink', 'Junction') {
         $target = @($item.Target)[0]
         if (-not [System.IO.Path]::IsPathRooted($target)) {
@@ -145,6 +144,7 @@ function Resolve-ProfileTarget {
         }
         return (Resolve-Path -LiteralPath $target).Path
     }
+    if ($item.PSIsContainer) { return $item.FullName }
     if ($item.Length -ge 4096) { return $null }
 
     $text = (Get-Content -LiteralPath $Entry -Raw -Encoding UTF8).Trim()
@@ -155,18 +155,41 @@ function Resolve-ProfileTarget {
     return $null
 }
 
+function Get-LinkTargetPath {
+    param([System.IO.FileSystemInfo]$Item)
+
+    if ($Item.LinkType -notin 'SymbolicLink', 'Junction' -or -not $Item.Target) {
+        return $null
+    }
+    $target = @($Item.Target)[0]
+    if (-not [System.IO.Path]::IsPathRooted($target)) {
+        $target = Join-Path $Item.DirectoryName $target
+    }
+    return [System.IO.Path]::GetFullPath($target)
+}
+
+function Remove-LinkEntry {
+    param([System.IO.FileSystemInfo]$Item)
+
+    if ($Item.LinkType -eq 'Junction' -or $Item.PSIsContainer) {
+        [System.IO.Directory]::Delete($Item.FullName)
+    } else {
+        [System.IO.File]::Delete($Item.FullName)
+    }
+}
+
 function Link-Entry {
     param([string]$Target, [string]$Link)
 
     $target = (Resolve-Path -LiteralPath $Target).Path
     $targetIsDir = (Get-Item -LiteralPath $target -Force).PSIsContainer
-    if (Test-Path -LiteralPath $Link) {
-        $existing = Get-Item -LiteralPath $Link -Force
-        if ($existing.LinkType -eq 'Junction' -and $existing.Target -and
-            (@($existing.Target)[0]).TrimEnd('\') -eq $target.TrimEnd('\')) { return }
+    $existing = Get-Item -LiteralPath $Link -Force -ErrorAction SilentlyContinue
+    if ($existing) {
+        $existingTarget = Get-LinkTargetPath -Item $existing
+        if ($existingTarget -and $existingTarget.TrimEnd('\') -eq $target.TrimEnd('\')) { return }
 
-        if ($existing.LinkType -eq 'Junction') {
-            [System.IO.Directory]::Delete($Link)
+        if ($existing.LinkType -in 'SymbolicLink', 'Junction') {
+            Remove-LinkEntry -Item $existing
         } elseif ($existing.LinkType -eq 'HardLink' -and -not $targetIsDir -and
                   [System.Linq.Enumerable]::SequenceEqual([byte[]][System.IO.File]::ReadAllBytes($Link), [byte[]][System.IO.File]::ReadAllBytes($target))) {
             # Git checkout은 원본 inode를 바꿀 수 있다. 내용이 같아도 매번 현재 원본에 다시 건다.
@@ -204,8 +227,8 @@ function Link-Profile {
         if ($PreserveExisting -and (Test-Path -LiteralPath $linkPath)) {
             $existing = Get-Item -LiteralPath $linkPath -Force
             $skillsRoot = (Join-Path $repoDir 'skills').TrimEnd('\')
-            $managed = $existing.LinkType -eq 'Junction' -and $existing.Target -and
-                (@($existing.Target)[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')
+            $existingTarget = Get-LinkTargetPath -Item $existing
+            $managed = $existingTarget -and $existingTarget.StartsWith($skillsRoot, 'OrdinalIgnoreCase')
             if (-not $managed) {
                 Write-Host "  Hermes 기존 스킬 유지: $linkPath"
                 $linked[$entry.Name] = $true
@@ -221,11 +244,11 @@ function Link-Profile {
     $skillsPrefix = $skillsRoot + [System.IO.Path]::DirectorySeparatorChar
     $profilePrefix = $profileRoot + [System.IO.Path]::DirectorySeparatorChar
     foreach ($liveEntry in Get-ChildItem -LiteralPath $Live -Force) {
-        if ($liveEntry.LinkType -ne 'Junction' -or $linked.ContainsKey($liveEntry.Name)) { continue }
-        $target = if ($liveEntry.Target) { @($liveEntry.Target)[0] } else { '' }
-        if ($target.StartsWith($skillsPrefix, 'OrdinalIgnoreCase') -or
-            $target.StartsWith($profilePrefix, 'OrdinalIgnoreCase')) {
-            [System.IO.Directory]::Delete($liveEntry.FullName)
+        if ($liveEntry.LinkType -notin 'SymbolicLink', 'Junction' -or $linked.ContainsKey($liveEntry.Name)) { continue }
+        $target = Get-LinkTargetPath -Item $liveEntry
+        if ($target -and ($target.StartsWith($skillsPrefix, 'OrdinalIgnoreCase') -or
+            $target.StartsWith($profilePrefix, 'OrdinalIgnoreCase'))) {
+            Remove-LinkEntry -Item $liveEntry
             Write-Host "  remove stale: $($liveEntry.FullName)"
         }
     }
@@ -237,10 +260,54 @@ function Remove-KitSkillLinks {
     if (-not (Test-Path -LiteralPath $Live)) { return }
     $skillsRoot = (Join-Path $repoDir 'skills').TrimEnd('\')
     foreach ($entry in Get-ChildItem -LiteralPath $Live -Force) {
-        if ($entry.LinkType -ne 'Junction' -or -not $entry.Target) { continue }
-        if ((@($entry.Target)[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')) {
-            [System.IO.Directory]::Delete($entry.FullName)
+        if ($entry.LinkType -notin 'SymbolicLink', 'Junction') { continue }
+        $target = Get-LinkTargetPath -Item $entry
+        if ($target -and $target.StartsWith($skillsRoot, 'OrdinalIgnoreCase')) {
+            Remove-LinkEntry -Item $entry
             Write-Host "  remove legacy Codex user skill: $($entry.FullName)"
+        }
+    }
+}
+
+function Move-LegacyGlobalSkillCopies {
+    $sources = @(Get-ChildItem -LiteralPath (Join-Path $repoDir 'skills\common') -Directory)
+    foreach ($domain in Get-ChildItem -LiteralPath (Join-Path $repoDir 'skills\domains') -Directory) {
+        $sources += @(Get-ChildItem -LiteralPath $domain.FullName -Directory)
+    }
+
+    $liveRoots = @("$codexHome\skills", "$agentsHome\skills", "$claudeHome\skills") | Select-Object -Unique
+    $managedRoots = @(
+        (Join-Path $repoDir 'skills'),
+        (Join-Path $repoDir 'codex\skills'),
+        (Join-Path $repoDir 'claude\skills')
+    )
+    foreach ($liveRoot in $liveRoots) {
+        foreach ($source in $sources | Sort-Object Name -Unique) {
+            $legacyPath = Join-Path $liveRoot $source.Name
+            $legacy = Get-Item -LiteralPath $legacyPath -Force -ErrorAction SilentlyContinue
+            if (-not $legacy) { continue }
+
+            $target = Get-LinkTargetPath -Item $legacy
+            $managed = $false
+            if ($target -and (Test-Path -LiteralPath $target)) {
+                foreach ($root in $managedRoots) {
+                    $prefix = $root.TrimEnd('\') + [System.IO.Path]::DirectorySeparatorChar
+                    if ($target.StartsWith($prefix, 'OrdinalIgnoreCase')) {
+                        $managed = $true
+                        break
+                    }
+                }
+            }
+            if ($managed) {
+                if ($liveRoot.TrimEnd('\') -eq "$codexHome\skills".TrimEnd('\')) {
+                    Remove-LinkEntry -Item $legacy
+                    Write-Host "  remove legacy Codex skill link: $legacyPath"
+                }
+                continue
+            }
+
+            Backup-Entry -Path $legacyPath
+            Write-Host "  migrate legacy user skill: $legacyPath"
         }
     }
 }
@@ -346,7 +413,7 @@ function Install-ShellCommands {
     $gitDir = Split-Path $script:gitExe -Parent
     foreach ($command in 'kitpull', 'kitpush') {
         $action = if ($command -eq 'kitpull') { 'pull' } else { 'push' }
-        $content = "@echo off`r`nset `"PATH=$gitDir;%PATH%`"`r`n`"$bash`" --noprofile --norc `"$aliasScript`" $action %*`r`n"
+        $content = "@set `"PATH=$gitDir;%PATH%`"&&`"$bash`" --noprofile --norc `"$aliasScript`" $action %*`r`n"
         Write-Utf8NoBom -Path (Join-Path $commandDir "$command.cmd") -Content $content
     }
     Add-UserPathEntry -Path $commandDir
@@ -354,6 +421,7 @@ function Install-ShellCommands {
 }
 
 function Install-Global {
+    Move-LegacyGlobalSkillCopies
     Remove-KitSkillLinks -Live "$codexHome\skills"
     Write-Host "[claude] $claudeHome\skills"
     Link-Profile -Profile "$repoDir\claude\skills" -Live "$claudeHome\skills"

@@ -45,6 +45,10 @@ kitpush
 | 프로젝트 폴더 | 다섯 조정 폴더를 만들고 kit 프로필 연결. `venture`가 없으면 GitHub에서 clone |
 | 대화 세션 | 동기화하지 않음 |
 
+스킬 동기화 대상은 직접 만든 사용자 스킬과 키트의 프로젝트 스킬입니다. Codex 기본 스킬,
+플러그인 캐시, 키트에 없는 별도 프로그램 스킬은 해당 프로그램이 관리합니다. 같은 이름의 옛
+사용자 스킬이 남아 있으면 최초 설치가 삭제하지 않고 백업한 뒤 키트 원본을 연결합니다.
+
 ## 개요
 
 KMH Agent Kit은 조정실의 휴대 가능한 작업 환경을 담는 GitHub 정본입니다. `AGENTS.md`, `CLAUDE.md`, 공용·프로젝트 스킬, GBrain 카드와 프로젝트 진입 구조를 연결합니다. 작업 중 확정한 결정과 재사용할 디버깅 지식은 전역 지침에 따라 GBrain에 기록하며 대화 원문은 복사하지 않습니다.
@@ -162,6 +166,8 @@ Linux·macOS의 기존 심볼릭 링크 설치는 첫 `kitpull` 또는 `kitpush`
 `./install.sh --project <경로> <프로필>`로 연결한 위치는 저장소의 로컬 Git 설정에 기록됩니다. 이후 `kitpull`과 `kitpush`가 해당 프로필을 다시 연결합니다.
 
 `windows-control`의 폴더 정본은 `manifests/windows-control-projects.tsv`입니다. `ceoloan`, `exdigm`, `fundkeeper`, `rndlog`, `ziin`은 폴더를 만든 뒤 kit의 프로젝트 지침과 스킬을 연결합니다. `venture`는 자체 `AGENTS.md`, `CLAUDE.md`, 스킬과 소스 코드를 함께 가진 별도 Git 저장소이므로, 폴더가 없을 때만 공개 HTTPS로 clone하고 기존 폴더나 미커밋 작업은 건드리지 않습니다.
+
+FundKeeper 조정 폴더에는 코스콤 Testbed의 공통·알고리즘 설명서·ETF·리밸런싱 스킬도 함께 연결됩니다.
 
 운영 서버에는 프로젝트 프로필·공용 지침·GBrain 카드를 자동 설치하지 않습니다. 중앙 조정 장비의 프로젝트 폴더에만 프로필을 연결해도 운영 저장소를 관리할 수 있습니다.
 

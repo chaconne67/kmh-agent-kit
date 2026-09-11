@@ -12,6 +12,7 @@
     "microplan-implement": ["microplan-review"],
     "microplan-review-batch": ["microplan-review", "code-review-loop"],
     "microplan-verify": ["microplan-review"],
-    "skill-review": ["skill-writing-guide"]
+    "skill-review": ["skill-writing-guide"],
+    "testbed": ["testbed-base", "testbed-algo-report", "testbed-etf", "testbed-rebal-report"]
   }
 }

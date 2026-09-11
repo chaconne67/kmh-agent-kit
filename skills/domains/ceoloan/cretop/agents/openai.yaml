@@ -1,0 +1,4 @@
+interface:
+  display_name: "CRETOP"
+  short_description: "CRETOP 로그인과 현재 화면 조작 절차"
+  default_prompt: "현재 사용할 수 있는 브라우저에서 $cretop 절차로 CRETOP 화면을 확인하고 요청한 작업을 수행해줘."

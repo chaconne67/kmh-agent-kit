@@ -60,7 +60,8 @@ def profile_dirs(args: argparse.Namespace) -> list[Path]:
 
 
 def add(skill: str, source: Path, profile: Path) -> None:
-    rel = os.path.relpath(source, profile).replace(os.sep, "/")
+    rel_native = os.path.relpath(source, profile)
+    rel_git = rel_native.replace(os.sep, "/")
     link = profile / skill
     profile.mkdir(parents=True, exist_ok=True)
     if link.exists() or link.is_symlink():
@@ -69,18 +70,18 @@ def add(skill: str, source: Path, profile: Path) -> None:
     # 작업트리 표현: 심링크가 가능하면 심링크, 아니면 git이 core.symlinks=false로
     # 체크아웃할 때와 같은 형태(개행 없는 경로 한 줄)로 둔다.
     try:
-        link.symlink_to(rel, target_is_directory=True)
+        link.symlink_to(rel_native, target_is_directory=True)
     except OSError:
         with open(link, "w", encoding="utf-8", newline="") as handle:
-            handle.write(rel)
+            handle.write(rel_git)
 
     blob = subprocess.run(
         ["git", "-C", str(REPO), "hash-object", "-w", "--stdin"],
-        input=rel, text=True, check=True, stdout=subprocess.PIPE,
+        input=rel_git, text=True, check=True, stdout=subprocess.PIPE,
     ).stdout.strip()
     index_path = str((profile / skill).relative_to(REPO)).replace(os.sep, "/")
     git("update-index", "--add", "--cacheinfo", f"120000,{blob},{index_path}")
-    print(f"linked  {index_path} -> {rel}")
+    print(f"linked  {index_path} -> {rel_git}")
 
 
 def remove(skill: str, profile: Path) -> None:
