@@ -1,164 +1,56 @@
 ---
 name: masterplan-write
-description: Write and internally review implementation master plans that define phase maps for later microplan artifacts. Use for master plans, roadmaps, phase plans, broad implementation plans, "마스터 플랜", or "계획 세워봐".
+description: 구현 방향과 범위를 정하는 마스터플랜을 작성하거나 다듬을 때 사용한다. 마스터플랜, 로드맵, 전체 구현 계획 요청에 적용한다.
 ---
 
-# Masterplan Write
+# 마스터플랜 작성
 
-## Core Rule
+마스터플랜은 사용자와 구현 에이전트가 목표와 판단 기준을 공유하고, 그 계획에서 바로 구현을 시작할 수 있게 하는 문서다. 무엇을 왜 바꾸며 어떤 결과를 확인해야 하는지 담고, 세부 구현 판단은 실제 작업을 맡은 에이전트에게 맡긴다.
 
-A master plan is not a document-writing task. A master plan is the top-level implementation plan that defines the phase artifacts later microplan-write will create.
+## 작성 관점
 
-The approval boundary applies to starting microplan writing, not to selecting the first phase. Before approval, do not invoke microplan-write. After the user approves microplan writing without naming a phase, treat that approval as covering the entire reviewed phase map and use microplan-write in phase-map mode to create every listed artifact candidate in order. Write only one microplan when the user explicitly selects one phase or implementation unit. Never reduce whole-map approval to `task-001` by default.
+아래는 고정 목차나 실행 순서가 아니라 계획에서 놓치지 않을 관점이다. 주제의 복잡성과 위험에 맞게 구성과 깊이를 정한다.
 
-Master plan completion includes internal review. Do not finish after drafting only. Draft the master plan, attempt an independent subagent review using the review rubric below, apply concrete findings, then deliver the reviewed plan. If no subagent tool is available in the current environment or the subagent call fails, perform the same rubric yourself and state that the independent pass could not run.
+- **의도와 성공:** 사용자가 해결하려는 문제와 구현 후 달라질 결과를 연결한다. 요청한 접근법이나 목표를 임의로 축소하지 않는다.
+- **범위와 보존:** 이번에 바꿀 것과 지켜야 할 기존 동작·데이터·권한을 구분한다. 구현 중 다시 결정하면 범위가 흔들릴 선택은 계획에서 정리한다.
+- **현재 시스템과의 연결:** 실제 코드와 운영 맥락을 근거로 변경 방향과 이유를 설명한다. 기존 구조를 어디까지 재사용하고 무엇을 대체하는지 이해할 수 있게 한다.
+- **의존성과 위험:** 선행 조건과 변경 영향을 드러낸다. 되돌리기 어려운 작업은 안전하게 진행하거나 중단할 조건을 알아볼 수 있게 한다.
+- **완료 판단:** 원하는 결과와 기존 성공 동작이 유지되는지 실제 사용 경로에서 확인할 기준을 담는다. 문서 작성이나 코드 변경 자체를 구현 완료로 보지 않는다.
 
-Do not create a separate intent document before the master plan unless the user explicitly asks for one. Put a short intent summary inside the master plan, then move directly into implementation strategy and phased implementation order.
+추상화는 세부 절차를 덜 정하는 것이지 판단에 필요한 근거를 생략하는 것이 아니다. 구현자가 의도를 다시 추측하지 않을 만큼 구체적으로 쓰되, 파일별 작업·명령·양식은 중요한 제약이나 위험을 설명할 때만 포함한다. 단계와 표는 관계를 이해하는 데 도움이 될 때 사용하고, 개수나 순서를 형식 때문에 고정하지 않는다.
 
-If the request came from a proposed method, architecture, research result, or reusable pattern, the master plan must explain how that method will be implemented in the target system. Do not replace implementation with a "baseline document", "decision document", "contract document", or "research artifact" unless that artifact directly unlocks a named implementation phase and is not reported as the implementation itself.
+## 근거와 미정 사항
 
-## Before Drafting
+현재 코드, 사용자 결정, 프로젝트의 정본 문서를 먼저 확인한다. 기존 자료로 답할 수 있는 내용을 다시 묻지 않는다. 확인된 사실과 설계 제안, 아직 모르는 사항을 구분한다.
 
-Resolve only ambiguities that would change implementation scope, data ownership, production risk, irreversible changes, or success criteria.
+의도·범위·안전·성공 기준을 바꿀 정보가 없으면 그 정보에 의존하는 판단을 보류하고 필요한 결정을 요청한다. 독립적으로 정리할 수 있는 부분은 계속한다. 일반적인 구현 선택은 기존 구조와 제약 안에서 판단하고, 확인되지 않은 업무 사실을 임의로 채우지 않는다.
 
-Inspect local code, current planning-authority sources, GBrain, ADRs, configs, and prior plans before asking the user. Ask only when local evidence cannot answer a high-impact choice.
+## 계획의 보관
 
-When the project has a GBrain planning authority index, read it before broad planning and use its named canonical page as the current source. Treat `local-docs/*`, deleted local planning docs, old master plans, and old microplans as historical references unless the canonical page explicitly promotes them.
+프로젝트가 정한 저장 위치를 따른다. 같은 주제의 현재 계획이 있으면 갱신하고, 기존 결정과 진행 상태를 보존한다. 별도 지정이 없으면 Markdown을 사용한다.
 
-If the user asks for a durable plan in a topic governed by a canonical GBrain page, update or create that canonical page instead of creating a competing local plan file. Use a local file only when the user explicitly asks for a file artifact or a downstream tool requires a temporary artifact.
+GBrain을 사용할 때는 먼저 `~/.gbrain-agent.md`를 읽고 따른다. 카드가 없으면 관련 조회와 기록을 건너뛴다. GBrain이 계획의 정본인 프로젝트에서는 현재 계획과 색인을 함께 갱신하되, 과거 문서의 작업 절차를 새 요청에 강제하지 않는다. 필요한 저장을 마치지 못했으면 초안과 저장 완료를 구분하고 남은 조치를 알린다.
 
-The canonical definition of the planning package — slugs, root fields, task status values, authority rules, and the write-unavailable rule — is the GBrain page `reference/gbrain-planning-package-protocol`. The rules below are the working summary. When they conflict with that page, follow the page and update this skill.
+## 계획에서 구현으로
 
-When durable plans live in GBrain, manage the work as one topic planning package:
+계획만 요청받았다면 검토한 계획을 제시한다. 구현까지 승인되어 있다면 마스터플랜을 실행 가능한 작업 목록으로 옮겨 바로 구현하며, 별도 상세 계획 문서 작성을 선행 조건으로 두지 않는다. 기존 승인을 다시 묻지 않고, 목표·범위·부작용이 달라질 때만 새 결정을 요청한다.
 
-- Search GBrain for the same topic before writing. Reuse the existing package when one exists; create a new package only when no current same-topic package exists.
-- Use one stable package root slug for the topic. The root page is the package index and current-state page.
-- Store or update the reviewed master plan at `{package-root}/master-plan`.
-- Record the package root, master-plan slug, current priority, superseded prior plan slugs, and microplan artifact candidates on the root page.
-- For a newer version of the same topic, update the stable package in place and move replaced decisions to Superseded History instead of creating a competing package.
-- Add or update the planning authority index when a package becomes the current authority for its topic.
+Codex에서는 현재 세션에 제공된 기본 계획·작업 목록 기능을 우선 사용한다. 작업을 검증 가능한 결과 단위로 나누고 의존관계에 따라 진행 상태를 갱신한다. 해당 기능이 없으면 같은 계획에 간단한 체크리스트를 둔다. 작업 목록은 진행을 추적하고, 마스터플랜은 의도와 판단 기준을 유지한다.
 
-Master plan completion in a GBrain-authoritative project requires the reviewed master plan to be written to `{package-root}/master-plan` and the package root to be updated. If direct GBrain write access is unavailable, stop before presenting the plan as completed and report the exact package root, master-plan slug, master-plan content, root update, and planning-authority index update that must be written.
+구현 중 새 사실로 방향이 달라지면 계획과 작업 목록을 함께 맞춘다. 구현 후에는 작업 목록의 체크 여부가 아니라 마스터플랜의 성공 기준과 보호할 조건으로 결과를 점검한다.
 
-For low-impact unknowns, state an assumption inside the plan and keep going.
+코드 구현까지 진행한 경우에는 `code-review-loop`를 사용해 승인된 목적과 범위 안에서 코드 리뷰, 필요한 수정과 재검증을 수행한다. 해당 스킬의 완료 조건과 마스터플랜의 동작 검증을 모두 충족한 뒤 구현 완료를 보고한다.
 
-Do not ask the user whether the plan should be Markdown or HTML unless they explicitly need a browser-review artifact. Use Markdown by default; the file format is only a container, not the goal.
+## 작업 분담과 모델 선택
 
-## Required Master Plan Shape
+서브에이전트는 작업 분담이나 별도 검토의 이득이 전달·조율·통합 비용보다 클 때 활용한다. 복잡하거나 중요한 일이라는 이유만으로 호출하지 않는다. 다른 작업의 결정을 계속 기다리지 않고 진행할 수 있는 범위와 결과 확인 방법이 분명해야 한다. 그렇지 않으면 주 에이전트가 맥락을 유지하며 진행한다.
 
-The generated master plan must use exactly these three top-level sections, in this order.
+모델과 추론 수준은 맡길 일에 필요한 판단 난도, 계획의 명확성, 오류의 영향, 검증 가능성을 고려해 선택한다. 계획과 성공 기준이 정해진 구현이나 단순 작업은 요구 품질을 충족하는 비용 효율적인 모델을 우선 검토한다. 불확실한 설계나 영향이 큰 판단에는 더 높은 역량의 모델이 추가 비용만큼 가치를 주는지 살핀다.
 
-## 1. Intent
+특정 모델 이름에 역할을 고정하지 않고 현재 사용 가능한 모델의 역량·비용과 실제 작업 결과를 근거로 판단한다. 토큰 단가뿐 아니라 맥락 전달, 재시도, 검토와 수정까지 포함한 전체 비용과 완료 시간을 고려한다. 사용자 지정과 실행 환경의 선택 범위를 따르며, 모델을 바꾸더라도 성공 기준과 검증 수준은 유지한다.
 
-Summarize the user's goal in product or business terms.
+## 검토
 
-Include:
+계획을 제시하기 전에 위 작성 관점에서 의도 누락, 근거 없는 단정, 의존성 모순, 검증 공백을 점검한다. 별도 검토자를 활용한다면 원래 요청과 제약, 계획, 필요한 근거를 전달하고 결론을 유도하지 않는다.
 
-- what problem or opportunity the work addresses
-- what must be true when implementation succeeds
-- what is out of scope
-- any high-impact assumptions or user decisions still open
-
-Keep this section short. Do not turn it into a separate requirements document.
-
-## 2. Implementation Approach
-
-Explain the concrete implementation approach.
-
-Include:
-
-- target runtime path, module, service, model, API, UI, job, or data flow
-- current behavior or baseline that will be changed
-- proposed architecture or algorithm
-- how existing code will be reused or replaced
-- data contracts, persistence, migrations, external services, or permission boundaries if relevant
-- failure handling and observability that affect implementation
-- validation strategy tied to user-visible behavior
-
-When the user asks to apply a methodology, name the actual code path where that methodology enters the system. For example, "embedding lane joins ranking in `parse_and_search()` after hard filters" is valid; "write an embedding plan" is not.
-
-## 3. Microplan Phase Map
-
-Break the implementation into ordered phases that will become later microplan artifacts if the user approves microplan writing.
-
-Each phase must include:
-
-- microplan artifact candidate title
-- phase objective
-- microplan scope
-- out-of-scope work
-- dependency on previous phases
-
-Keep phase entries compact. The master plan defines the sequence and scope boundaries. After approval, microplan-write expands the entire approved phase map into separate microplan artifacts unless the user explicitly selects a single phase.
-
-Use this shape:
-
-```text
-Phase 1: <microplan artifact candidate title>
-- Objective: <what this phase accomplishes>
-- Microplan scope: <what a later microplan should cover>
-- Exclude: <what that microplan should not cover>
-- Depends on: <previous phase or "none">
-```
-
-Rules:
-
-- Every phase must be implementable or verification-enabling.
-- Documentation may appear inside a phase only as support for implementation or handoff.
-- Do not count documentation-only work as a completed implementation phase.
-- Do not over-specify phase internals; leave detailed CRUD/order/completion gates to microplan-write.
-- Put risky migration, deletion, production, external API, and permission work in separate phases.
-- If one phase is too broad for one microplan artifact, split it into multiple phases now.
-- Do not run microplan-write before approval. Request approval once for the phase-map set, not for `task-001` alone.
-- After whole-map approval, the next planning step is every artifact candidate in phase order. A single artifact is valid only when the user explicitly selected that phase or implementation unit.
-
-End section 3 with the microplan artifact candidates covered by the approval request:
-
-```text
-Microplan artifact candidates:
-1. task-001 - Phase 1 - <title>
-2. task-002 - Phase 2 - <title>
-...
-```
-
-## Internal Master Plan Review
-
-After drafting and before final response, review the master plan. Attempt an independent subagent review whenever a subagent tool is available in the current environment. Give the subagent the draft artifact and this rubric, not your private diagnosis.
-
-Review rubric:
-
-- Implementation viability: phases point to real code/data/runtime surfaces and can lead to implementation.
-- Scope control: the plan does not turn into a research artifact, baseline document, or microplan-level detail dump.
-- Phase map quality: each phase is a later microplan artifact candidate with clear scope, exclusions, and dependencies.
-- Authority fit: the plan uses the current canonical source when one exists and does not treat historical local-doc mirrors as current planning authority.
-- Dependency order: later phases do not require unbuilt behavior from future phases.
-- Verification adequacy: the plan names user-visible or runtime validation responsibilities without expanding them into full microplan gates.
-- Existing-system fit: the plan respects current project architecture and prior plans.
-- Risk isolation: migrations, destructive work, external APIs, production actions, and permission changes are isolated.
-
-Apply concrete review findings before presenting the plan. If a finding is a product decision rather than a plan defect, keep it in the plan as an open user decision.
-
-Do not tell the user to run a separate master-plan check after writing the master plan. This skill owns the master-plan review step and must not require a second user command for ordinary master plan creation.
-
-Do not use the older per-phase Build/Touch/Verify/Depends shape for new master plans unless the user explicitly asks for a detailed implementation plan. That detail belongs in a later microplan.
-
-In the final response, briefly report whether the review used a subagent or a manual rubric pass, and summarize any concrete findings that changed the plan.
-
-## Self-Check
-
-Before finalizing, verify:
-
-- The plan would lead to code/data implementation, not just documents.
-- The three top-level sections are present and no extra top-level sections were added.
-- Each phase has a concrete implementation outcome.
-- Each phase is a microplan artifact candidate with objective, scope, exclusions, and dependency.
-- No phase contains microplan-level CRUD/order/completion-gate detail unless explicitly requested.
-- Internal master-plan review attempted a subagent pass when the tool was available, or the same rubric was applied manually after a concrete unavailability/failure condition.
-- The final plan does not ask the user to run a separate master-plan check.
-- The final plan leaves microplan artifact creation for user approval and makes clear that approval covers the full phase map unless the user selects a single phase.
-- The handoff does not describe `task-001` as the default next writing scope for a multi-phase plan.
-- The final response reports the review method and any plan changes from review.
-- The plan preserves the user's original method or intent instead of narrowing it silently.
-- Vague verbs such as align, clean up, migrate, replace, remove, or Korean equivalents state the concrete runtime action.
-
-When editing this skill, use `skill-writing-guide` and keep only behavior-changing rules.
+확인된 결함은 반영하고 영향을 받는 부분을 다시 점검한다. 사용자 결정이나 추가 근거가 필요한 사항은 미정으로 남기고, 새 정보 없이 같은 검토를 반복하지 않는다. 검토 방식과 남은 불확실성은 결과에 짧게 밝힌다.

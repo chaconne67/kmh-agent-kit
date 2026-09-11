@@ -1,4 +1,4 @@
 interface:
-  display_name: "Master Plan"
-  short_description: "Create implementation master plans before microplans"
-  default_prompt: "큰 구현 주제의 의도, 구현 방식, 이후 microplan 후보가 될 phase map을 현재 canonical source 기준의 GBrain planning package로 작성하고, 내부 점검까지 반영해줘."
+  display_name: "마스터플랜"
+  short_description: "의도와 판단 기준을 담아 바로 구현할 수 있는 마스터플랜 작성"
+  default_prompt: "$masterplan-write로 목표, 범위, 구현 방향과 놓치지 않을 판단 기준을 담은 마스터플랜을 작성하고 점검해줘."

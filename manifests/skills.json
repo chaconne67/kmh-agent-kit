@@ -7,6 +7,7 @@
     "fundkeeper-client-balance": ["fundkeeper"],
     "grill-agent": ["grill-with-docs"],
     "grill-with-docs": ["grilling", "domain-modeling"],
+    "masterplan-write": ["code-review-loop"],
     "microplan-batch": ["microplan-implement", "microplan-verify", "code-review-loop"],
     "microplan-implement": ["microplan-review"],
     "microplan-review-batch": ["microplan-review", "code-review-loop"],
