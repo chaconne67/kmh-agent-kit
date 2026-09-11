@@ -570,9 +570,12 @@ class WindowsInstallerTests(unittest.TestCase):
                 lines = wrapper.read_text(encoding="utf-8").splitlines()
                 self.assertEqual(len(lines), 1)
                 wrappers[name] = wrapper
-            current_push = wrappers["kitpush"].read_text(encoding="utf-8").rstrip("\r\n")
-            set_path, invocation = current_push.split("&&", 1)
-            legacy_push = f"@echo off\r\n{set_path.removeprefix('@')}\r\n{invocation}\r\n"
+            invocation = wrappers["kitpush"].read_text(encoding="utf-8").strip().removeprefix("@")
+            legacy_push = (
+                "@echo off\r\n"
+                'set "PATH=C:\\Program Files\\Git\\cmd;%PATH%"\r\n'
+                f"{invocation}\r\n"
+            )
             wrappers["kitpush"].write_bytes(legacy_push.encode("utf-8"))
             for name, wrapper in wrappers.items():
                 os.utime(wrapper, (946684800, 946684800))

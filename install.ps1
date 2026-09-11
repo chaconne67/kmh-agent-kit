@@ -419,11 +419,19 @@ function Install-ShellCommands {
         $action = if ($command -eq 'kitpull') { 'pull' } else { 'push' }
         $wrapperPath = Join-Path $commandDir "$command.cmd"
         $invocation = "`"$bash`" --noprofile --norc `"$aliasScript`" $action %*"
-        $content = "@set `"PATH=$gitDir;%PATH%`"&&`"$bash`" --noprofile --norc `"$aliasScript`" $action %*`r`n"
-        $legacyContent = "@echo off`r`nset `"PATH=$gitDir;%PATH%`"`r`n$invocation`r`n"
-        if ((Test-Path -LiteralPath $wrapperPath -PathType Leaf) -and
-            [System.IO.File]::ReadAllText($wrapperPath) -ceq $legacyContent) {
-            continue
+        $content = "@$invocation`r`n"
+        if (Test-Path -LiteralPath $wrapperPath -PathType Leaf) {
+            $existing = [System.IO.File]::ReadAllText($wrapperPath).Replace("`r`n", "`n").TrimEnd("`n")
+            $escapedInvocation = [regex]::Escape($invocation)
+            $knownWrapper = $existing -match (
+                '^(?:@' + $escapedInvocation +
+                '|@set "PATH=[^"\r\n]+;%PATH%"&&' + $escapedInvocation +
+                '|@echo off\nset "PATH=[^"\r\n]+;%PATH%"\n' + $escapedInvocation + ')$'
+            )
+            if ($knownWrapper) { continue }
+        }
+        if (Test-Path -LiteralPath $wrapperPath) {
+            Backup-Entry -Path $wrapperPath
         }
         Write-Utf8NoBom -Path $wrapperPath -Content $content
     }
