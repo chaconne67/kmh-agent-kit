@@ -4,7 +4,7 @@
 
 ### Windows — Git Bash
 
-Git for Windows에 포함된 Git Bash가 설치되어 있어야 합니다. 이 Windows 조정실은 아래 한 줄을 그대로 붙여 넣습니다.
+[Git for Windows 공식 다운로드](https://git-scm.com/install/windows)에서 설치하면 Git Bash가 함께 설치됩니다. 설치가 끝나면 Git Bash를 열고 아래 한 줄을 그대로 붙여 넣습니다.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- windows-control
