@@ -334,6 +334,10 @@ function Convert-ToGitBashPath {
 
 function Write-Utf8NoBom {
     param([string]$Path, [string]$Content)
+    if (Test-Path -LiteralPath $Path -PathType Leaf) {
+        $existing = [System.IO.File]::ReadAllText($Path)
+        if ($existing -ceq $Content) { return }
+    }
     $parent = Split-Path $Path -Parent
     if (-not (Test-Path -LiteralPath $parent)) {
         New-Item -ItemType Directory -Path $parent -Force | Out-Null
@@ -413,8 +417,15 @@ function Install-ShellCommands {
     $gitDir = Split-Path $script:gitExe -Parent
     foreach ($command in 'kitpull', 'kitpush') {
         $action = if ($command -eq 'kitpull') { 'pull' } else { 'push' }
+        $wrapperPath = Join-Path $commandDir "$command.cmd"
+        $invocation = "`"$bash`" --noprofile --norc `"$aliasScript`" $action %*"
         $content = "@set `"PATH=$gitDir;%PATH%`"&&`"$bash`" --noprofile --norc `"$aliasScript`" $action %*`r`n"
-        Write-Utf8NoBom -Path (Join-Path $commandDir "$command.cmd") -Content $content
+        $legacyContent = "@echo off`r`nset `"PATH=$gitDir;%PATH%`"`r`n$invocation`r`n"
+        if ((Test-Path -LiteralPath $wrapperPath -PathType Leaf) -and
+            [System.IO.File]::ReadAllText($wrapperPath) -ceq $legacyContent) {
+            continue
+        }
+        Write-Utf8NoBom -Path $wrapperPath -Content $content
     }
     Add-UserPathEntry -Path $commandDir
     Add-UserPathEntry -Path $gitDir

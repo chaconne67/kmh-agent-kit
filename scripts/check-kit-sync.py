@@ -562,6 +562,22 @@ class WindowsInstallerTests(unittest.TestCase):
 
             run(*command, env=env)
             backups_after_first_install = set(home.glob(".kmh-agent-kit-backup-*"))
+            wrappers: dict[str, Path] = {}
+            wrapper_contents: dict[str, bytes] = {}
+            wrapper_mtimes: dict[str, int] = {}
+            for name in ("kitpull", "kitpush"):
+                wrapper = home / ".local" / "bin" / f"{name}.cmd"
+                lines = wrapper.read_text(encoding="utf-8").splitlines()
+                self.assertEqual(len(lines), 1)
+                wrappers[name] = wrapper
+            current_push = wrappers["kitpush"].read_text(encoding="utf-8").rstrip("\r\n")
+            set_path, invocation = current_push.split("&&", 1)
+            legacy_push = f"@echo off\r\n{set_path.removeprefix('@')}\r\n{invocation}\r\n"
+            wrappers["kitpush"].write_bytes(legacy_push.encode("utf-8"))
+            for name, wrapper in wrappers.items():
+                os.utime(wrapper, (946684800, 946684800))
+                wrapper_contents[name] = wrapper.read_bytes()
+                wrapper_mtimes[name] = wrapper.stat().st_mtime_ns
             venture = home / "projects" / "venture"
             (venture / "AGENTS.md").write_text("local venture work\n", encoding="utf-8")
             run(*command, env=env)
@@ -570,10 +586,10 @@ class WindowsInstallerTests(unittest.TestCase):
             )
 
             for name, action in (("kitpull", "pull"), ("kitpush", "push")):
-                wrapper = home / ".local" / "bin" / f"{name}.cmd"
-                lines = wrapper.read_text(encoding="utf-8").splitlines()
-                self.assertEqual(len(lines), 1)
-                self.assertIn(f" {action} %*", lines[0])
+                wrapper = wrappers[name]
+                self.assertEqual(wrapper.read_bytes(), wrapper_contents[name])
+                self.assertIn(f" {action} %*", wrapper.read_text(encoding="utf-8"))
+                self.assertEqual(wrapper.stat().st_mtime_ns, wrapper_mtimes[name])
 
             for profile, skill in (
                 ("claude", "humanize-korean"),
