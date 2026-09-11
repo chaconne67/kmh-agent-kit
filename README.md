@@ -35,21 +35,15 @@ kitpush
 
 위 세 기본 명령의 첫 다운로드와 clone은 공개 HTTPS를 사용하므로 GitHub SSH 키가 없어도 시작할 수 있습니다. GitHub 쓰기 인증과 GBrain·프로젝트 서버의 새 장비 SSH 등록은 각각 해당 기능을 사용하기 전에 준비합니다.
 
-### Windows 대체 터미널
+### 현재 Windows 조정실에서 복원되는 범위
 
-Git Bash가 아닌 터미널이 필요한 경우에만 아래 명령을 사용합니다.
-
-PowerShell:
-
-```powershell
-& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent 'windows-control'
-```
-
-커맨드 프롬프트(CMD):
-
-```bat
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.ps1'))) -Agent 'windows-control'"
-```
+| 항목 | 위 한 줄의 현재 결과 |
+|---|---|
+| `kmh-agent-kit` | 새 장비는 공개 HTTPS로 `~/kmh-agent-kit`에 clone. 현재 PC의 origin은 기존 SSH 주소 유지 |
+| Codex·Claude Code·Hermes | 전역 지침과 공용 스킬 연결 |
+| GBrain | `windows-control` 카드를 연결하고, 장비 SSH 등록이 되어 있으면 공용 문서 조회까지 검증 |
+| 프로젝트 폴더 | 아직 자동 생성·clone·등록하지 않음 |
+| 대화 세션 | 동기화하지 않음 |
 
 ## 개요
 
@@ -101,7 +95,7 @@ curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/insta
 ~/kmh-agent-kit/install.sh --new abc-project
 ```
 
-신규 서버는 다음 접속 조건을 갖춰야 합니다.
+새 장비에서 등록까지 마치려면 다음 접속 조건을 갖춰야 합니다.
 
 - GitHub에서 이 저장소를 clone할 수 있어야 합니다.
 - `chaconne@49.247.45.243`에 비밀번호 없이 SSH 접속할 수 있어야 합니다.
@@ -129,11 +123,11 @@ curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/insta
 
 이전 `--gbrain` 형식은 기존 자동화의 호환을 위해서만 유지합니다. 새 설치에는 위 표의 공식 명령을 사용합니다.
 
-### 서버 자동 인식
+### 등록 이름과 프로젝트 경로
 
-최초 `./install.sh <등록 이름>`이 등록 이름을 해당 저장소의 Git 로컬 설정에 저장합니다. 이 값은 커밋되지 않으므로 서버마다 독립적으로 유지됩니다.
+최초 `./install.sh <등록 이름>`이 등록 이름을 해당 저장소의 Git 로컬 설정에 저장합니다. 이 값은 커밋되지 않으므로 장비마다 독립적으로 유지됩니다.
 
-기존 설치는 첫 `kitpull` 또는 `kitpush`에서 현재 GBrain 카드를 읽어 등록 이름을 한 번 복구합니다. 이후에는 저장된 이름이 기준입니다.
+Linux·macOS의 기존 심볼릭 링크 설치는 첫 `kitpull` 또는 `kitpush`에서 현재 GBrain 카드 경로를 읽어 등록 이름을 한 번 복구할 수 있습니다. Windows 카드는 하드링크라서 경로를 역으로 읽을 수 없습니다. Windows의 Git 로컬 등록값이 없으면 README 첫 화면의 Git Bash 한 줄을 다시 실행합니다.
 
 - 두 명령은 항상 로컬 `main`과 `origin/main`만 사용합니다. 추적 브랜치가 없거나 잘못돼 있으면 `origin/main`으로 복구합니다.
 - `kitpull`: 작업 폴더가 깨끗할 때만 fast-forward한 뒤 등록 자산과 저장된 프로젝트 프로필을 실제 환경에 다시 연결합니다.
@@ -161,10 +155,13 @@ curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/insta
 | 등록 이름 | 자동 연결되는 프로젝트 프로필 |
 |---|---|
 | `main` | `~/projects/<프로필명>`과 저장소 프로필 이름이 일치하는 모든 프로젝트 |
+| `windows-control` | 현재 자동 연결 없음 |
 | `fundkeeper` | `~/fundkeeper`의 `fundkeeper` 프로필 |
 | 그 외 | 같은 이름의 프로젝트 폴더와 프로필이 모두 있을 때 연결 |
 
 `./install.sh --project <경로> <프로필>`로 연결한 위치는 저장소의 로컬 Git 설정에 기록됩니다. 이후 `kitpull`과 `kitpush`가 해당 프로필을 다시 연결합니다.
+
+2026-09-11 확인 기준으로 현재 Windows PC에는 `ceoloan`, `exdigm`, `fundkeeper`, `rndlog`, `venture`, `ziin` 폴더가 있습니다. `ceoloan`, `exdigm`, `fundkeeper`, `rndlog`, `ziin`에는 키트 지침이 연결되어 있고 `venture`는 자체 지침을 사용하지만, 키트의 프로젝트 경로 등록값은 없습니다. 따라서 Windows 한 줄 설치만으로 이 여섯 폴더가 새 장비에 복원되지는 않습니다.
 
 운영 서버에는 프로젝트 프로필·공용 지침·GBrain 카드를 자동 설치하지 않습니다. 중앙 조정 장비의 프로젝트 폴더에만 프로필을 연결해도 운영 저장소를 관리할 수 있습니다.
 
@@ -172,13 +169,13 @@ curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/insta
 
 | 설치 대상 | 저장소 원본 | 실제 사용 위치 |
 |---|---|---|
-| 공용 스킬 | `skills/common/` | Claude·Codex·Hermes의 사용자 스킬 폴더 |
-| 전역 지침 | `claude/CLAUDE.md`, `codex/AGENTS.md` | 각 도구의 전역 지침 위치 |
+| 공용 스킬 | `skills/common/` | Claude `~/.claude/skills`, Codex `~/.agents/skills`, Hermes는 Windows `%LOCALAPPDATA%\hermes\skills`·Linux/macOS `~/.hermes/skills` |
+| 전역 지침 | `claude/CLAUDE.md`, `codex/AGENTS.md` | Claude `~/.claude/CLAUDE.md`, Codex `~/.codex/AGENTS.md` |
 | 프로젝트 스킬 | `projects/` | 프로젝트의 `.claude/skills/`, `.agents/skills/` |
 | GBrain 카드 | `gbrain-cards/` | `~/.gbrain-agent.md` |
-| 원격 GBrain 프록시 | `gbrain/bin/gbrain-remote-proxy` | `~/.local/bin/gbrain-abc-project` 같은 이름 |
+| 원격 GBrain 프록시 | `gbrain/bin/gbrain-remote-proxy` | 프로젝트 전용 등록의 `~/.local/bin/gbrain-abc-project`; `windows-control`은 카드의 공용 SSH 명령 사용 |
 
-Linux에서는 저장소 원본을 실제 사용 위치에 심볼릭 링크합니다. 링크가 아닌 기존 파일은 삭제하지 않고 `~/.kmh-agent-kit-backup-날짜-시각/`에 보존합니다.
+Linux·macOS에서는 저장소 원본을 실제 사용 위치에 심볼릭 링크합니다. Windows에서는 디렉터리에 junction, 파일에 하드링크를 사용합니다. 링크가 아닌 기존 파일은 삭제하지 않고 `~/.kmh-agent-kit-backup-날짜-시각/`에 보존합니다.
 
 ### 업데이트
 
@@ -197,11 +194,23 @@ kitpush "설명할 커밋 메시지"
 
 ### 설치 확인
 
-공통 확인:
+Windows PowerShell:
+
+```powershell
+python -X utf8 "$HOME\kmh-agent-kit\scripts\check-skill-deps.py"
+Get-Command kitpull, kitpush
+git -C "$HOME\kmh-agent-kit" config --local --get kmh-agent-kit.agent
+fsutil hardlink list "$HOME\.gbrain-agent.md"
+```
+
+정상이라면 등록 이름은 `windows-control`이고, 하드링크 목록에는 현재 카드와 `kmh-agent-kit\gbrain-cards\windows-control.md`가 함께 표시됩니다.
+
+Linux·macOS:
 
 ```bash
 python3 ~/kmh-agent-kit/scripts/check-skill-deps.py
 readlink ~/.gbrain-agent.md
+git -C ~/kmh-agent-kit config --local --get kmh-agent-kit.agent
 ```
 
 신규 `abc-project` 정책 확인:
@@ -218,7 +227,7 @@ gbrain-abc-project policy
 
 ### Windows 터미널
 
-README 최상단의 Git Bash 한 줄을 실행합니다. 설치기가 사용자 PATH에 `kitpull.cmd`·`kitpush.cmd`를 등록하므로 새 PowerShell·CMD·Git Bash에서 같은 명령을 사용합니다. Windows는 junction과 하드링크를 사용하며 Linux 전용 systemd 서비스는 설치하지 않습니다.
+최초 설치는 README 최상단의 Git Bash 한 줄만 사용합니다. 설치 뒤에는 사용자 PATH의 `kitpull.cmd`·`kitpush.cmd`를 PowerShell·CMD·Git Bash에서 사용할 수 있습니다. Windows에는 Linux 전용 systemd 서비스를 설치하지 않습니다.
 
 Coconut·RNDLOG·CEO Loan·Exdigm 운영 서버에서는 위 설치 명령을 자동으로 실행하지 않습니다.
 
