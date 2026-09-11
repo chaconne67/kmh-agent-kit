@@ -317,9 +317,58 @@ register_project_profile() {
   echo "프로젝트 프로필 등록: $profile_name → $absolute_path"
 }
 
+restore_control_room_projects() {
+  local manifest="$repo_dir/manifests/windows-control-projects.tsv"
+  local projects_root="$home_dir/projects"
+  local directory kind target extra project_path
+  [ -f "$manifest" ] || die "Windows 조정실 프로젝트 계약이 없습니다: $manifest"
+  mkdir -p "$projects_root"
+
+  while IFS=$'\t' read -r directory kind target extra; do
+    [ -n "${directory:-}" ] || continue
+    case "$directory" in \#*) continue ;; esac
+    [ -z "${extra:-}" ] && [ -n "${kind:-}" ] && [ -n "${target:-}" ] ||
+      die "프로젝트 계약 형식 오류: $manifest"
+    validate_agent_name "$directory"
+    project_path="$projects_root/$directory"
+
+    case "$kind" in
+      profile)
+        validate_agent_name "$target"
+        [ -d "$repo_dir/projects/$target" ] || die "프로젝트 프로필이 없습니다: $target"
+        if [ -e "$project_path" ] && [ ! -d "$project_path" ]; then
+          die "프로젝트 경로가 폴더가 아닙니다: $project_path"
+        fi
+        if [ ! -d "$project_path" ]; then
+          mkdir -p "$project_path"
+          echo "프로젝트 폴더 생성: $project_path"
+        fi
+        register_project_profile "$project_path" "$target"
+        ;;
+      git)
+        [[ "$target" =~ ^https://github\.com/[^/]+/[^/]+\.git$ ]] ||
+          die "프로젝트 Git 주소는 GitHub HTTPS 주소여야 합니다: $target"
+        if [ -e "$project_path" ]; then
+          [ -d "$project_path" ] || die "프로젝트 경로가 폴더가 아닙니다: $project_path"
+          [ -d "$project_path/.git" ] ||
+            die "기존 프로젝트 폴더를 보존했지만 Git 저장소가 아닙니다: $project_path"
+          echo "프로젝트 저장소 보존: $project_path"
+        else
+          git clone --branch main --single-branch "$target" "$project_path"
+          echo "프로젝트 저장소 clone: $project_path"
+        fi
+        ;;
+      *) die "알 수 없는 프로젝트 복원 방식: $kind" ;;
+    esac
+  done < "$manifest"
+}
+
 register_known_projects() {
   local agent_name="$1" profile profile_name project_path
   case "$agent_name" in
+    windows-control)
+      restore_control_room_projects
+      ;;
     main)
       for profile in "$repo_dir"/projects/*; do
         [ -d "$profile" ] || continue
@@ -367,7 +416,7 @@ install_gbrain_card() {
   [ -f "$card" ] || die "GBrain 카드가 없습니다. 신규라면 실행하세요: ./install.sh --new $agent_name"
   link_entry "$card" "$home_dir/.gbrain-agent.md"
 
-  if [ ! -f "$policy_file" ] && [ "$agent_name" != "main" ]; then
+  if [ ! -f "$policy_file" ] && [ "$agent_name" != "main" ] && [ "$agent_name" != "windows-control" ]; then
     mkdir -p "$home_dir/.local/bin"
     link_entry "$repo_dir/gbrain/bin/gbrain-remote-proxy" "$home_dir/.local/bin/gbrain-$agent_name"
   fi
@@ -383,12 +432,38 @@ verify_agent_install() {
   if [ "$agent_name" = "main" ]; then
     [ -x "$gbrain_cli" ] || die "중앙 GBrain 실행 파일이 없습니다: $gbrain_cli"
     GBRAIN_SOURCE=default "$gbrain_cli" get agent/gbrain-operating-protocol >/dev/null
+  elif [ "$agent_name" = "windows-control" ]; then
+    verify_control_room_projects
+    ssh "$gbrain_host" '/home/chaconne/.gbrain/bin/gbrain_with_google_env.sh get agent/gbrain-operating-protocol --source default' >/dev/null
   else
     local wrapper="$home_dir/.local/bin/gbrain-$agent_name"
     [ -x "$wrapper" ] || die "GBrain 래퍼가 없습니다: $wrapper"
     "$wrapper" policy >/dev/null
     "$wrapper" --source default get agent/gbrain-operating-protocol >/dev/null
   fi
+}
+
+verify_control_room_projects() {
+  local manifest="$repo_dir/manifests/windows-control-projects.tsv"
+  local directory kind target extra project_path saved_path expected_path file
+  while IFS=$'\t' read -r directory kind target extra; do
+    [ -n "${directory:-}" ] || continue
+    case "$directory" in \#*) continue ;; esac
+    project_path="$home_dir/projects/$directory"
+    [ -d "$project_path" ] || die "프로젝트 폴더 검증 실패: $project_path"
+    if [ "$kind" = git ]; then
+      [ -d "$project_path/.git" ] || die "프로젝트 Git 검증 실패: $project_path"
+      continue
+    fi
+    saved_path="$(git -C "$repo_dir" config --local --get "kmh-agent-kit.project.$target" || true)"
+    expected_path="$(cd "$project_path" && pwd -P)"
+    [ "$saved_path" = "$expected_path" ] || die "프로젝트 등록 검증 실패: $target"
+    for file in CLAUDE.md AGENTS.md; do
+      [ -f "$repo_dir/projects/$target/$file" ] || continue
+      [ "$(readlink "$project_path/$file" 2>/dev/null || true)" = "$repo_dir/projects/$target/$file" ] ||
+        die "프로젝트 지침 링크 검증 실패: $project_path/$file"
+    done
+  done < "$manifest"
 }
 
 install_agent() {

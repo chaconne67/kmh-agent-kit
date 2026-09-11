@@ -17,13 +17,13 @@ GBrain 등록 이름은 영문 소문자·숫자·중간 하이픈으로 된 1~3
 
 ## 한 줄 설치
 
-이미 등록된 `<등록-이름>`을 사용합니다.
+현재 조정실을 그대로 이어받을 때는 세 운영체제 모두 `windows-control`을 사용합니다.
 
 | 운영체제 | 기본 터미널 | 최초 설치 명령 |
 |---|---|---|
-| Windows | Git Bash | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- <등록-이름>` |
-| macOS | Terminal | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- <등록-이름>` |
-| Linux | Bash | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- <등록-이름>` |
+| Windows | Git Bash | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- windows-control` |
+| macOS | Terminal | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- windows-control` |
+| Linux | Bash | `curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh \| bash -s -- windows-control` |
 
 Windows는 Git for Windows에 포함된 Git Bash가 설치되어 있다는 전제로 위 한 줄을 실행합니다. 이 Windows 조정실에서는 아래 명령을 그대로 사용합니다.
 
@@ -32,6 +32,8 @@ curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/insta
 ```
 
 `install.sh`가 Windows를 감지해 저장소의 `install.ps1`을 내부 호출하므로 사용자가 별도 PowerShell 순서를 수행하지 않습니다. 설치 후 새 터미널을 열면 PowerShell·CMD·Git Bash·Linux·macOS 어디서든 `kitpull`, `kitpush`를 사용할 수 있습니다.
+
+이 한 줄은 `~/kmh-agent-kit`을 clone한 뒤 공용 지침·스킬·GBrain 카드를 연결합니다. 또한 `ceoloan`, `exdigm`, `fundkeeper`, `rndlog`, `ziin` 조정 폴더를 만들고 프로젝트 프로필을 연결합니다. `venture` 폴더가 없으면 별도 GitHub 저장소에서 clone하며, 기존 프로젝트 폴더와 그 안의 작업은 덮어쓰거나 자동 pull하지 않습니다.
 
 ### 처음 등록하는 `abc_project` 역할
 
@@ -116,9 +118,11 @@ kitpush
 - `kitpush`는 원격 변경을 먼저 받아 로컬 커밋을 그 위에 재배치합니다.
 - 재배치가 충돌하면 원상 복구하고 로컬 커밋을 보존합니다.
 - 다른 도메인의 변경이 있으면 `kitpush`가 해당 경로를 표시하고 중단합니다.
-- `main` 등록은 중앙 조정 역할이므로 모든 도메인 경로를 push할 수 있습니다.
+- `main`과 `windows-control` 등록은 중앙 조정 역할이므로 모든 kit 도메인 경로를 push할 수 있습니다.
 
 `./install.sh --project <경로> <프로필>`로 연결한 프로젝트는 로컬 Git 설정에 저장됩니다. 이후 두 동기화 명령이 해당 프로필을 매번 다시 연결합니다.
+
+`windows-control`은 저장소의 프로젝트 계약을 매번 다시 읽습니다. 다섯 조정 폴더의 `AGENTS.md`, `CLAUDE.md`, 스킬은 kit 정본에 연결되므로 어느 컴퓨터에서든 `kitpull`로 같은 상태가 됩니다. `venture`의 지침·스킬과 소스는 venture 저장소가 정본입니다.
 
 ### 설치 결과 확인
 

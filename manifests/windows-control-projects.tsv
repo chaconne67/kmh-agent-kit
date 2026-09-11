@@ -1,0 +1,7 @@
+# directory	kind	target
+ceoloan	profile	ceoloan
+exdigm	profile	exdigm
+fundkeeper	profile	fundkeeper
+rndlog	profile	rndlog
+ziin	profile	ziin
+venture	git	https://github.com/chaconne67/venture.git

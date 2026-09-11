@@ -15,16 +15,16 @@ curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/insta
 ### macOS — Terminal
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- <등록-이름>
+curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- windows-control
 ```
 
 ### Linux — Bash
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- <등록-이름>
+curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/install.sh | bash -s -- windows-control
 ```
 
-macOS와 Linux에서는 `<등록-이름>`을 이미 등록된 자신의 이름으로 바꿉니다. 예: `main`, `sam`, `judy`.
+세 운영체제 모두 같은 조정실 등록 이름인 `windows-control`을 사용합니다. 이 이름은 호환용 역할 이름이며 Windows에서만 쓸 수 있다는 뜻이 아닙니다.
 
 설치가 끝나면 터미널을 새로 엽니다. 이후에는 모든 운영체제에서 다음 두 명령만 사용합니다.
 
@@ -35,19 +35,19 @@ kitpush
 
 위 세 기본 명령의 첫 다운로드와 clone은 공개 HTTPS를 사용하므로 GitHub SSH 키가 없어도 시작할 수 있습니다. GitHub 쓰기 인증과 GBrain·프로젝트 서버의 새 장비 SSH 등록은 각각 해당 기능을 사용하기 전에 준비합니다.
 
-### 현재 Windows 조정실에서 복원되는 범위
+### 조정실에서 복원되는 범위
 
 | 항목 | 위 한 줄의 현재 결과 |
 |---|---|
 | `kmh-agent-kit` | 새 장비는 공개 HTTPS로 `~/kmh-agent-kit`에 clone. 현재 PC의 origin은 기존 SSH 주소 유지 |
 | Codex·Claude Code·Hermes | 전역 지침과 공용 스킬 연결 |
 | GBrain | `windows-control` 카드를 연결하고, 장비 SSH 등록이 되어 있으면 공용 문서 조회까지 검증 |
-| 프로젝트 폴더 | 아직 자동 생성·clone·등록하지 않음 |
+| 프로젝트 폴더 | 다섯 조정 폴더를 만들고 kit 프로필 연결. `venture`가 없으면 GitHub에서 clone |
 | 대화 세션 | 동기화하지 않음 |
 
 ## 개요
 
-KMH Agent Kit은 Linux·macOS·Windows 사용자 계정에 Codex·Claude Code·Hermes 공용 스킬과 작업 규칙을 전역 설치하고, 프로젝트 역할별 GBrain 카드를 연결하는 저장소입니다. 다른 서버 설치는 명시적으로 선택할 때만 수행합니다.
+KMH Agent Kit은 조정실의 휴대 가능한 작업 환경을 담는 GitHub 정본입니다. `AGENTS.md`, `CLAUDE.md`, 공용·프로젝트 스킬, GBrain 카드와 프로젝트 진입 구조를 연결합니다. 작업 중 확정한 결정과 재사용할 디버깅 지식은 전역 지침에 따라 GBrain에 기록하며 대화 원문은 복사하지 않습니다.
 
 설치 명령에 넣는 값은 장비의 호스트명이 아니라 **등록 이름**입니다. 등록 이름이 사용할 GBrain 공간·접근 정책·카드를 결정합니다.
 
@@ -155,13 +155,13 @@ Linux·macOS의 기존 심볼릭 링크 설치는 첫 `kitpull` 또는 `kitpush`
 | 등록 이름 | 자동 연결되는 프로젝트 프로필 |
 |---|---|
 | `main` | `~/projects/<프로필명>`과 저장소 프로필 이름이 일치하는 모든 프로젝트 |
-| `windows-control` | 현재 자동 연결 없음 |
+| `windows-control` | 계약에 적힌 다섯 조정 폴더를 생성·연결하고, `venture`가 없으면 공식 저장소 clone |
 | `fundkeeper` | `~/fundkeeper`의 `fundkeeper` 프로필 |
 | 그 외 | 같은 이름의 프로젝트 폴더와 프로필이 모두 있을 때 연결 |
 
 `./install.sh --project <경로> <프로필>`로 연결한 위치는 저장소의 로컬 Git 설정에 기록됩니다. 이후 `kitpull`과 `kitpush`가 해당 프로필을 다시 연결합니다.
 
-2026-09-11 확인 기준으로 현재 Windows PC에는 `ceoloan`, `exdigm`, `fundkeeper`, `rndlog`, `venture`, `ziin` 폴더가 있습니다. `ceoloan`, `exdigm`, `fundkeeper`, `rndlog`, `ziin`에는 키트 지침이 연결되어 있고 `venture`는 자체 지침을 사용하지만, 키트의 프로젝트 경로 등록값은 없습니다. 따라서 Windows 한 줄 설치만으로 이 여섯 폴더가 새 장비에 복원되지는 않습니다.
+`windows-control`의 폴더 정본은 `manifests/windows-control-projects.tsv`입니다. `ceoloan`, `exdigm`, `fundkeeper`, `rndlog`, `ziin`은 폴더를 만든 뒤 kit의 프로젝트 지침과 스킬을 연결합니다. `venture`는 자체 `AGENTS.md`, `CLAUDE.md`, 스킬과 소스 코드를 함께 가진 별도 Git 저장소이므로, 폴더가 없을 때만 공개 HTTPS로 clone하고 기존 폴더나 미커밋 작업은 건드리지 않습니다.
 
 운영 서버에는 프로젝트 프로필·공용 지침·GBrain 카드를 자동 설치하지 않습니다. 중앙 조정 장비의 프로젝트 폴더에만 프로필을 연결해도 운영 저장소를 관리할 수 있습니다.
 

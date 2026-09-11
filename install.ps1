@@ -138,11 +138,18 @@ function Resolve-ProfileTarget {
 
     $item = Get-Item -LiteralPath $Entry -Force
     if ($item.PSIsContainer) { return $item.FullName }
-    if ($item.LinkType) { return (Resolve-Path -LiteralPath $item.Target[0]).Path }
+    if ($item.LinkType -in 'SymbolicLink', 'Junction') {
+        $target = @($item.Target)[0]
+        if (-not [System.IO.Path]::IsPathRooted($target)) {
+            $target = Join-Path (Split-Path $Entry -Parent) $target
+        }
+        return (Resolve-Path -LiteralPath $target).Path
+    }
     if ($item.Length -ge 4096) { return $null }
 
     $text = (Get-Content -LiteralPath $Entry -Raw -Encoding UTF8).Trim()
-    if (-not $text -or $text.Contains("`n") -or -not $text.StartsWith('..')) { return $null }
+    if (-not $text -or $text.Contains("`n") -or [System.IO.Path]::IsPathRooted($text)) { return $null }
+    if (-not $text.StartsWith('..') -and $text -notin 'AGENTS.md', 'CLAUDE.md') { return $null }
     $resolved = Join-Path (Split-Path $Entry -Parent) $text
     if (Test-Path -LiteralPath $resolved) { return (Resolve-Path -LiteralPath $resolved).Path }
     return $null
@@ -389,9 +396,11 @@ function Install-ProjectProfile {
         Link-Profile -Profile "$profileDir\skills" -Live "$projectPath\.agents\skills"
     }
     foreach ($file in 'CLAUDE.md', 'AGENTS.md') {
-        if (Test-Path -LiteralPath "$profileDir\$file") {
-            Link-Entry -Target "$profileDir\$file" -Link "$projectPath\$file"
-        }
+        $profileFile = "$profileDir\$file"
+        if (-not (Test-Path -LiteralPath $profileFile)) { continue }
+        $target = Resolve-ProfileTarget -Entry $profileFile
+        if (-not $target) { $target = $profileFile }
+        Link-Entry -Target $target -Link "$projectPath\$file"
     }
     Write-Host "project '$Profile' linked into $projectPath"
 }
@@ -403,10 +412,78 @@ function Register-ProjectProfile {
     Write-Host "project '$Profile' registered at $projectPath"
 }
 
+function Get-ControlRoomProjects {
+    $manifest = Join-Path $repoDir 'manifests\windows-control-projects.tsv'
+    if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
+        throw "[error] Windows 조정실 프로젝트 계약 없음: $manifest"
+    }
+
+    $lineNumber = 0
+    foreach ($rawLine in Get-Content -LiteralPath $manifest -Encoding UTF8) {
+        $lineNumber += 1
+        $line = $rawLine.Trim()
+        if (-not $line -or $line.StartsWith('#')) { continue }
+        $columns = @($rawLine -split "`t")
+        if ($columns.Count -ne 3) {
+            throw "[error] 프로젝트 계약 형식 오류: $manifest ${lineNumber}행"
+        }
+        $directory, $kind, $target = @($columns | ForEach-Object { $_.Trim() })
+        Assert-Name -Name $directory -Kind '프로젝트 폴더'
+        if ($kind -eq 'profile') {
+            Assert-Name -Name $target -Kind '프로필'
+        } elseif ($kind -eq 'git') {
+            if ($target -notmatch '^https://github\.com/[^/]+/[^/]+\.git$') {
+                throw "[error] 프로젝트 Git 주소는 GitHub HTTPS 주소여야 합니다: $target"
+            }
+        } else {
+            throw "[error] 알 수 없는 프로젝트 복원 방식: $kind"
+        }
+        [pscustomobject]@{ Directory = $directory; Kind = $kind; Target = $target }
+    }
+}
+
+function Restore-ControlRoomProjects {
+    $projectsRoot = Join-Path $homeDir 'projects'
+    if (-not (Test-Path -LiteralPath $projectsRoot)) {
+        New-Item -ItemType Directory -Path $projectsRoot -Force | Out-Null
+    }
+
+    foreach ($entry in Get-ControlRoomProjects) {
+        $projectPath = Join-Path $projectsRoot $entry.Directory
+        if ($entry.Kind -eq 'profile') {
+            if (-not (Test-Path -LiteralPath $projectPath)) {
+                New-Item -ItemType Directory -Path $projectPath -Force | Out-Null
+                Write-Host "project folder created: $projectPath"
+            } elseif (-not (Test-Path -LiteralPath $projectPath -PathType Container)) {
+                throw "[error] 프로젝트 경로가 폴더가 아닙니다: $projectPath"
+            }
+            Register-ProjectProfile -ProjectPath $projectPath -Profile $entry.Target
+            continue
+        }
+
+        if (Test-Path -LiteralPath $projectPath) {
+            if (-not (Test-Path -LiteralPath $projectPath -PathType Container)) {
+                throw "[error] 프로젝트 경로가 폴더가 아닙니다: $projectPath"
+            }
+            if (-not (Test-Path -LiteralPath (Join-Path $projectPath '.git') -PathType Container)) {
+                throw "[error] 기존 프로젝트 폴더를 보존했지만 Git 저장소가 아닙니다: $projectPath"
+            }
+            Write-Host "project repository preserved: $projectPath"
+            continue
+        }
+
+        & $script:gitExe clone --branch main --single-branch $entry.Target $projectPath
+        if ($LASTEXITCODE -ne 0) { throw "[error] 프로젝트 clone 실패: $($entry.Directory)" }
+        Write-Host "project repository cloned: $projectPath"
+    }
+}
+
 function Register-KnownProjects {
     param([string]$AgentName)
 
-    if ($AgentName -eq 'main') {
+    if ($AgentName -eq 'windows-control') {
+        Restore-ControlRoomProjects
+    } elseif ($AgentName -eq 'main') {
         foreach ($profile in Get-ChildItem -LiteralPath "$repoDir\projects" -Directory) {
             $projectPath = Join-Path $homeDir "projects\$($profile.Name)"
             if (Test-Path -LiteralPath $projectPath -PathType Container) {
@@ -481,6 +558,30 @@ function Assert-Install {
             throw "[error] 등록 이름 저장 검증 실패: $AgentName"
         }
         if ($AgentName -eq 'windows-control') {
+            foreach ($entry in Get-ControlRoomProjects) {
+                $projectPath = Join-Path (Join-Path $homeDir 'projects') $entry.Directory
+                if (-not (Test-Path -LiteralPath $projectPath -PathType Container)) {
+                    throw "[error] 프로젝트 폴더 검증 실패: $projectPath"
+                }
+                if ($entry.Kind -eq 'git') {
+                    if (-not (Test-Path -LiteralPath (Join-Path $projectPath '.git') -PathType Container)) {
+                        throw "[error] 프로젝트 Git 검증 실패: $projectPath"
+                    }
+                    continue
+                }
+                $savedPath = (& $script:gitExe -C $repoDir config --local --get "kmh-agent-kit.project.$($entry.Target)").Trim()
+                $resolvedPath = (Resolve-Path -LiteralPath $projectPath).Path
+                if ($LASTEXITCODE -ne 0 -or $savedPath -ne $resolvedPath) {
+                    throw "[error] 프로젝트 등록 검증 실패: $($entry.Target)"
+                }
+                foreach ($file in 'CLAUDE.md', 'AGENTS.md') {
+                    if (-not (Test-Path -LiteralPath (Join-Path $repoDir "projects\$($entry.Target)\$file") -PathType Leaf)) { continue }
+                    $liveFile = Get-Item -LiteralPath (Join-Path $projectPath $file) -Force
+                    if ($liveFile.LinkType -ne 'HardLink') {
+                        throw "[error] 프로젝트 지침 링크 검증 실패: $($liveFile.FullName)"
+                    }
+                }
+            }
             $gbrainHost = if ($env:GBRAIN_HOST) { $env:GBRAIN_HOST } else { 'chaconne@49.247.45.243' }
             & ssh $gbrainHost '/home/chaconne/.gbrain/bin/gbrain_with_google_env.sh get agent/gbrain-operating-protocol --source default' | Out-Null
             if ($LASTEXITCODE -ne 0) { throw '[error] GBrain 공용 문서 조회 검증 실패' }

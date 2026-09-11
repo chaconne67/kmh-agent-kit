@@ -17,6 +17,22 @@ ROOT = Path(__file__).resolve().parents[1]
 ALIASES = ROOT / "shell" / "kit-aliases.sh"
 
 
+def find_bash() -> str:
+    found = shutil.which("bash")
+    if found:
+        return found
+    if os.name == "nt":
+        git = shutil.which("git")
+        if git:
+            candidate = Path(git).resolve().parents[1] / "bin" / "bash.exe"
+            if candidate.is_file():
+                return str(candidate)
+    return "bash"
+
+
+BASH = find_bash()
+
+
 def run(
     *args: str | Path,
     cwd: Path | None = None,
@@ -427,20 +443,131 @@ class EntryPointDocumentationTests(unittest.TestCase):
         self.assertIn("### Linux — Bash", readme)
         self.assertIn(windows_command, readme)
         self.assertIn(windows_command, onboarding)
-        self.assertIn(
-            windows_command.replace("windows-control", "<등록-이름>").replace(
-                " | ", r" \| "
-            ),
-            onboarding,
+        escaped_command = windows_command.replace(" | ", r" \| ")
+        self.assertEqual(onboarding.count(escaped_command), 3)
+
+        manifest = ROOT / "manifests" / "windows-control-projects.tsv"
+        rows = [
+            line.split("\t")
+            for line in manifest.read_text(encoding="utf-8").splitlines()
+            if line and not line.startswith("#")
+        ]
+        self.assertEqual(
+            [row[0] for row in rows],
+            ["ceoloan", "exdigm", "fundkeeper", "rndlog", "ziin", "venture"],
         )
 
 
 @unittest.skipUnless(os.name == "nt", "Requires Windows PowerShell and Git Bash")
 class WindowsInstallerTests(unittest.TestCase):
     def test_real_windows_installer_help(self) -> None:
-        result = run("bash", ROOT / "install.sh", "--help")
+        result = run(BASH, ROOT / "install.sh", "--help")
         self.assertIn("최초 설치 또는 재연결", result.stdout)
         self.assertIn("kitpush", result.stdout)
+
+    def test_windows_control_restores_project_entrypoints_and_preserves_existing_work(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="kmh-control-room-") as temp_dir:
+            temp = Path(temp_dir)
+            home = temp / "home"
+            repo = home / "kmh-agent-kit"
+            home.mkdir()
+            shutil.copytree(
+                ROOT,
+                repo,
+                symlinks=True,
+                ignore=shutil.ignore_patterns(".git", "__pycache__"),
+            )
+            run("git", "init", "--initial-branch=main", repo)
+
+            preserved = home / "projects" / "rndlog" / "keep.txt"
+            preserved.parent.mkdir(parents=True)
+            preserved.write_text("keep\n", encoding="utf-8")
+
+            venture_seed = temp / "venture-seed"
+            venture_origin = temp / "venture.git"
+            run("git", "init", "--initial-branch=main", venture_seed)
+            run("git", "config", "user.name", "Kit Test", cwd=venture_seed)
+            run("git", "config", "user.email", "kit-test@example.invalid", cwd=venture_seed)
+            (venture_seed / "AGENTS.md").write_text("venture agent\n", encoding="utf-8")
+            (venture_seed / "CLAUDE.md").write_text("venture claude\n", encoding="utf-8")
+            skill = venture_seed / "skills" / "venture"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text("venture skill\n", encoding="utf-8")
+            run("git", "add", "-A", cwd=venture_seed)
+            run("git", "commit", "-m", "venture baseline", cwd=venture_seed)
+            run("git", "clone", "--bare", venture_seed, venture_origin)
+
+            fake_bin = temp / "bin"
+            fake_bin.mkdir()
+            (fake_bin / "ssh.cmd").write_text("@echo off\r\nexit /b 0\r\n", encoding="utf-8")
+            env = os.environ.copy()
+            env.update(
+                {
+                    "USERPROFILE": str(home),
+                    "HOME": str(home),
+                    "LOCALAPPDATA": str(home / "AppData" / "Local"),
+                    "CLAUDE_HOME": str(home / ".claude"),
+                    "CODEX_HOME": str(home / ".codex"),
+                    "HERMES_HOME": str(home / ".hermes"),
+                    "PATH": str(fake_bin) + os.pathsep + env["PATH"],
+                    "GIT_CONFIG_COUNT": "1",
+                    "GIT_CONFIG_KEY_0": f"url.{venture_origin.as_uri()}.insteadOf",
+                    "GIT_CONFIG_VALUE_0": "https://github.com/chaconne67/venture.git",
+                    "GIT_TERMINAL_PROMPT": "0",
+                }
+            )
+            powershell = shutil.which("powershell.exe") or "powershell.exe"
+            command = (
+                powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                repo / "install.ps1",
+                "-Agent",
+                "windows-control",
+            )
+
+            run(*command, env=env)
+            venture = home / "projects" / "venture"
+            (venture / "AGENTS.md").write_text("local venture work\n", encoding="utf-8")
+            run(*command, env=env)
+
+            profile_names = ("ceoloan", "exdigm", "fundkeeper", "rndlog", "ziin")
+            for profile in profile_names:
+                with self.subTest(profile=profile):
+                    project = home / "projects" / profile
+                    self.assertTrue(project.is_dir())
+                    saved = run(
+                        "git",
+                        "config",
+                        "--local",
+                        "--get",
+                        f"kmh-agent-kit.project.{profile}",
+                        cwd=repo,
+                    ).stdout.strip()
+                    self.assertEqual(Path(saved).resolve(), project.resolve())
+                    source_agents = repo / "projects" / profile / "AGENTS.md"
+                    if source_agents.is_file():
+                        self.assertTrue(os.path.samefile(source_agents, project / "AGENTS.md"))
+                    source_claude = repo / "projects" / profile / "CLAUDE.md"
+                    if source_claude.is_file():
+                        expected = source_claude.resolve()
+                        self.assertTrue(os.path.samefile(expected, project / "CLAUDE.md"))
+                    source_skills = repo / "projects" / profile / "skills"
+                    if source_skills.is_dir():
+                        for source_skill in source_skills.iterdir():
+                            for tool_home in ".agents", ".claude":
+                                live_skill = project / tool_home / "skills" / source_skill.name
+                                self.assertTrue((live_skill / "SKILL.md").is_file())
+
+            self.assertEqual(preserved.read_text(encoding="utf-8"), "keep\n")
+            self.assertTrue((venture / ".git").is_dir())
+            self.assertEqual(
+                (venture / "AGENTS.md").read_text(encoding="utf-8"),
+                "local venture work\n",
+            )
 
 
 class GBrainAccessTests(unittest.TestCase):
