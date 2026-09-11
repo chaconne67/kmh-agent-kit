@@ -9,7 +9,7 @@ description: CRETOP(크레탑) 브라우저·로그인 상태 확인, 기업 상
 
 현재 프로젝트의 공식 래퍼를 통해 CRETOP Windows 브라우저를 조사하고 수집한다. Windows는 화면 조작과 증거 생성을 맡고, 중앙 래퍼는 결과 검증과 요청된 경우의 `company` 스키마 저장을 맡는다. 프로젝트마다 래퍼 복사본을 독립적으로 유지하므로 다른 프로젝트의 스크립트를 실행하거나 함께 수정하지 않는다.
 
-별도 브라우저 runner나 임시 수집 스크립트를 만들지 않는다. 현재 래퍼와 Windows agent가 실행 경로의 정본이므로, 다른 경로를 만들면 로그인 세션·품질검사·저장 재개 계약이 갈라진다.
+별도 브라우저 runner나 임시 수집 스크립트를 만들지 않는다. 현재 래퍼와 Windows agent, 그리고 조정실 PC용 `scripts/cretop_local.py`(「조정실 PC 로컬 수집(UIA)」)가 실행 경로의 정본이므로, 다른 경로를 만들면 로그인 세션·품질검사·저장 재개 계약이 갈라진다.
 
 검증된 CRETOP 사실을 대출 산정이나 보고서 생성에 넘길 수 있지만, 산정·보고서 생성 자체는 별도 요청과 해당 실행 경로에서 처리한다.
 
@@ -219,6 +219,51 @@ uv run python -m scripts.cretop_detail_collection \
 ```
 
 `remote-agent-start`는 작업 시작만 수행한다. 결과 파일이 생기고 작업이 `Running`이 아닐 때 `remote-batch-fetch`를 실행하면 8개 화면 증거 회수, 품질검사와 중앙 저장을 수행한다. 사용자가 원시 결과 회수만 명시적으로 요청했으면 마지막 명령을 `remote-result-fetch`로 바꾸되, 이 결과를 중앙 품질검사나 저장 성공으로 보고하지 않는다.
+
+## 조정실 PC 로컬 수집(UIA)
+
+원격 Windows PC를 쓸 수 없거나 사람이 쓰는 조정실 PC를 방해하지 않고 수집해야 하면 현재 프로젝트의 `scripts/cretop_local.py`를 사용한다. 이 실행기는 전용 프로필의 실제 Chrome을 별도의 숨은 Windows 데스크톱(`cretop-hidden`)에서 띄우고 Windows UI Automation(Invoke·SetValue·Toggle·TextPattern)으로 Windows agent와 같은 화면을 읽는다. 숨은 데스크톱 안에서는 Chrome이 활성 창이라 셀렉트 박스·포커스가 정상 동작하고, 사람 데스크톱의 창·포커스·마우스·키보드·클립보드에는 아무 영향이 없다.
+
+- CRETOP은 Playwright·CDP로 띄운 브라우저를 서버 검사(dynaPath)로 거부하고 `페이지가 만료되었습니다 [8004]`를 돌려준다. headless·DOM 방식 runner를 다시 시도하지 않는다.
+- 사람 데스크톱의 창을 화면 밖에 두거나 포커스를 줬다가 되돌리는 방식은 쓰지 않는다. 셀렉트 박스는 활성 창에서만 열리므로 그 방식은 사람의 포커스를 반복해서 뺏는다(2026-09-11 확인).
+- 로그인은 프로필의 로그인 유지와 `.env`의 `CRETOP_ID`·`CRETOP_PW`로 실행기가 처리한다(시간연장·재로그인·로그인 확인·KODATA 안내·동시접속 창을 Windows agent preflight와 같은 순서로 닫는다). 그래도 안 되면 `stop_reason=login_required`로 멈추고, `login` 명령이 사람 데스크톱에 전용 창을 띄워 사람이 로그인한다. 다음 수집 실행은 그 창을 닫고 숨은 데스크톱에서 다시 띄운다.
+- 화면 marker와 검색 결과 판정은 `cretop_agent`의 같은 함수를 재사용한다. 링크 이름·automation id는 `scripts/cretop_local.py`가 정본이며 스킬에 복사하지 않는다.
+- 결과 JSON은 Windows agent `collect-batch` 결과와 같은 모양이라 같은 `remote-batch-fetch`가 품질검사와 중앙 저장을 맡는다. `mode`가 로컬 결과이면 원격 작업 정리를 건너뛴다.
+- 배치 도중 한 회사가 실패하면 실패 화면 본문을 남기고 멈춘다. 다음 실행은 새 `run-id`로 시작한다.
+
+조정실 PC의 실행본은 `C:\cretop-agent\cretop_local.py`(`cretop_agent.py`와 같은 폴더, 저장소 `scripts/`와 같은 파일)이고, 데이터는 `C:\cretop-local\{chrome-profile,inbox,outbox}`다. Python은 `C:\cretop-agent\.venv`를 쓴다.
+
+```bash
+# 1. 운영 서버: payload만 만든다(원격 Windows 시작 없음)
+uv run python -m scripts.cretop_detail_collection \
+  batch-payload \
+  --target-source mortgage \
+  --limit <approved-limit> \
+  --run-id <run-id>
+# 2. 조정실 PC: payload를 C:\cretop-local\inbox\ 로 복사한 뒤 실행
+C:\cretop-agent\.venv\Scripts\python.exe C:\cretop-agent\cretop_local.py collect \
+  --run-id <run-id> --payload-file C:\cretop-local\inbox\<run-id>_payload.json
+# 3. 운영 서버: 결과를 같은 run-id의 증거 디렉터리에 넣고 저장
+#    (C:\cretop-local\outbox\<run-id>.json → docs/cretop/detail_collection/<run-id>/<run-id>_remote_result.json)
+uv run python -m scripts.cretop_detail_collection \
+  remote-batch-fetch \
+  --run-id <run-id>
+```
+
+검증된 한 회사 payload는 위 「단일 기업 전체 수집·검증·저장」의 계약과 같고 `mortgage_target_id`를 포함할 수 있다.
+
+지역·업종 회사 목록도 같은 실행기의 `company-list` 명령으로 수집한다. payload는 「지역·업종 회사 목록 전체 수집」의 계약과 같고, 결과는 Windows agent `company-list` 결과와 같은 모양(`collector`만 로컬 표시)이라 같은 `remote-company-list-fetch`가 완전성 검사·`company` 저장·`MortgageTarget` 등록을 맡는다. 시군구 합산 규칙은 `cretop_agent`의 같은 표를 재사용한다.
+
+```bash
+C:\cretop-agent\.venv\Scripts\python.exe C:\cretop-agent\cretop_local.py company-list \
+  --run-id <run-id> --payload-file C:\cretop-local\inbox\<run-id>_payload.json
+# 결과를 서버 docs/cretop/detail_collection/<run-id>/<run-id>_remote_result.json 으로 복사한 뒤
+uv run python -m scripts.cretop_detail_collection remote-company-list-fetch --run-id <run-id>
+```
+
+- 조건 패널은 한 번 쓴 뒤 상태가 남아 같은 값을 다시 고르면 조건이 잡히지 않는다. 실행기는 시군구 검색마다 페이지를 새로 읽고, 시도·시군구 모두 다른 값을 거쳐 실제로 값이 바뀌게 한 뒤 고른다.
+- 조건이 걸렸는지는 패널과 결과 화면의 '선택 조건' 글자로 확인한다. 셀렉트 값이나 체크 상태를 믿지 않는다.
+- 검증 실행 ID와 건수는 GBrain `project/ceoloan-cretop-local-path`와 `project/ceoloan-mortgage-target-path`가 소유한다.
 
 ## 배치 수집과 저장
 
