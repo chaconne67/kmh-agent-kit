@@ -1,4 +1,4 @@
-# kmh-agent-kit installer for Windows PowerShell, Command Prompt, and Git Bash.
+﻿# kmh-agent-kit installer for Windows PowerShell, Command Prompt, and Git Bash.
 # Directories use junctions and files use hardlinks, so no Developer Mode is required.
 
 [CmdletBinding()]
@@ -156,12 +156,12 @@ function Link-Entry {
     if (Test-Path -LiteralPath $Link) {
         $existing = Get-Item -LiteralPath $Link -Force
         if ($existing.LinkType -eq 'Junction' -and $existing.Target -and
-            ($existing.Target[0]).TrimEnd('\') -eq $target.TrimEnd('\')) { return }
+            (@($existing.Target)[0]).TrimEnd('\') -eq $target.TrimEnd('\')) { return }
 
         if ($existing.LinkType -eq 'Junction') {
             [System.IO.Directory]::Delete($Link)
         } elseif ($existing.LinkType -eq 'HardLink' -and -not $targetIsDir -and
-                  (Get-FileHash -LiteralPath $Link).Hash -eq (Get-FileHash -LiteralPath $target).Hash) {
+                  [System.Linq.Enumerable]::SequenceEqual([byte[]][System.IO.File]::ReadAllBytes($Link), [byte[]][System.IO.File]::ReadAllBytes($target))) {
             # Git checkout은 원본 inode를 바꿀 수 있다. 내용이 같아도 매번 현재 원본에 다시 건다.
             [System.IO.File]::Delete($Link)
         } else {
@@ -198,7 +198,7 @@ function Link-Profile {
             $existing = Get-Item -LiteralPath $linkPath -Force
             $skillsRoot = (Join-Path $repoDir 'skills').TrimEnd('\')
             $managed = $existing.LinkType -eq 'Junction' -and $existing.Target -and
-                ($existing.Target[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')
+                (@($existing.Target)[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')
             if (-not $managed) {
                 Write-Host "  Hermes 기존 스킬 유지: $linkPath"
                 $linked[$entry.Name] = $true
@@ -212,7 +212,7 @@ function Link-Profile {
     $skillsRoot = (Join-Path $repoDir 'skills').TrimEnd('\')
     foreach ($liveEntry in Get-ChildItem -LiteralPath $Live -Force) {
         if ($liveEntry.LinkType -ne 'Junction' -or $linked.ContainsKey($liveEntry.Name)) { continue }
-        if ($liveEntry.Target -and ($liveEntry.Target[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')) {
+        if ($liveEntry.Target -and (@($liveEntry.Target)[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')) {
             [System.IO.Directory]::Delete($liveEntry.FullName)
             Write-Host "  remove stale: $($liveEntry.FullName)"
         }
@@ -226,7 +226,7 @@ function Remove-KitSkillLinks {
     $skillsRoot = (Join-Path $repoDir 'skills').TrimEnd('\')
     foreach ($entry in Get-ChildItem -LiteralPath $Live -Force) {
         if ($entry.LinkType -ne 'Junction' -or -not $entry.Target) { continue }
-        if (($entry.Target[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')) {
+        if ((@($entry.Target)[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')) {
             [System.IO.Directory]::Delete($entry.FullName)
             Write-Host "  remove legacy Codex user skill: $($entry.FullName)"
         }
@@ -449,7 +449,7 @@ function Install-AgentCard {
         throw "[error] 등록되지 않은 에이전트: $AgentName"
     }
     Link-Entry -Target $card -Link (Join-Path $homeDir '.gbrain-agent.md')
-    if ($AgentName -ne 'main') {
+    if ($AgentName -notin 'main', 'windows-control') {
         $commandDir = Join-Path $homeDir '.local\bin'
         $proxy = Join-Path $repoDir 'gbrain\bin\gbrain-remote-proxy'
         Link-Entry -Target $proxy -Link (Join-Path $commandDir "gbrain-$AgentName")
@@ -475,7 +475,11 @@ function Assert-Install {
         if ($LASTEXITCODE -ne 0 -or $savedAgent -ne $AgentName) {
             throw "[error] 등록 이름 저장 검증 실패: $AgentName"
         }
-        if ($AgentName -ne 'main') {
+        if ($AgentName -eq 'windows-control') {
+            $gbrainHost = if ($env:GBRAIN_HOST) { $env:GBRAIN_HOST } else { 'chaconne@49.247.45.243' }
+            & ssh $gbrainHost '/home/chaconne/.gbrain/bin/gbrain_with_google_env.sh get agent/gbrain-operating-protocol --source default' | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw '[error] GBrain 공용 문서 조회 검증 실패' }
+        } elseif ($AgentName -ne 'main') {
             $wrapper = Join-Path $homeDir ".local\bin\gbrain-$AgentName"
             if ((Get-Item -LiteralPath $wrapper -Force).LinkType -ne 'HardLink') {
                 throw "[error] GBrain 프록시 하드링크 검증 실패: $wrapper"

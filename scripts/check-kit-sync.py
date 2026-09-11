@@ -71,6 +71,7 @@ class KitFixture:
             "README.md": "baseline\n",
             "common.txt": "base\n",
             "gbrain-cards/main.md": "main\n",
+            "gbrain-cards/windows-control.md": "windows-control\n",
             "gbrain-cards/rndlog.md": "rndlog\n",
             "projects/ceoloan/AGENTS.md": "ceoloan\n",
             "projects/rndlog/AGENTS.md": "rndlog\n",
@@ -335,6 +336,39 @@ class KitSyncTests(unittest.TestCase):
         pulled = repo_b / "projects" / "ceoloan" / "AGENTS.md"
         self.assertEqual(pulled.read_text(encoding="utf-8"), "central update\n")
 
+    def test_windows_control_pushes_all_domains_and_another_clone_pulls(self) -> None:
+        home_a, repo_a = self.fixture.clone("windows-control")
+        home_b, repo_b = self.fixture.clone()
+        paths = [
+            "projects/ceoloan/AGENTS.md",
+            "projects/exdigm/AGENTS.md",
+            "projects/fundkeeper/AGENTS.md",
+            "projects/rndlog/AGENTS.md",
+            "projects/ziin/AGENTS.md",
+            "skills/domains/rndlog/rndlog-design-system/SKILL.md",
+            "skills/domains/rndlog/rndlog/SKILL.md",
+        ]
+        for relative in paths:
+            target = repo_a / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("control tower update\n", encoding="utf-8")
+        run("git", "add", paths[0], cwd=repo_a)
+
+        self.fixture.kit(home_a, 'kitpush "control tower update"')
+        self.fixture.kit(home_b, "kitpull")
+
+        for relative in paths:
+            with self.subTest(path=relative):
+                self.assertEqual(
+                    (repo_b / relative).read_text(encoding="utf-8"),
+                    "control tower update\n",
+                )
+        self.assertEqual(run("git", "status", "--porcelain", cwd=repo_a).stdout, "")
+        self.assertEqual(
+            (home_a / "install.log").read_text(encoding="utf-8"),
+            "windows-control\n" * 2,
+        )
+
     def test_push_rebases_non_conflicting_remote_change(self) -> None:
         home_a, repo_a = self.fixture.clone()
         home_b, repo_b = self.fixture.clone()
@@ -375,6 +409,14 @@ class KitSyncTests(unittest.TestCase):
             run("git", "--git-dir", self.fixture.remote, "show", "main:common.txt").stdout,
             "remote\n",
         )
+
+
+@unittest.skipUnless(os.name == "nt", "Requires Windows PowerShell and Git Bash")
+class WindowsInstallerTests(unittest.TestCase):
+    def test_real_windows_installer_help(self) -> None:
+        result = run("bash", ROOT / "install.sh", "--help")
+        self.assertIn("최초 설치 또는 재연결", result.stdout)
+        self.assertIn("kitpush", result.stdout)
 
 
 class GBrainAccessTests(unittest.TestCase):

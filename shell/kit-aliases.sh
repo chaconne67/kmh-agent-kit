@@ -46,7 +46,7 @@ _kit_registered_agent() {
 _kit_domain_for_agent() {
   local agent="$1"
   case "$agent" in
-    main) printf '\n' ;;
+    main|windows-control) printf '\n' ;;
     fundkeeper) printf '%s\n' fundkeeper ;;
     *) printf '%s\n' "$agent" ;;
   esac
@@ -55,7 +55,7 @@ _kit_domain_for_agent() {
 _kit_path_allowed() {
   local path="$1" agent="$2" domain="$3"
 
-  [ "$agent" = main ] && return 0
+  [[ "$agent" = main || "$agent" = windows-control ]] && return 0
   case "$path" in
     gbrain-cards/*) [ "$path" = "gbrain-cards/$agent.md" ] ;;
     skills/domains/*) [ -n "$domain" ] && [[ "$path" == "skills/domains/$domain/"* ]] ;;

@@ -117,8 +117,8 @@ curl -fsSL https://raw.githubusercontent.com/chaconne67/kmh-agent-kit/main/insta
 
 - 두 명령은 항상 로컬 `main`과 `origin/main`만 사용합니다. 추적 브랜치가 없거나 잘못돼 있으면 `origin/main`으로 복구합니다.
 - `kitpull`: 작업 폴더가 깨끗할 때만 fast-forward한 뒤 등록 자산과 저장된 프로젝트 프로필을 실제 환경에 다시 연결합니다.
-- `kitpush`: 공용 파일, 현재 등록 이름의 카드, 매칭 도메인만 커밋·push합니다. `main` 등록은 중앙 조정 역할이므로 모든 도메인을 다룰 수 있습니다.
-- 다른 도메인의 변경이 함께 있으면 `kitpush`는 변경 경로를 표시하고 중단합니다.
+- `kitpush`: 공용 파일, 현재 등록 이름의 카드, 매칭 도메인만 커밋·push합니다. `main`과 `windows-control` 등록은 중앙 조정 역할이므로 모든 도메인을 다룰 수 있습니다.
+- 프로젝트 전용 등록에 다른 도메인의 변경이 함께 있으면 `kitpush`는 변경 경로를 표시하고 중단합니다.
 - 원격 변경이 먼저 있으면 `kitpush`가 로컬 커밋을 `origin/main` 위에 재배치합니다. 충돌하면 재배치를 취소하고 로컬 커밋을 보존한 채 중단합니다.
 
 ### 신규 등록 작동 원리

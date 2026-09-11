@@ -1,20 +1,28 @@
 # RNDLOG 중앙 조정실
 
+## Windows 조정실
+
+- 작업 위치: `C:\Users\chaconne\projects\rndlog`. 코드·Git·검증·배포는 아래 원격 서버의 기존 경로를 사용합니다.
+- 새 세션은 대화 이식 없이 `~/.gbrain-agent.md`의 현재 래퍼로 공용 `project/rndlog-operating-context`를 먼저 읽습니다.
+- GBrain은 전역 컨트롤타워 카드의 공용 조회 경로로 `project/rndlog-operating-context`를 읽습니다. GBrain 본체는 DB 서버에 유지합니다.
+- 아래 Linux 경로와 명령은 명시된 원격 호스트의 셸에서 실행합니다. Windows에 운영 코드를 복제하지 않습니다.
+
+
 ## 역할
 
 - 이 폴더는 RNDLOG의 중앙 컨트롤타워입니다.
-- 고객사 원천자료, 회사별 리서치, DOCX 보고서 작업본과 산출물은 이 폴더에서만 관리합니다.
-- RNDLOG 도메인 스킬은 메인서버의 `kmh-agent-kit/skills/domains/rndlog/`가 정본입니다.
+- 로컬 `companies/`·`resources/`는 DB 자료를 복사한 준비본입니다. 운영 업로드의 저장 정본과 게이트웨이는 아직 DB에 있으므로 로컬 사본으로 정본을 대체하거나 자동 동기화하지 않습니다.
+- 로컬 스킬은 `C:\Users\chaconne\kmh-agent-kit\skills\domains\rndlog`에 연결합니다.
 - 운영서버는 웹서비스 코드와 런타임만 운영하며 고객사 자료나 산출물의 정본으로 사용하지 않습니다.
 
 ## 정본
 
 | 항목 | 값 |
 |---|---|
-| 컨트롤타워 | 메인서버 `/home/chaconne/projects/rndlog` |
-| 고객사 작업공간 | `/home/chaconne/projects/rndlog/companies/<정식 회사명>/` |
-| 공통 제작 자원 | `/home/chaconne/projects/rndlog/resources/` |
-| 스킬 정본 | `/home/chaconne/kmh-agent-kit/skills/domains/rndlog/` |
+| 컨트롤타워 | Windows `C:\Users\chaconne\projects\rndlog` |
+| 운영 업로드·고객자료 정본(DB, 미전환) | `/home/chaconne/projects/rndlog/companies/<정식 회사명>/` |
+| 공통 제작 자원(DB 원본) | `/home/chaconne/projects/rndlog/resources/` |
+| 로컬 스킬 | `C:\Users\chaconne\kmh-agent-kit\skills\domains\rndlog` |
 | 운영서버 SSH | `chaconne@49.247.207.147` (`rndlog`) |
 | 운영 코드 | `/home/chaconne/rndlog` |
 | 호환 경로 | `/home/work/rndnote` → 실제 저장소 |
@@ -43,7 +51,7 @@
 
 ## 작업 전 GBrain
 
-GBrain은 중앙 서버에서 사용합니다. `~/.gbrain-agent.md`를 먼저 읽고 다음 문서를 확인합니다.
+GBrain 본체는 DB에 유지합니다. 로컬 카드의 프록시로 다음 공용 문서를 읽습니다. 고객자료 저장 위치는 `project/rndlog-file-upload-storage`를 함께 확인합니다.
 
 - `project/rndlog-operating-context`
 - 작업 기능명·화면명·모델명으로 찾은 관련 페이지
@@ -74,7 +82,7 @@ GBrain은 중앙 서버에서 사용합니다. `~/.gbrain-agent.md`를 먼저 �
 - 관련 테스트: `/home/chaconne/rndlog/.venv/bin/pytest <대상>`
 - 템플릿 변경은 Tailwind 빌드와 `collectstatic` 후 실제 화면을 확인합니다.
 - 제품 화면은 `rndlog-design-system` 스킬에 따라 모바일·데스크톱과 상호작용 상태를 확인합니다.
-- 고객사 보고서는 `resources/templates/design-report-reference.docx`의 스타일만 참조해 DOCX로 생성합니다.
+- 고객사 DOCX는 `rndlog` 스킬의 견적서 원본·파생 샘플 디자인을 적용하고 표 머리글 배경색만 짙은 네이비 또는 회색으로 바꿉니다.
 - DOCX의 본문·표·머리말·꼬리말·패키지 무결성과 샘플 placeholder 잔존 여부를 확인합니다.
 - 운영 확인은 `https://rndlog.kr` 응답과 `Rndnote_app`, `Rndnote_nginx`의 `1/1` 상태를 사용합니다.
 - 검증하지 못한 항목을 통과했다고 보고하지 않습니다.
@@ -90,10 +98,15 @@ GBrain은 중앙 서버에서 사용합니다. `~/.gbrain-agent.md`를 먼저 �
 - 원격 저장소의 기존 변경과 미추적 파일을 삭제하거나 덮어쓰지 않습니다.
 - 고객사 자료, 리서치, 보고서 작업본과 산출물을 운영서버에 새로 저장하지 않습니다.
 - 기존 HTML/PDF 산출물을 임의로 다른 폴더로 옮기거나 숨기지 않습니다.
-- 연구소·연구원·연구개요·실제 활동자료가 부족하면 대체용 검토 보고서를 포함한 R&D 산출물을 만들지 않습니다.
+- 자료 누락은 고객 입력란과 보완 목록으로 남기고 조사·과제 설계·문서 초안을 계속 작성합니다. 제안 활동과 예상 결과는 고객 확인 전 실제 수행·측정 사실로 표시하지 않습니다.
 
 ## Git 경계
 
 - 원격 저장소와 SSH 인증이 Git 작업의 정본입니다.
 - 기준 브랜치는 `main`이고 GitHub 저장소 이름은 아직 `rndnote`입니다.
 - 강제 push, 운영 파일 복사 배포, 일부 변경만 숨긴 부분 배포를 하지 않습니다.
+
+## RNDLOG 작성 계약 — 2026-09-08
+
+- 월간 연구노트·주간 연구일지·주간 업무일지는 별도 문서입니다.
+- 검증한 고객 검토용 DOCX는 보완 목록과 함께 전달할 수 있습니다. 고객 사실 확인까지 끝난 문서만 final/에 확정합니다.

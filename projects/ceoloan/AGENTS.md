@@ -1,5 +1,13 @@
 # CEO Loan 중앙 조정실
 
+## Windows 조정실
+
+- 작업 위치: `C:\Users\chaconne\projects\ceoloan`. 코드·Git·검증·배포는 아래 원격 서버의 기존 경로를 사용합니다.
+- 새 세션은 대화 이식 없이 `~/.gbrain-agent.md`의 현재 래퍼로 공용 `project/ceoloan-operating-context`를 먼저 읽습니다.
+- GBrain은 전역 컨트롤타워 카드의 공용 조회 경로로 `project/ceoloan-operating-context`를 읽습니다. GBrain 본체는 DB 서버에 유지합니다.
+- 아래 Linux 경로와 명령은 명시된 원격 호스트의 셸에서 실행합니다. Windows에 운영 코드를 복제하지 않습니다.
+
+
 ## 역할
 
 - 이 폴더는 CEO Loan의 에이전트 지침·고유 스킬·장기 기억만 관리합니다.
@@ -39,10 +47,10 @@
 
 ## 작업 전 GBrain
 
-GBrain은 중앙 서버에서만 사용합니다. `~/.gbrain-agent.md`를 먼저 읽고 다음 순서로 확인합니다.
+GBrain 본체는 DB에 있으며 로컬 카드의 승인된 SSH 프록시를 사용합니다. 다음 순서로 확인합니다.
 
-1. `~/.gbrain/bin/gbrain_with_google_env.sh get project/ceoloan-operating-context`
-2. `gbrain-ceoloan query "ceoloan <작업 기능·화면·모델·오류>"`
+1. 전역 카드의 공용 조회 명령으로 `project/ceoloan-operating-context`를 읽습니다.
+2. 같은 카드의 공용 검색 명령으로 `ceoloan <작업 기능·화면·모델·오류>`를 검색합니다.
 3. 검색 결과의 프로젝트 개요·구조·배포 런북과 작업 관련 페이지
 
 GBrain은 과거 맥락이고 현재 코드와 서버가 최종 기준입니다.

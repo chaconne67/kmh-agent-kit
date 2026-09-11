@@ -1,5 +1,13 @@
 # Exdigm 중앙 조정실
 
+## Windows 조정실
+
+- 작업 위치: `C:\Users\chaconne\projects\exdigm`. 코드·Git·검증·배포는 아래 원격 서버의 기존 경로를 사용합니다.
+- 새 세션은 대화 이식 없이 `~/.gbrain-agent.md`의 현재 래퍼로 공용 `project/exdigm-operating-context`를 먼저 읽습니다.
+- GBrain은 전역 컨트롤타워 카드의 공용 조회 경로로 `project/exdigm-operating-context`를 읽습니다. GBrain 본체는 DB 서버에 유지합니다.
+- 아래 Linux 경로와 명령은 명시된 원격 호스트의 셸에서 실행합니다. Windows에 운영 코드를 복제하지 않습니다.
+
+
 ## 역할
 
 - 이 폴더는 Exdigm의 에이전트 지침·스킬·GBrain 연결 정보만 관리합니다.
@@ -29,7 +37,7 @@
 
 ## 작업 전 GBrain
 
-GBrain은 중앙 서버에서만 사용합니다. `~/.gbrain-agent.md`를 먼저 읽고 다음 정본을 확인합니다.
+로컬 `~/.gbrain-agent.md`의 SSH 프록시로 DB의 공용 GBrain에서 다음 정본을 확인합니다.
 
 - `project/exdigm-operating-context`
 - `project/exdigm-deploy-workflow`
