@@ -210,9 +210,14 @@ function Link-Profile {
     }
 
     $skillsRoot = (Join-Path $repoDir 'skills').TrimEnd('\')
+    $profileRoot = ([System.IO.Path]::GetFullPath($Profile)).TrimEnd('\')
+    $skillsPrefix = $skillsRoot + [System.IO.Path]::DirectorySeparatorChar
+    $profilePrefix = $profileRoot + [System.IO.Path]::DirectorySeparatorChar
     foreach ($liveEntry in Get-ChildItem -LiteralPath $Live -Force) {
         if ($liveEntry.LinkType -ne 'Junction' -or $linked.ContainsKey($liveEntry.Name)) { continue }
-        if ($liveEntry.Target -and (@($liveEntry.Target)[0]).StartsWith($skillsRoot, 'OrdinalIgnoreCase')) {
+        $target = if ($liveEntry.Target) { @($liveEntry.Target)[0] } else { '' }
+        if ($target.StartsWith($skillsPrefix, 'OrdinalIgnoreCase') -or
+            $target.StartsWith($profilePrefix, 'OrdinalIgnoreCase')) {
             [System.IO.Directory]::Delete($liveEntry.FullName)
             Write-Host "  remove stale: $($liveEntry.FullName)"
         }
